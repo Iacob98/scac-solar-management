@@ -223,6 +223,39 @@ export default function ProjectDetail({ projectId, selectedFirm, onBack }: Proje
 
         <TabsContent value="overview" className="space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* Информация о клиенте установки */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center">
+                  <MapPin className="h-5 w-5 mr-2" />
+                  Клиент установки
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                {project.installationPersonFirstName && project.installationPersonLastName ? (
+                  <>
+                    <div>
+                      <p className="text-sm text-gray-600">Имя и фамилия</p>
+                      <p className="font-medium">{project.installationPersonFirstName} {project.installationPersonLastName}</p>
+                    </div>
+                    {project.installationPersonAddress && (
+                      <div>
+                        <p className="text-sm text-gray-600">Адрес установки</p>
+                        <p className="font-medium">{project.installationPersonAddress}</p>
+                      </div>
+                    )}
+                    {project.installationPersonUniqueId && (
+                      <div>
+                        <p className="text-sm text-gray-600">Уникальный ID</p>
+                        <p className="font-medium">{project.installationPersonUniqueId}</p>
+                      </div>
+                    )}
+                  </>
+                ) : (
+                  <p className="text-gray-500">Информация не указана</p>
+                )}
+              </CardContent>
+            </Card>
             {/* Project Info */}
             <Card>
               <CardHeader>

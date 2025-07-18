@@ -111,6 +111,11 @@ export const projects = pgTable("projects", {
   notes: text("notes"),
   invoiceNumber: varchar("invoice_number"),
   invoiceUrl: varchar("invoice_url"),
+  // Информация о человеке, у которого делается установка
+  installationPersonFirstName: varchar("installation_person_first_name"),
+  installationPersonLastName: varchar("installation_person_last_name"),
+  installationPersonAddress: text("installation_person_address"),
+  installationPersonUniqueId: varchar("installation_person_unique_id"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });

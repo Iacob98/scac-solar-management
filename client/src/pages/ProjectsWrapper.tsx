@@ -29,7 +29,10 @@ type ViewMode = 'list' | 'detail' | 'services';
 
 const projectFormSchema = insertProjectSchema.extend({
   startDate: z.string(),
-  endDate: z.string().optional(),
+  installationPersonFirstName: z.string().min(1, 'Имя обязательно'),
+  installationPersonLastName: z.string().min(1, 'Фамилия обязательна'),
+  installationPersonAddress: z.string().min(1, 'Адрес обязателен'),
+  installationPersonUniqueId: z.string().min(1, 'Уникальный ID обязателен'),
 });
 
 const statusLabels = {
@@ -94,10 +97,11 @@ function ProjectsList({ selectedFirm, onViewProject, onManageServices }: { selec
       clientId: 0,
       crewId: 0,
       startDate: '',
-      endDate: '',
       status: 'planning' as const,
-      teamNumber: '',
-      notes: '',
+      installationPersonFirstName: '',
+      installationPersonLastName: '',
+      installationPersonAddress: '',
+      installationPersonUniqueId: '',
     },
   });
 
@@ -287,15 +291,61 @@ function ProjectsList({ selectedFirm, onViewProject, onManageServices }: { selec
                   />
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="startDate"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Дата начала</FormLabel>
+                      <FormControl>
+                        <Input type="date" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <div className="space-y-4">
+                  <h3 className="text-lg font-semibold">Информация о клиенте установки</h3>
+                  
+                  <div className="grid grid-cols-2 gap-4">
+                    <FormField
+                      control={form.control}
+                      name="installationPersonFirstName"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Имя</FormLabel>
+                          <FormControl>
+                            <Input placeholder="Имя клиента" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="installationPersonLastName"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Фамилия</FormLabel>
+                          <FormControl>
+                            <Input placeholder="Фамилия клиента" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+
                   <FormField
                     control={form.control}
-                    name="startDate"
+                    name="installationPersonAddress"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Дата начала</FormLabel>
+                        <FormLabel>Адрес установки</FormLabel>
                         <FormControl>
-                          <Input type="date" {...field} />
+                          <Textarea placeholder="Полный адрес для установки солнечных панелей" {...field} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -304,46 +354,18 @@ function ProjectsList({ selectedFirm, onViewProject, onManageServices }: { selec
 
                   <FormField
                     control={form.control}
-                    name="endDate"
+                    name="installationPersonUniqueId"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Дата окончания</FormLabel>
+                        <FormLabel>Уникальный ID клиента</FormLabel>
                         <FormControl>
-                          <Input type="date" {...field} />
+                          <Input placeholder="Например: CLI-001234" {...field} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
                     )}
                   />
                 </div>
-
-                <FormField
-                  control={form.control}
-                  name="teamNumber"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Номер команды</FormLabel>
-                      <FormControl>
-                        <Input placeholder="Например: Команда-1" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="notes"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Описание проекта</FormLabel>
-                      <FormControl>
-                        <Textarea placeholder="Дополнительная информация о проекте" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
 
                 <div className="flex justify-end space-x-2">
                   <Button type="button" variant="outline" onClick={() => setIsCreateDialogOpen(false)}>
