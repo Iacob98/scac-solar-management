@@ -398,12 +398,27 @@ function ProjectsList({ selectedFirm, onViewProject, onManageServices }: { selec
                     Отмена
                   </Button>
                   <Button 
-                    type="submit" 
+                    type="button" 
                     disabled={createProjectMutation.isPending}
-                    onClick={(e) => {
+                    onClick={async () => {
                       console.log('Submit button clicked');
-                      e.preventDefault();
-                      form.handleSubmit(onSubmit)();
+                      
+                      // Получаем данные формы напрямую
+                      const formData = form.getValues();
+                      console.log('Form data:', formData);
+                      
+                      // Проверяем валидность
+                      const isValid = await form.trigger();
+                      console.log('Form is valid:', isValid);
+                      console.log('Form errors:', form.formState.errors);
+                      
+                      if (!isValid) {
+                        console.log('Form validation failed');
+                        return;
+                      }
+                      
+                      // Вызываем функцию отправки
+                      await onSubmit(formData);
                     }}
                   >
                     {createProjectMutation.isPending ? 'Создание...' : 'Создать проект'}
