@@ -26,7 +26,7 @@ export default function Invoices() {
   const queryClient = useQueryClient();
   const [selectedFirmId, setSelectedFirmId] = useState<string>('');
   const [filters, setFilters] = useState({
-    status: '',
+    status: 'all',
     dateFrom: '',
     dateTo: '',
   });
@@ -115,11 +115,13 @@ export default function Invoices() {
   };
 
   const filteredInvoices = invoices.filter((invoice: any) => {
-    if (filters.status === 'paid' && !invoice.isPaid) return false;
-    if (filters.status === 'unpaid' && invoice.isPaid) return false;
-    if (filters.status === 'overdue') {
-      const isOverdue = new Date(invoice.dueDate) < new Date() && !invoice.isPaid;
-      if (!isOverdue) return false;
+    if (filters.status && filters.status !== 'all') {
+      if (filters.status === 'paid' && !invoice.isPaid) return false;
+      if (filters.status === 'unpaid' && invoice.isPaid) return false;
+      if (filters.status === 'overdue') {
+        const isOverdue = new Date(invoice.dueDate) < new Date() && !invoice.isPaid;
+        if (!isOverdue) return false;
+      }
     }
     return true;
   });
@@ -206,7 +208,7 @@ export default function Invoices() {
                   <SelectValue placeholder="Alle Status" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Alle Status</SelectItem>
+                  <SelectItem value="all">Alle Status</SelectItem>
                   <SelectItem value="paid">Bezahlt</SelectItem>
                   <SelectItem value="unpaid">Unbezahlt</SelectItem>
                   <SelectItem value="overdue">Überfällig</SelectItem>

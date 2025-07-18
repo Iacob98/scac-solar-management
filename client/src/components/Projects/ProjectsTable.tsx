@@ -132,9 +132,9 @@ export function ProjectsTable({ firmId, filters }: ProjectsTableProps) {
   };
 
   const filteredProjects = projects.filter((project: any) => {
-    if (filters.clientId && project.clientId.toString() !== filters.clientId) return false;
-    if (filters.status && project.status !== filters.status) return false;
-    if (filters.crewId && project.crewId?.toString() !== filters.crewId) return false;
+    if (filters.clientId && filters.clientId !== 'all' && project.clientId.toString() !== filters.clientId) return false;
+    if (filters.status && filters.status !== 'all' && project.status !== filters.status) return false;
+    if (filters.crewId && filters.crewId !== 'all' && project.crewId?.toString() !== filters.crewId) return false;
     if (filters.startDate && project.startDate < filters.startDate) return false;
     if (filters.endDate && project.endDate > filters.endDate) return false;
     return true;

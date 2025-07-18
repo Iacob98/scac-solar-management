@@ -43,7 +43,7 @@ export function FilterPanel({ firmId, filters, onFilterChange }: FilterPanelProp
                 <SelectValue placeholder="Alle Kunden" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">Alle Kunden</SelectItem>
+                <SelectItem value="all">Alle Kunden</SelectItem>
                 {clients.map((client: any) => (
                   <SelectItem key={client.id} value={client.id.toString()}>
                     {client.name}
@@ -60,7 +60,7 @@ export function FilterPanel({ firmId, filters, onFilterChange }: FilterPanelProp
                 <SelectValue placeholder="Alle Status" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">Alle Status</SelectItem>
+                <SelectItem value="all">Alle Status</SelectItem>
                 <SelectItem value="in_progress">In Bearbeitung</SelectItem>
                 <SelectItem value="done">Abgeschlossen</SelectItem>
                 <SelectItem value="invoiced">Fakturiert</SelectItem>
@@ -76,7 +76,7 @@ export function FilterPanel({ firmId, filters, onFilterChange }: FilterPanelProp
                 <SelectValue placeholder="Alle Crews" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">Alle Crews</SelectItem>
+                <SelectItem value="all">Alle Crews</SelectItem>
                 {crews.map((crew: any) => (
                   <SelectItem key={crew.id} value={crew.id.toString()}>
                     {crew.name}

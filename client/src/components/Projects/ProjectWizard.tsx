@@ -150,7 +150,7 @@ export function ProjectWizard({ isOpen, onClose, firmId }: ProjectWizardProps) {
       ...data,
       firmId,
       clientId: parseInt(data.clientId),
-      crewId: data.crewId ? parseInt(data.crewId) : null,
+      crewId: data.crewId && data.crewId !== 'none' ? parseInt(data.crewId) : null,
     });
   };
 
@@ -299,7 +299,7 @@ export function ProjectWizard({ isOpen, onClose, firmId }: ProjectWizardProps) {
                         <SelectValue placeholder="Crew auswählen" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="">Später zuweisen</SelectItem>
+                        <SelectItem value="none">Später zuweisen</SelectItem>
                         {crews.filter((c: any) => !c.archived).map((crew: any) => (
                           <SelectItem key={crew.id} value={crew.id.toString()}>
                             {crew.name}

@@ -13,20 +13,31 @@ export default function Projects() {
   const [selectedFirmId, setSelectedFirmId] = useState<string>('');
   const [isWizardOpen, setIsWizardOpen] = useState(false);
   const [filters, setFilters] = useState({
-    clientId: '',
-    status: '',
-    crewId: '',
+    clientId: 'all',
+    status: 'all',
+    crewId: 'all',
     startDate: '',
     endDate: '',
   });
 
   useEffect(() => {
-    // Get selected firm from localStorage
+    // Get selected firm from localStorage  
     const firmId = localStorage.getItem('selectedFirmId');
     if (firmId) {
       setSelectedFirmId(firmId);
     }
-  }, []);
+    
+    // Listen for storage changes to update when firm selection changes
+    const handleStorageChange = () => {
+      const newFirmId = localStorage.getItem('selectedFirmId');
+      if (newFirmId && newFirmId !== selectedFirmId) {
+        setSelectedFirmId(newFirmId);
+      }
+    };
+    
+    window.addEventListener('storage', handleStorageChange);
+    return () => window.removeEventListener('storage', handleStorageChange);
+  }, [selectedFirmId]);
 
   const handleFilterChange = (key: string, value: string) => {
     setFilters(prev => ({ ...prev, [key]: value }));
