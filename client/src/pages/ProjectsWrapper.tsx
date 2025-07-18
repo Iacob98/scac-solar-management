@@ -28,7 +28,9 @@ interface ProjectsWrapperProps {
 type ViewMode = 'list' | 'detail' | 'services';
 
 const projectFormSchema = insertProjectSchema.extend({
-  startDate: z.string(),
+  startDate: z.string().min(1, 'Дата начала обязательна'),
+  clientId: z.number().min(1, 'Выберите клиента'),
+  crewId: z.number().min(1, 'Выберите бригаду'),
   installationPersonFirstName: z.string().min(1, 'Имя обязательно'),
   installationPersonLastName: z.string().min(1, 'Фамилия обязательна'),
   installationPersonAddress: z.string().min(1, 'Адрес обязателен'),
@@ -94,8 +96,8 @@ function ProjectsList({ selectedFirm, onViewProject, onManageServices }: { selec
     defaultValues: {
       firmId: selectedFirm,
       leiterId: user?.id || '',
-      clientId: 0,
-      crewId: 0,
+      clientId: undefined,
+      crewId: undefined,
       startDate: '',
       status: 'planning' as const,
       installationPersonFirstName: '',
@@ -182,6 +184,12 @@ function ProjectsList({ selectedFirm, onViewProject, onManageServices }: { selec
   const onSubmit = (data: z.infer<typeof projectFormSchema>) => {
     console.log('Form data:', data);
     console.log('Form errors:', form.formState.errors);
+    console.log('Form is valid:', form.formState.isValid);
+    
+    if (!form.formState.isValid) {
+      console.log('Form validation failed');
+      return;
+    }
     
     createProjectMutation.mutate({
       ...data,
@@ -244,6 +252,7 @@ function ProjectsList({ selectedFirm, onViewProject, onManageServices }: { selec
           <DialogContent className="max-w-2xl">
             <DialogHeader>
               <DialogTitle>Создание нового проекта</DialogTitle>
+              <p className="text-sm text-gray-600">Заполните форму для создания нового проекта установки солнечных панелей</p>
             </DialogHeader>
             <Form {...form}>
               <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
@@ -254,7 +263,7 @@ function ProjectsList({ selectedFirm, onViewProject, onManageServices }: { selec
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>Клиент</FormLabel>
-                        <Select onValueChange={(value) => field.onChange(parseInt(value))}>
+                        <Select onValueChange={(value) => field.onChange(parseInt(value))} value={field.value?.toString()}>
                           <FormControl>
                             <SelectTrigger>
                               <SelectValue placeholder="Выберите клиента" />
@@ -279,7 +288,7 @@ function ProjectsList({ selectedFirm, onViewProject, onManageServices }: { selec
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>Бригада</FormLabel>
-                        <Select onValueChange={(value) => field.onChange(parseInt(value))}>
+                        <Select onValueChange={(value) => field.onChange(parseInt(value))} value={field.value?.toString()}>
                           <FormControl>
                             <SelectTrigger>
                               <SelectValue placeholder="Выберите бригаду" />
