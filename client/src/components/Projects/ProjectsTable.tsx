@@ -1,24 +1,14 @@
 import { useState } from 'react';
-import { useI18n } from '@/hooks/useI18n';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useToast } from '@/hooks/use-toast';
 import { apiRequest } from '@/lib/queryClient';
-import { 
-  Table, 
-  TableBody, 
-  TableCell, 
-  TableHead, 
-  TableHeader, 
-  TableRow 
-} from '@/components/ui/table';
-import { Badge } from '@/components/ui/badge';
+import { useI18n } from '@/hooks/useI18n';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
-import { 
-  Edit, 
-  Folder, 
-  FileText, 
-  DollarSign
-} from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Edit, Eye, FileText, Calendar, User, Users, MapPin } from 'lucide-react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 
 interface ProjectsTableProps {
   firmId: string;
@@ -32,61 +22,68 @@ interface ProjectsTableProps {
 }
 
 export function ProjectsTable({ firmId, filters }: ProjectsTableProps) {
-  const { t, formatCurrency, formatDate } = useI18n();
+  const { t } = useI18n();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const [selectedProject, setSelectedProject] = useState<any>(null);
+  const [isDetailOpen, setIsDetailOpen] = useState(false);
 
   const { data: projects = [], isLoading } = useQuery({
-    queryKey: ['/api/projects', { firmId, ...filters }],
+    queryKey: ['/api/projects', firmId],
     enabled: !!firmId,
   });
 
   const { data: clients = [] } = useQuery({
-    queryKey: ['/api/clients', { firmId }],
+    queryKey: ['/api/clients', firmId],
     enabled: !!firmId,
   });
 
   const { data: crews = [] } = useQuery({
-    queryKey: ['/api/crews', { firmId }],
+    queryKey: ['/api/crews', firmId],
     enabled: !!firmId,
   });
 
-  const generateInvoiceMutation = useMutation({
-    mutationFn: async (projectId: number) => {
-      const response = await apiRequest('POST', '/api/invoices/create', { projectId });
+  const { data: services = [] } = useQuery({
+    queryKey: ['/api/services', selectedProject?.id],
+    enabled: !!selectedProject?.id,
+  });
+
+  const updateProjectMutation = useMutation({
+    mutationFn: async ({ id, status }: { id: number; status: string }) => {
+      const response = await apiRequest('PUT', `/api/projects/${id}`, { status });
       return response.json();
     },
     onSuccess: () => {
       toast({
-        title: t('success'),
-        description: 'Rechnung erfolgreich erstellt',
+        title: 'Erfolg',
+        description: 'Projektstatus wurde aktualisiert',
       });
       queryClient.invalidateQueries({ queryKey: ['/api/projects'] });
     },
-    onError: (error) => {
+    onError: (error: any) => {
       toast({
-        title: t('error'),
+        title: 'Fehler',
         description: error.message,
         variant: 'destructive',
       });
     },
   });
 
-  const markPaidMutation = useMutation({
-    mutationFn: async ({ invoiceNumber }: { invoiceNumber: string }) => {
-      const response = await apiRequest('PATCH', `/api/invoices/${invoiceNumber}/mark-paid?firmId=${firmId}`);
+  const createInvoiceMutation = useMutation({
+    mutationFn: async (projectId: number) => {
+      const response = await apiRequest('POST', '/api/invoices/create', { projectId });
       return response.json();
     },
     onSuccess: () => {
       toast({
-        title: t('success'),
-        description: 'Rechnung als bezahlt markiert',
+        title: 'Erfolg',
+        description: 'Rechnung wurde erfolgreich erstellt',
       });
       queryClient.invalidateQueries({ queryKey: ['/api/projects'] });
     },
-    onError: (error) => {
+    onError: (error: any) => {
       toast({
-        title: t('error'),
+        title: 'Fehler',
         description: error.message,
         variant: 'destructive',
       });
@@ -94,154 +91,252 @@ export function ProjectsTable({ firmId, filters }: ProjectsTableProps) {
   });
 
   const getStatusBadge = (status: string) => {
-    const statusMap = {
-      'in_progress': { label: t('inProgress'), variant: 'default' as const },
-      'done': { label: t('done'), variant: 'secondary' as const },
-      'invoiced': { label: t('invoiced'), variant: 'outline' as const },
-      'paid': { label: t('paid'), variant: 'destructive' as const },
+    const statusConfig = {
+      in_progress: { label: 'In Bearbeitung', variant: 'default' as const },
+      done: { label: 'Abgeschlossen', variant: 'secondary' as const },
+      invoiced: { label: 'Fakturiert', variant: 'outline' as const },
+      paid: { label: 'Bezahlt', variant: 'destructive' as const },
     };
-
-    const statusInfo = statusMap[status as keyof typeof statusMap];
-    return (
-      <Badge variant={statusInfo?.variant || 'default'}>
-        {statusInfo?.label || status}
-      </Badge>
-    );
+    const config = statusConfig[status as keyof typeof statusConfig] || statusConfig.in_progress;
+    return <Badge variant={config.variant}>{config.label}</Badge>;
   };
 
   const getClientName = (clientId: number) => {
     const client = clients.find((c: any) => c.id === clientId);
-    return client?.name || 'Unknown';
+    return client?.name || 'Unbekannt';
   };
 
   const getCrewName = (crewId: number) => {
     const crew = crews.find((c: any) => c.id === crewId);
-    return crew ? `${crew.name} - ${crew.leaderName}` : 'No crew assigned';
+    return crew?.name || 'Nicht zugewiesen';
   };
 
-  const canGenerateInvoice = (project: any) => {
-    return project.status === 'done' && !project.invoiceNumber;
+  const handleViewDetails = (project: any) => {
+    setSelectedProject(project);
+    setIsDetailOpen(true);
   };
 
-  const canMarkPaid = (project: any) => {
-    return project.status === 'invoiced' && project.invoiceNumber;
+  const handleStatusChange = (projectId: number, newStatus: string) => {
+    updateProjectMutation.mutate({ id: projectId, status: newStatus });
   };
+
+  const handleCreateInvoice = (projectId: number) => {
+    createInvoiceMutation.mutate(projectId);
+  };
+
+  const calculateProjectTotal = () => {
+    if (!services.length) return 0;
+    return services.reduce((total: number, service: any) => {
+      return total + (parseFloat(service.price) * parseFloat(service.quantity));
+    }, 0);
+  };
+
+  const filteredProjects = projects.filter((project: any) => {
+    if (filters.clientId && project.clientId.toString() !== filters.clientId) return false;
+    if (filters.status && project.status !== filters.status) return false;
+    if (filters.crewId && project.crewId?.toString() !== filters.crewId) return false;
+    if (filters.startDate && project.startDate < filters.startDate) return false;
+    if (filters.endDate && project.endDate > filters.endDate) return false;
+    return true;
+  });
 
   if (isLoading) {
     return (
-      <div className="bg-white rounded-lg shadow-sm border">
-        <div className="p-6">
-          <div className="animate-pulse space-y-4">
+      <Card>
+        <CardContent className="p-6">
+          <div className="space-y-4">
             {[...Array(5)].map((_, i) => (
-              <div key={i} className="h-16 bg-gray-200 rounded"></div>
+              <div key={i} className="h-16 bg-gray-200 rounded animate-pulse"></div>
             ))}
           </div>
-        </div>
-      </div>
+        </CardContent>
+      </Card>
     );
   }
 
   return (
-    <div className="bg-white rounded-lg shadow-sm border overflow-hidden">
-      <div className="overflow-x-auto">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>{t('projectId')}</TableHead>
-              <TableHead>{t('client')}</TableHead>
-              <TableHead>{t('startDate')}</TableHead>
-              <TableHead>{t('endDate')}</TableHead>
-              <TableHead>{t('crew')}</TableHead>
-              <TableHead>{t('amount')}</TableHead>
-              <TableHead>{t('status')}</TableHead>
-              <TableHead>{t('invoice')}</TableHead>
-              <TableHead>{t('actions')}</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {projects.map((project: any) => (
-              <TableRow key={project.id}>
-                <TableCell>
-                  <span className="font-medium text-primary">
-                    PROJ-{project.id}
-                  </span>
-                </TableCell>
-                <TableCell>
-                  <div>
-                    <p className="font-medium">{getClientName(project.clientId)}</p>
-                    <p className="text-sm text-gray-500">
-                      {clients.find((c: any) => c.id === project.clientId)?.address}
-                    </p>
-                  </div>
-                </TableCell>
-                <TableCell>
-                  {project.startDate ? formatDate(project.startDate) : '-'}
-                </TableCell>
-                <TableCell>
-                  {project.endDate ? formatDate(project.endDate) : '-'}
-                </TableCell>
-                <TableCell>
-                  {project.crewId ? getCrewName(project.crewId) : 'No crew assigned'}
-                </TableCell>
-                <TableCell>
-                  {formatCurrency(project.totalAmount || 0)}
-                </TableCell>
-                <TableCell>
-                  {getStatusBadge(project.status)}
-                </TableCell>
-                <TableCell>
-                  {project.invoiceNumber ? (
-                    <div className="flex items-center space-x-2">
-                      <span className="text-sm font-medium">{project.invoiceNumber}</span>
-                      {project.invoiceUrl && (
+    <>
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center space-x-2">
+            <FileText className="w-5 h-5" />
+            <span>Projekte ({filteredProjects.length})</span>
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Team Nr.</TableHead>
+                  <TableHead>Kunde</TableHead>
+                  <TableHead>Crew</TableHead>
+                  <TableHead>Zeitraum</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Aktionen</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {filteredProjects.map((project: any) => (
+                  <TableRow key={project.id}>
+                    <TableCell className="font-mono">
+                      {project.teamNumber || `PROJ-${project.id}`}
+                    </TableCell>
+                    <TableCell>{getClientName(project.clientId)}</TableCell>
+                    <TableCell>{getCrewName(project.crewId)}</TableCell>
+                    <TableCell>
+                      <div className="text-sm">
+                        <div>Start: {project.startDate ? new Date(project.startDate).toLocaleDateString('de-DE') : 'TBD'}</div>
+                        <div>Ende: {project.endDate ? new Date(project.endDate).toLocaleDateString('de-DE') : 'TBD'}</div>
+                      </div>
+                    </TableCell>
+                    <TableCell>{getStatusBadge(project.status)}</TableCell>
+                    <TableCell>
+                      <div className="flex space-x-2">
                         <Button
                           variant="ghost"
                           size="sm"
-                          onClick={() => window.open(project.invoiceUrl, '_blank')}
+                          onClick={() => handleViewDetails(project)}
                         >
-                          <FileText className="w-4 h-4" />
+                          <Eye className="w-4 h-4" />
                         </Button>
-                      )}
+                        {project.status === 'done' && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleCreateInvoice(project.id)}
+                            disabled={createInvoiceMutation.isPending}
+                          >
+                            <FileText className="w-4 h-4" />
+                          </Button>
+                        )}
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => {
+                            const nextStatus = {
+                              in_progress: 'done',
+                              done: 'invoiced',
+                              invoiced: 'paid',
+                            }[project.status];
+                            if (nextStatus) {
+                              handleStatusChange(project.id, nextStatus);
+                            }
+                          }}
+                          disabled={project.status === 'paid' || updateProjectMutation.isPending}
+                        >
+                          <Edit className="w-4 h-4" />
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+          {filteredProjects.length === 0 && (
+            <div className="text-center py-8 text-gray-500">
+              Keine Projekte gefunden. Erstellen Sie ein neues Projekt, um zu beginnen.
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Project Details Dialog */}
+      <Dialog open={isDetailOpen} onOpenChange={setIsDetailOpen}>
+        <DialogContent className="max-w-4xl">
+          <DialogHeader>
+            <DialogTitle>
+              Projekt Details - {selectedProject?.teamNumber || `PROJ-${selectedProject?.id}`}
+            </DialogTitle>
+          </DialogHeader>
+          {selectedProject && (
+            <div className="space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center space-x-2">
+                      <User className="w-5 h-5" />
+                      <span>Kunde</span>
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-2">
+                      <p><strong>Name:</strong> {getClientName(selectedProject.clientId)}</p>
+                      <p><strong>Status:</strong> {getStatusBadge(selectedProject.status)}</p>
                     </div>
-                  ) : (
-                    <span className="text-gray-400">-</span>
-                  )}
-                </TableCell>
-                <TableCell>
-                  <div className="flex space-x-2">
-                    {canGenerateInvoice(project) && (
-                      <Button
-                        size="sm"
-                        onClick={() => generateInvoiceMutation.mutate(project.id)}
-                        disabled={generateInvoiceMutation.isPending}
-                      >
-                        <DollarSign className="w-4 h-4 mr-1" />
-                        {t('generateInvoice')}
-                      </Button>
-                    )}
-                    {canMarkPaid(project) && (
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => markPaidMutation.mutate({ invoiceNumber: project.invoiceNumber })}
-                        disabled={markPaidMutation.isPending}
-                      >
-                        {t('markAsPaid')}
-                      </Button>
-                    )}
-                    <Button variant="ghost" size="sm">
-                      <Edit className="w-4 h-4" />
-                    </Button>
-                    <Button variant="ghost" size="sm">
-                      <Folder className="w-4 h-4" />
-                    </Button>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center space-x-2">
+                      <Users className="w-5 h-5" />
+                      <span>Crew</span>
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-2">
+                      <p><strong>Team:</strong> {getCrewName(selectedProject.crewId)}</p>
+                      <p><strong>Zeitraum:</strong></p>
+                      <div className="text-sm ml-4">
+                        <p>Start: {selectedProject.startDate ? new Date(selectedProject.startDate).toLocaleDateString('de-DE') : 'TBD'}</p>
+                        <p>Ende: {selectedProject.endDate ? new Date(selectedProject.endDate).toLocaleDateString('de-DE') : 'TBD'}</p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle>Leistungen</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Beschreibung</TableHead>
+                        <TableHead>Menge</TableHead>
+                        <TableHead>Preis</TableHead>
+                        <TableHead>Gesamt</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {services.map((service: any) => (
+                        <TableRow key={service.id}>
+                          <TableCell>{service.description}</TableCell>
+                          <TableCell>{service.quantity}</TableCell>
+                          <TableCell>{parseFloat(service.price).toFixed(2)} €</TableCell>
+                          <TableCell>
+                            {(parseFloat(service.price) * parseFloat(service.quantity)).toFixed(2)} €
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                  <div className="mt-4 text-right">
+                    <p className="text-lg font-semibold">
+                      Gesamtsumme: {calculateProjectTotal().toFixed(2)} €
+                    </p>
                   </div>
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </div>
-    </div>
+                </CardContent>
+              </Card>
+
+              {selectedProject.notes && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Notizen</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-gray-700">{selectedProject.notes}</p>
+                  </CardContent>
+                </Card>
+              )}
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }

@@ -1,11 +1,11 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useI18n } from '@/hooks/useI18n';
 import { useAuth } from '@/hooks/useAuth';
 import { useQuery } from '@tanstack/react-query';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Search, Bell, ChevronDown } from 'lucide-react';
+import { Search, Bell, ChevronDown, Building } from 'lucide-react';
 
 export function TopHeader() {
   const { t, language, changeLanguage } = useI18n();
@@ -17,10 +17,28 @@ export function TopHeader() {
     enabled: !!user,
   });
 
+  useEffect(() => {
+    // Auto-select first firm if available and none selected
+    if (firms.length > 0 && !selectedFirmId) {
+      const firstFirmId = firms[0].id;
+      setSelectedFirmId(firstFirmId);
+      localStorage.setItem('selectedFirmId', firstFirmId);
+    }
+  }, [firms, selectedFirmId]);
+
+  useEffect(() => {
+    // Load selected firm from localStorage on mount
+    const savedFirmId = localStorage.getItem('selectedFirmId');
+    if (savedFirmId) {
+      setSelectedFirmId(savedFirmId);
+    }
+  }, []);
+
   const handleFirmChange = (firmId: string) => {
     setSelectedFirmId(firmId);
-    // Store selected firm in localStorage or context
     localStorage.setItem('selectedFirmId', firmId);
+    // Trigger page refresh to update data
+    window.location.reload();
   };
 
   return (
@@ -79,7 +97,7 @@ export function TopHeader() {
         </Button>
 
         {/* User Profile */}
-        <div className="flex items-center space-x-3 cursor-pointer">
+        <div className="flex items-center space-x-3 cursor-pointer" onClick={() => window.location.href = '/api/logout'}>
           <img
             src={user?.profileImageUrl || "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=32&h=32"}
             alt="User Avatar"

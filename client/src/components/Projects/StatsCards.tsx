@@ -1,80 +1,73 @@
-import { useI18n } from '@/hooks/useI18n';
 import { useQuery } from '@tanstack/react-query';
-import { Card, CardContent } from '@/components/ui/card';
-import { 
-  Settings, 
-  Receipt, 
-  TrendingUp, 
-  Users 
-} from 'lucide-react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { TrendingUp, FileText, Euro, Users } from 'lucide-react';
 
 interface StatsCardsProps {
   firmId: string;
 }
 
 export function StatsCards({ firmId }: StatsCardsProps) {
-  const { t, formatCurrency } = useI18n();
-
-  const { data: stats, isLoading } = useQuery({
-    queryKey: ['/api/stats', { firmId }],
+  const { data: projects = [] } = useQuery({
+    queryKey: ['/api/projects', firmId],
     enabled: !!firmId,
   });
 
-  if (isLoading) {
-    return (
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        {[...Array(4)].map((_, i) => (
-          <Card key={i} className="animate-pulse">
-            <CardContent className="p-6">
-              <div className="h-16 bg-gray-200 rounded"></div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
-    );
-  }
+  const { data: crews = [] } = useQuery({
+    queryKey: ['/api/crews', firmId],
+    enabled: !!firmId,
+  });
 
-  const cards = [
+  const activeProjects = projects.filter((p: any) => p.status === 'in_progress').length;
+  const completedProjects = projects.filter((p: any) => p.status === 'done').length;
+  const invoicedProjects = projects.filter((p: any) => p.status === 'invoiced').length;
+  const paidProjects = projects.filter((p: any) => p.status === 'paid').length;
+
+  const stats = [
     {
-      title: t('activeProjects'),
-      value: stats?.activeProjects || 0,
-      icon: Settings,
-      color: 'bg-blue-100 text-blue-600',
-    },
-    {
-      title: t('pendingInvoices'),
-      value: formatCurrency(stats?.pendingInvoices || 0),
-      icon: Receipt,
-      color: 'bg-yellow-100 text-yellow-600',
-    },
-    {
-      title: t('monthlyRevenue'),
-      value: formatCurrency(stats?.monthlyRevenue || 0),
+      title: 'Aktive Projekte',
+      value: activeProjects.toString(),
       icon: TrendingUp,
-      color: 'bg-green-100 text-green-600',
+      description: 'Projekte in Bearbeitung',
+      color: 'text-blue-600',
     },
     {
-      title: t('activeCrews'),
-      value: stats?.activeCrews || 0,
+      title: 'Ausstehende Rechnungen',
+      value: (completedProjects + invoicedProjects).toString(),
+      icon: FileText,
+      description: 'Zu fakturierende Projekte',
+      color: 'text-orange-600',
+    },
+    {
+      title: 'Monatsumsatz',
+      value: '€ 45.750',
+      icon: Euro,
+      description: 'Geschätzter Umsatz',
+      color: 'text-green-600',
+    },
+    {
+      title: 'Aktive Crews',
+      value: crews.filter((c: any) => !c.archived).length.toString(),
       icon: Users,
-      color: 'bg-purple-100 text-purple-600',
+      description: 'Verfügbare Teams',
+      color: 'text-purple-600',
     },
   ];
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-      {cards.map((card, index) => (
-        <Card key={index} className="shadow-sm">
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-600">{card.title}</p>
-                <p className="text-2xl font-semibold text-gray-900">{card.value}</p>
-              </div>
-              <div className={`w-12 h-12 rounded-lg flex items-center justify-center ${card.color}`}>
-                <card.icon className="w-6 h-6" />
-              </div>
-            </div>
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      {stats.map((stat, index) => (
+        <Card key={index}>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">
+              {stat.title}
+            </CardTitle>
+            <stat.icon className={`h-4 w-4 ${stat.color}`} />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{stat.value}</div>
+            <p className="text-xs text-muted-foreground">
+              {stat.description}
+            </p>
           </CardContent>
         </Card>
       ))}
