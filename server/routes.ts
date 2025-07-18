@@ -549,7 +549,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post('/api/services', isAuthenticated, async (req: any, res) => {
     try {
-      const serviceData = insertServiceSchema.parse(req.body);
+      // Кастомная схема для API которая принимает строки для price и quantity
+      const serviceApiSchema = insertServiceSchema.extend({
+        price: z.union([z.string(), z.number()]).transform(val => val.toString()),
+        quantity: z.union([z.string(), z.number()]).transform(val => val.toString()),
+      });
+      
+      const serviceData = serviceApiSchema.parse(req.body);
       const service = await storage.createService(serviceData);
       res.json(service);
     } catch (error) {

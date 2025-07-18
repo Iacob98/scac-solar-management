@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from '@/components/ui/dialog';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
@@ -17,8 +17,8 @@ import { useToast } from '@/hooks/use-toast';
 import { apiRequest } from '@/lib/queryClient';
 
 const serviceFormSchema = insertServiceSchema.extend({
-  price: z.string(),
-  quantity: z.string(),
+  price: z.string().min(1, "Цена обязательна"),
+  quantity: z.string().min(1, "Количество обязательно"),
 });
 
 interface ServicesPageProps {
@@ -66,8 +66,8 @@ export default function ServicesPage({ selectedFirm, projectId }: ServicesPagePr
     mutationFn: (data: any) => apiRequest('/api/services', 'POST', {
       ...data,
       projectId,
-      price: parseFloat(data.price),
-      quantity: parseFloat(data.quantity),
+      price: data.price,
+      quantity: data.quantity,
     }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/services', projectId] });
@@ -87,8 +87,8 @@ export default function ServicesPage({ selectedFirm, projectId }: ServicesPagePr
   const updateServiceMutation = useMutation({
     mutationFn: (data: any) => apiRequest(`/api/services/${editingService?.id}`, 'PATCH', {
       ...data,
-      price: parseFloat(data.price),
-      quantity: parseFloat(data.quantity),
+      price: data.price,
+      quantity: data.quantity,
     }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/services', projectId] });
@@ -190,6 +190,9 @@ export default function ServicesPage({ selectedFirm, projectId }: ServicesPagePr
               <DialogTitle>
                 {editingService ? 'Редактировать услугу' : 'Добавить новую услугу'}
               </DialogTitle>
+              <DialogDescription>
+                Выберите товар из каталога Invoice Ninja или создайте пользовательскую услугу
+              </DialogDescription>
             </DialogHeader>
             <Form {...form}>
               <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
@@ -219,10 +222,12 @@ export default function ServicesPage({ selectedFirm, projectId }: ServicesPagePr
                       <SelectContent>
                         {(products as any[]).map((product: any) => (
                           <SelectItem key={product.id} value={product.id}>
-                            <div className="flex flex-col">
-                              <span className="font-medium">{product.name}</span>
-                              <span className="text-sm text-gray-500 truncate">{product.description}</span>
-                              <span className="text-sm font-medium text-blue-600">€{product.price}</span>
+                            <div className="flex justify-between items-start w-full">
+                              <div className="flex-1 min-w-0">
+                                <div className="font-medium text-sm truncate">{product.name}</div>
+                                <div className="text-xs text-gray-500 truncate">{product.description}</div>
+                              </div>
+                              <div className="text-sm font-medium text-blue-600 ml-2">€{product.price}</div>
                             </div>
                           </SelectItem>
                         ))}
