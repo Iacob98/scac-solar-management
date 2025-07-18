@@ -74,9 +74,24 @@ export const crews = pgTable("crews", {
   id: serial("id").primaryKey(),
   firmId: uuid("firm_id").notNull().references(() => firms.id),
   name: varchar("name").notNull(),
+  uniqueNumber: varchar("unique_number").notNull(), // Уникальный номер бригады
   leaderName: varchar("leader_name").notNull(),
   phone: varchar("phone"),
+  address: text("address"),
   archived: boolean("archived").default(false),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// Crew Members table - участники бригады
+export const crewMembers = pgTable("crew_members", {
+  id: serial("id").primaryKey(),
+  crewId: integer("crew_id").notNull().references(() => crews.id),
+  firstName: varchar("first_name").notNull(),
+  lastName: varchar("last_name").notNull(),
+  address: text("address"),
+  uniqueNumber: varchar("unique_number").notNull(), // Уникальный номер участника
+  phone: varchar("phone"),
+  role: varchar("role").default("worker"), // "leader", "worker", "specialist"
   createdAt: timestamp("created_at").defaultNow(),
 });
 
@@ -168,6 +183,11 @@ export const clientsRelations = relations(clients, ({ one, many }) => ({
 export const crewsRelations = relations(crews, ({ one, many }) => ({
   firm: one(firms, { fields: [crews.firmId], references: [firms.id] }),
   projects: many(projects),
+  members: many(crewMembers),
+}));
+
+export const crewMembersRelations = relations(crewMembers, ({ one }) => ({
+  crew: one(crews, { fields: [crewMembers.crewId], references: [crews.id] }),
 }));
 
 export const projectsRelations = relations(projects, ({ one, many }) => ({
@@ -207,6 +227,10 @@ export type Client = typeof clients.$inferSelect;
 export const insertCrewSchema = createInsertSchema(crews).omit({ id: true, createdAt: true });
 export type InsertCrew = z.infer<typeof insertCrewSchema>;
 export type Crew = typeof crews.$inferSelect;
+
+export const insertCrewMemberSchema = createInsertSchema(crewMembers).omit({ id: true, createdAt: true });
+export type InsertCrewMember = z.infer<typeof insertCrewMemberSchema>;
+export type CrewMember = typeof crewMembers.$inferSelect;
 
 export const insertProjectSchema = createInsertSchema(projects).omit({ 
   id: true, 

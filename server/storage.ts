@@ -3,6 +3,7 @@ import {
   firms,
   clients,
   crews,
+  crewMembers,
   projects,
   services,
   invoices,
@@ -16,6 +17,8 @@ import {
   type InsertClient,
   type Crew,
   type InsertCrew,
+  type CrewMember,
+  type InsertCrewMember,
   type Project,
   type InsertProject,
   type Service,
@@ -57,6 +60,12 @@ export interface IStorage {
   createCrew(crew: InsertCrew): Promise<Crew>;
   updateCrew(id: number, crew: Partial<InsertCrew>): Promise<Crew>;
   archiveCrew(id: number): Promise<void>;
+  
+  // Crew Member operations
+  getCrewMembersByCrewId(crewId: number): Promise<CrewMember[]>;
+  createCrewMember(member: InsertCrewMember): Promise<CrewMember>;
+  updateCrewMember(id: number, member: Partial<InsertCrewMember>): Promise<CrewMember>;
+  deleteCrewMember(id: number): Promise<void>;
   
   // Project operations
   getProjectsByFirmId(firmId: string): Promise<Project[]>;
@@ -233,6 +242,38 @@ export class DatabaseStorage implements IStorage {
 
   async archiveCrew(id: number): Promise<void> {
     await db.update(crews).set({ archived: true }).where(eq(crews.id, id));
+  }
+
+  // Crew Member operations
+  async getCrewMembersByCrewId(crewId: number): Promise<CrewMember[]> {
+    return await db
+      .select()
+      .from(crewMembers)
+      .where(eq(crewMembers.crewId, crewId))
+      .orderBy(desc(crewMembers.createdAt));
+  }
+
+  async createCrewMember(member: InsertCrewMember): Promise<CrewMember> {
+    const [newMember] = await db.insert(crewMembers).values(member).returning();
+    return newMember;
+  }
+
+  async updateCrewMember(id: number, member: Partial<InsertCrewMember>): Promise<CrewMember> {
+    const [updatedMember] = await db
+      .update(crewMembers)
+      .set(member)
+      .where(eq(crewMembers.id, id))
+      .returning();
+    
+    if (!updatedMember) {
+      throw new Error("Crew member not found");
+    }
+    
+    return updatedMember;
+  }
+
+  async deleteCrewMember(id: number): Promise<void> {
+    await db.delete(crewMembers).where(eq(crewMembers.id, id));
   }
 
   // Project operations

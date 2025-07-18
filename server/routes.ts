@@ -7,6 +7,7 @@ import {
   insertFirmSchema, 
   insertClientSchema, 
   insertCrewSchema, 
+  insertCrewMemberSchema,
   insertProjectSchema, 
   insertServiceSchema 
 } from "@shared/schema";
@@ -345,12 +346,41 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post('/api/crews', isAuthenticated, async (req: any, res) => {
     try {
-      const crewData = insertCrewSchema.parse(req.body);
-      const crew = await storage.createCrew(crewData);
+      const { members, ...crewData } = req.body;
+      
+      // Validate crew data
+      const validatedCrewData = insertCrewSchema.parse(crewData);
+      
+      // Create crew
+      const crew = await storage.createCrew(validatedCrewData);
+      
+      // Create crew members if provided
+      if (members && Array.isArray(members)) {
+        for (const member of members) {
+          const validatedMemberData = insertCrewMemberSchema.parse({
+            ...member,
+            crewId: crew.id,
+          });
+          await storage.createCrewMember(validatedMemberData);
+        }
+      }
+      
       res.json(crew);
     } catch (error) {
       console.error("Error creating crew:", error);
       res.status(500).json({ message: "Failed to create crew" });
+    }
+  });
+
+  app.patch('/api/crews/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      const crewId = parseInt(req.params.id);
+      const updateData = req.body;
+      const crew = await storage.updateCrew(crewId, updateData);
+      res.json(crew);
+    } catch (error) {
+      console.error("Error updating crew:", error);
+      res.status(500).json({ message: "Failed to update crew" });
     }
   });
 
@@ -362,6 +392,56 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error archiving crew:", error);
       res.status(500).json({ message: "Failed to archive crew" });
+    }
+  });
+
+  // Crew Members routes
+  app.get('/api/crew-members', isAuthenticated, async (req: any, res) => {
+    try {
+      const crewId = parseInt(req.query.crewId as string);
+      if (!crewId) {
+        return res.status(400).json({ message: "Crew ID is required" });
+      }
+      
+      const members = await storage.getCrewMembersByCrewId(crewId);
+      res.json(members);
+    } catch (error) {
+      console.error("Error fetching crew members:", error);
+      res.status(500).json({ message: "Failed to fetch crew members" });
+    }
+  });
+
+  app.post('/api/crew-members', isAuthenticated, async (req: any, res) => {
+    try {
+      const memberData = insertCrewMemberSchema.parse(req.body);
+      const member = await storage.createCrewMember(memberData);
+      res.json(member);
+    } catch (error) {
+      console.error("Error creating crew member:", error);
+      res.status(500).json({ message: "Failed to create crew member" });
+    }
+  });
+
+  app.put('/api/crew-members/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      const memberId = parseInt(req.params.id);
+      const updateData = req.body;
+      const member = await storage.updateCrewMember(memberId, updateData);
+      res.json(member);
+    } catch (error) {
+      console.error("Error updating crew member:", error);
+      res.status(500).json({ message: "Failed to update crew member" });
+    }
+  });
+
+  app.delete('/api/crew-members/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      const memberId = parseInt(req.params.id);
+      await storage.deleteCrewMember(memberId);
+      res.json({ message: "Crew member deleted successfully" });
+    } catch (error) {
+      console.error("Error deleting crew member:", error);
+      res.status(500).json({ message: "Failed to delete crew member" });
     }
   });
 
