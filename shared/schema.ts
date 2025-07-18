@@ -150,8 +150,20 @@ export const projectFiles = pgTable("project_files", {
   id: serial("id").primaryKey(),
   projectId: integer("project_id").notNull().references(() => projects.id),
   fileUrl: varchar("file_url").notNull(),
-  fileType: varchar("file_type", { enum: ["report_photo", "acceptance", "review"] }).notNull(),
+  fileName: varchar("file_name"),
+  fileType: varchar("file_type", { enum: ["report_photo", "review_document", "acceptance"] }).notNull(),
   uploadedAt: timestamp("uploaded_at").defaultNow(),
+});
+
+// Project Reports table - для фото отчетов выполненных работ
+export const projectReports = pgTable("project_reports", {
+  id: serial("id").primaryKey(),
+  projectId: integer("project_id").notNull().references(() => projects.id),
+  rating: integer("rating").notNull(), // Оценка от 1 до 5
+  reviewText: text("review_text"), // Письменный отзыв
+  reviewDocumentUrl: varchar("review_document_url"), // URL PDF или фото отзыва
+  completedAt: timestamp("completed_at").defaultNow(),
+  createdAt: timestamp("created_at").defaultNow(),
 });
 
 // Invoice Queue table
@@ -203,6 +215,7 @@ export const projectsRelations = relations(projects, ({ one, many }) => ({
   services: many(services),
   invoices: many(invoices),
   files: many(projectFiles),
+  reports: many(projectReports),
 }));
 
 export const servicesRelations = relations(services, ({ one }) => ({
@@ -215,6 +228,10 @@ export const invoicesRelations = relations(invoices, ({ one }) => ({
 
 export const projectFilesRelations = relations(projectFiles, ({ one }) => ({
   project: one(projects, { fields: [projectFiles.projectId], references: [projects.id] }),
+}));
+
+export const projectReportsRelations = relations(projectReports, ({ one }) => ({
+  project: one(projects, { fields: [projectReports.projectId], references: [projects.id] }),
 }));
 
 // Schema types
@@ -256,3 +273,11 @@ export type Invoice = typeof invoices.$inferSelect;
 export const insertProjectFileSchema = createInsertSchema(projectFiles).omit({ id: true, uploadedAt: true });
 export type InsertProjectFile = z.infer<typeof insertProjectFileSchema>;
 export type ProjectFile = typeof projectFiles.$inferSelect;
+
+export const insertProjectReportSchema = createInsertSchema(projectReports).omit({ 
+  id: true, 
+  completedAt: true, 
+  createdAt: true 
+});
+export type InsertProjectReport = z.infer<typeof insertProjectReportSchema>;
+export type ProjectReport = typeof projectReports.$inferSelect;

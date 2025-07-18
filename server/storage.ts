@@ -8,6 +8,7 @@ import {
   services,
   invoices,
   projectFiles,
+  projectReports,
   userFirms,
   type User,
   type UpsertUser,
@@ -27,6 +28,8 @@ import {
   type InsertInvoice,
   type ProjectFile,
   type InsertProjectFile,
+  type ProjectReport,
+  type InsertProjectReport,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, desc, sql } from "drizzle-orm";
@@ -93,6 +96,12 @@ export interface IStorage {
   getFilesByProjectId(projectId: number): Promise<ProjectFile[]>;
   createFile(file: InsertProjectFile): Promise<ProjectFile>;
   deleteFile(id: number): Promise<void>;
+  
+  // Report operations
+  getReportsByProjectId(projectId: number): Promise<ProjectReport[]>;
+  createReport(report: InsertProjectReport): Promise<ProjectReport>;
+  updateReport(id: number, report: Partial<InsertProjectReport>): Promise<ProjectReport>;
+  deleteReport(id: number): Promise<void>;
   
   // Stats operations
   getProjectStats(firmId: string): Promise<{
@@ -396,6 +405,38 @@ export class DatabaseStorage implements IStorage {
 
   async deleteFile(id: number): Promise<void> {
     await db.delete(projectFiles).where(eq(projectFiles.id, id));
+  }
+
+  // Report operations
+  async getReportsByProjectId(projectId: number): Promise<ProjectReport[]> {
+    return await db
+      .select()
+      .from(projectReports)
+      .where(eq(projectReports.projectId, projectId))
+      .orderBy(desc(projectReports.createdAt));
+  }
+
+  async createReport(report: InsertProjectReport): Promise<ProjectReport> {
+    const [newReport] = await db.insert(projectReports).values(report).returning();
+    return newReport;
+  }
+
+  async updateReport(id: number, report: Partial<InsertProjectReport>): Promise<ProjectReport> {
+    const [updated] = await db
+      .update(projectReports)
+      .set(report)
+      .where(eq(projectReports.id, id))
+      .returning();
+    
+    if (!updated) {
+      throw new Error("Report not found");
+    }
+    
+    return updated;
+  }
+
+  async deleteReport(id: number): Promise<void> {
+    await db.delete(projectReports).where(eq(projectReports.id, id));
   }
 
   // Stats operations

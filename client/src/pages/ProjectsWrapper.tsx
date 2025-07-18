@@ -8,7 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from '@/components/ui/dialog';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Textarea } from '@/components/ui/textarea';
-import { CalendarIcon, Download, FileText, Plus, Users, Building2, Receipt, Settings, Eye, ArrowLeft, Sun } from 'lucide-react';
+import { CalendarIcon, Download, FileText, Plus, Users, Building2, Receipt, Settings, Eye, ArrowLeft, Sun, Camera } from 'lucide-react';
 import { format } from 'date-fns';
 import { ru } from 'date-fns/locale';
 import { useForm } from 'react-hook-form';
@@ -21,12 +21,13 @@ import { useAuth } from '@/hooks/useAuth';
 import { apiRequest } from '@/lib/queryClient';
 import ProjectDetail from './ProjectDetail';
 import Services from './Services';
+import Reports from './Reports';
 
 interface ProjectsWrapperProps {
   selectedFirm: string;
 }
 
-type ViewMode = 'list' | 'detail' | 'services';
+type ViewMode = 'list' | 'detail' | 'services' | 'reports';
 
 const projectFormSchema = insertProjectSchema.omit({ firmId: true, leiterId: true }).extend({
   startDate: z.string().min(1, 'Дата начала обязательна'),
@@ -54,7 +55,7 @@ const statusColors = {
   paid: 'bg-purple-100 text-purple-800'
 };
 
-function ProjectsList({ selectedFirm, onViewProject, onManageServices }: { selectedFirm: string; onViewProject: (id: number) => void; onManageServices: (id: number) => void }) {
+function ProjectsList({ selectedFirm, onViewProject, onManageServices, onManageReports }: { selectedFirm: string; onViewProject: (id: number) => void; onManageServices: (id: number) => void; onManageReports: (id: number) => void }) {
   const { toast } = useToast();
   const { user } = useAuth();
   const queryClient = useQueryClient();
@@ -528,6 +529,15 @@ function ProjectsList({ selectedFirm, onViewProject, onManageServices }: { selec
                       Услуги
                     </Button>
                     
+                    <Button 
+                      size="sm" 
+                      variant="outline"
+                      onClick={() => onManageReports(project.id)}
+                    >
+                      <Camera className="h-4 w-4 mr-2" />
+                      Фото отчеты
+                    </Button>
+                    
                     {project.status === 'planning' && (
                       <Button 
                         size="sm" 
@@ -617,6 +627,11 @@ export default function ProjectsWrapper({ selectedFirm }: ProjectsWrapperProps) 
     setViewMode('services');
   };
 
+  const handleManageReports = (projectId: number) => {
+    setSelectedProjectId(projectId);
+    setViewMode('reports');
+  };
+
   const handleBackToList = () => {
     setViewMode('list');
     setSelectedProjectId(null);
@@ -649,11 +664,29 @@ export default function ProjectsWrapper({ selectedFirm }: ProjectsWrapperProps) 
     );
   }
 
+  if (viewMode === 'reports' && selectedProjectId) {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-4">
+            <Button variant="outline" onClick={handleBackToList}>
+              <ArrowLeft className="h-4 w-4 mr-2" />
+              Назад к проектам
+            </Button>
+            <h1 className="text-2xl font-bold">Фото отчеты и оценки</h1>
+          </div>
+        </div>
+        <Reports selectedFirm={selectedFirm} projectId={selectedProjectId} />
+      </div>
+    );
+  }
+
   return (
     <ProjectsList
       selectedFirm={selectedFirm}
       onViewProject={handleViewProject}
       onManageServices={handleManageServices}
+      onManageReports={handleManageReports}
     />
   );
 }

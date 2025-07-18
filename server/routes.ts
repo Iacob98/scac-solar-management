@@ -9,7 +9,9 @@ import {
   insertCrewSchema, 
   insertCrewMemberSchema,
   insertProjectSchema, 
-  insertServiceSchema 
+  insertServiceSchema,
+  insertProjectFileSchema,
+  insertProjectReportSchema
 } from "@shared/schema";
 import { z } from "zod";
 
@@ -763,6 +765,96 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error fetching catalog products:", error);
       res.status(500).json({ message: "Failed to fetch catalog products" });
+    }
+  });
+
+  // Project Files routes
+  app.get('/api/projects/:id/files', isAuthenticated, async (req: any, res) => {
+    try {
+      const projectId = parseInt(req.params.id);
+      const files = await storage.getFilesByProjectId(projectId);
+      res.json(files);
+    } catch (error) {
+      console.error("Error fetching project files:", error);
+      res.status(500).json({ message: "Failed to fetch project files" });
+    }
+  });
+
+  app.post('/api/projects/:id/files', isAuthenticated, async (req: any, res) => {
+    try {
+      const projectId = parseInt(req.params.id);
+      const fileData = insertProjectFileSchema.parse({
+        ...req.body,
+        projectId,
+      });
+      
+      const file = await storage.createFile(fileData);
+      res.json(file);
+    } catch (error) {
+      console.error("Error creating project file:", error);
+      res.status(500).json({ message: "Failed to create project file" });
+    }
+  });
+
+  app.delete('/api/files/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      const fileId = parseInt(req.params.id);
+      await storage.deleteFile(fileId);
+      res.json({ message: "File deleted successfully" });
+    } catch (error) {
+      console.error("Error deleting file:", error);
+      res.status(500).json({ message: "Failed to delete file" });
+    }
+  });
+
+  // Project Reports routes
+  app.get('/api/projects/:id/reports', isAuthenticated, async (req: any, res) => {
+    try {
+      const projectId = parseInt(req.params.id);
+      const reports = await storage.getReportsByProjectId(projectId);
+      res.json(reports);
+    } catch (error) {
+      console.error("Error fetching project reports:", error);
+      res.status(500).json({ message: "Failed to fetch project reports" });
+    }
+  });
+
+  app.post('/api/projects/:id/reports', isAuthenticated, async (req: any, res) => {
+    try {
+      const projectId = parseInt(req.params.id);
+      const reportData = insertProjectReportSchema.parse({
+        ...req.body,
+        projectId,
+      });
+      
+      const report = await storage.createReport(reportData);
+      res.json(report);
+    } catch (error) {
+      console.error("Error creating project report:", error);
+      res.status(500).json({ message: "Failed to create project report" });
+    }
+  });
+
+  app.patch('/api/reports/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      const reportId = parseInt(req.params.id);
+      const updateData = req.body;
+      const report = await storage.updateReport(reportId, updateData);
+      res.json(report);
+    } catch (error) {
+      console.error("Error updating report:", error);
+      res.status(500).json({ message: "Failed to update report" });
+    }
+  });
+
+  app.delete('/api/reports/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      const reportId = parseInt(req.params.id);
+      await storage.deleteReport(reportId);
+      res.json({ message: "Report deleted successfully" });
+    } catch (error) {
+      console.error("Error deleting report:", error);
+      res.status(500).json({ message: "Failed to delete report" });
     }
   });
 
