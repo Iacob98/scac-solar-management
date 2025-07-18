@@ -42,6 +42,15 @@ export default function ServicesPage({ selectedFirm, projectId }: ServicesPagePr
     refetchInterval: 10000, // Автообновление каждые 10 секунд
   });
 
+  const { data: project } = useQuery({
+    queryKey: ['/api/projects', projectId, 'details'],
+    queryFn: async () => {
+      const response = await apiRequest(`/api/projects/${projectId}`, 'GET');
+      return await response.json();
+    },
+    enabled: !!projectId,
+  });
+
   const { data: products = [] } = useQuery({
     queryKey: ['/api/catalog/products'],
     queryFn: async () => {
@@ -49,6 +58,9 @@ export default function ServicesPage({ selectedFirm, projectId }: ServicesPagePr
       return await response.json();
     },
   });
+
+  // Проверяем, заблокированы ли изменения услуг (после выставления счета)
+  const isServicesLocked = project && (project.status === 'invoiced' || project.status === 'paid');
 
   const form = useForm({
     resolver: zodResolver(serviceFormSchema),
@@ -176,11 +188,22 @@ export default function ServicesPage({ selectedFirm, projectId }: ServicesPagePr
         <div>
           <h1 className="text-2xl font-bold">Услуги проекта</h1>
           <p className="text-gray-600">Управление услугами и материалами</p>
+          {isServicesLocked && (
+            <div className="mt-2 p-3 bg-yellow-50 border border-yellow-200 rounded-md">
+              <p className="text-yellow-800 text-sm">
+                ⚠️ Изменение услуг заблокировано. Счет уже выставлен для данного проекта.
+              </p>
+            </div>
+          )}
         </div>
 
         <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
           <DialogTrigger asChild>
-            <Button onClick={handleCloseDialog}>
+            <Button 
+              onClick={handleCloseDialog}
+              disabled={isServicesLocked}
+              title={isServicesLocked ? "Изменение услуг заблокировано после выставления счета" : ""}
+            >
               <Plus className="h-4 w-4 mr-2" />
               Добавить услугу
             </Button>
@@ -346,6 +369,8 @@ export default function ServicesPage({ selectedFirm, projectId }: ServicesPagePr
                       variant="outline"
                       size="sm"
                       onClick={() => handleEditService(service)}
+                      disabled={isServicesLocked}
+                      title={isServicesLocked ? "Изменение услуг заблокировано после выставления счета" : "Редактировать услугу"}
                     >
                       <Edit className="h-4 w-4" />
                     </Button>
@@ -353,7 +378,8 @@ export default function ServicesPage({ selectedFirm, projectId }: ServicesPagePr
                       variant="outline"
                       size="sm"
                       onClick={() => deleteServiceMutation.mutate(service.id)}
-                      disabled={deleteServiceMutation.isPending}
+                      disabled={deleteServiceMutation.isPending || isServicesLocked}
+                      title={isServicesLocked ? "Удаление услуг заблокировано после выставления счета" : "Удалить услугу"}
                     >
                       <Trash2 className="h-4 w-4" />
                     </Button>
