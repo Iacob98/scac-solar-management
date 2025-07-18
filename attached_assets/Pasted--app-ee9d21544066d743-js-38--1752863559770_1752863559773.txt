@@ -1,0 +1,93 @@
+_app-ee9d21544066d743.js:38 
+      /////////////////////
+   ///////////////////////////
+  ////////@@@@@@@//////////////
+  ////////@@@@@@@//////////////
+  ////////@@@@@@@//////////////        Curious and driven?
+  ///////////////@@@@@@@///////        Work with us!
+  ///////////////@@@@@@@///////
+  ///////////////@@@@@@@///////        https://join.replit.com/hack.with.us
+  ////////@@@@@@@//////////////
+  ////////@@@@@@@//////////////
+  ////////@@@@@@#//////////////
+   ///////////////////////////
+      /////////////////////
+      
+_app-ee9d21544066d743.js:38 [LaunchDarkly] LaunchDarkly client initialized
+Error while parsing the 'sandbox' attribute: 'allow-downloads-without-user-activation' is an invalid sandbox flag.
+Error while parsing the 'sandbox' attribute: 'allow-downloads-without-user-activation' is an invalid sandbox flag.
+Error while parsing the 'sandbox' attribute: 'allow-downloads-without-user-activation' is an invalid sandbox flag.
+Error while parsing the 'sandbox' attribute: 'allow-downloads-without-user-activation' is an invalid sandbox flag.
+Error while parsing the 'sandbox' attribute: 'allow-downloads-without-user-activation' is an invalid sandbox flag.
+Error while parsing the 'sandbox' attribute: 'allow-downloads-without-user-activation' is an invalid sandbox flag.
+Error while parsing the 'sandbox' attribute: 'allow-downloads-without-user-activation' is an invalid sandbox flag.
+Error while parsing the 'sandbox' attribute: 'allow-downloads-without-user-activation' is an invalid sandbox flag.
+Error while parsing the 'sandbox' attribute: 'allow-downloads-without-user-activation' is an invalid sandbox flag.
+Error while parsing the 'sandbox' attribute: 'allow-downloads-without-user-activation' is an invalid sandbox flag.
+Error while parsing the 'sandbox' attribute: 'allow-downloads-without-user-activation' is an invalid sandbox flag.
+Error while parsing the 'sandbox' attribute: 'allow-downloads-without-user-activation' is an invalid sandbox flag.
+Error while parsing the 'sandbox' attribute: 'allow-downloads-without-user-activation' is an invalid sandbox flag.
+Error while parsing the 'sandbox' attribute: 'allow-downloads-without-user-activation' is an invalid sandbox flag.
+Error while parsing the 'sandbox' attribute: 'allow-downloads-without-user-activation' is an invalid sandbox flag.
+Error while parsing the 'sandbox' attribute: 'allow-downloads-without-user-activation' is an invalid sandbox flag.
+Error while parsing the 'sandbox' attribute: 'allow-downloads-without-user-activation' is an invalid sandbox flag.
+Error while parsing the 'sandbox' attribute: 'allow-downloads-without-user-activation' is an invalid sandbox flag.
+Error while parsing the 'sandbox' attribute: 'allow-downloads-without-user-activation' is an invalid sandbox flag.
+Error while parsing the 'sandbox' attribute: 'allow-downloads-without-user-activation' is an invalid sandbox flag.
+Error while parsing the 'sandbox' attribute: 'allow-downloads-without-user-activation' is an invalid sandbox flag.
+framework-fe39b080e2ebc567.js:1 Unrecognized feature: 'ambient-light-sensor'.
+_ @ framework-fe39b080e2ebc567.js:1
+framework-fe39b080e2ebc567.js:1 Unrecognized feature: 'battery'.
+_ @ framework-fe39b080e2ebc567.js:1
+framework-fe39b080e2ebc567.js:1 Unrecognized feature: 'execution-while-not-rendered'.
+_ @ framework-fe39b080e2ebc567.js:1
+framework-fe39b080e2ebc567.js:1 Unrecognized feature: 'execution-while-out-of-viewport'.
+_ @ framework-fe39b080e2ebc567.js:1
+framework-fe39b080e2ebc567.js:1 Unrecognized feature: 'layout-animations'.
+_ @ framework-fe39b080e2ebc567.js:1
+framework-fe39b080e2ebc567.js:1 Unrecognized feature: 'legacy-image-formats'.
+_ @ framework-fe39b080e2ebc567.js:1
+framework-fe39b080e2ebc567.js:1 Unrecognized feature: 'navigation-override'.
+_ @ framework-fe39b080e2ebc567.js:1
+framework-fe39b080e2ebc567.js:1 Unrecognized feature: 'oversized-images'.
+_ @ framework-fe39b080e2ebc567.js:1
+framework-fe39b080e2ebc567.js:1 Unrecognized feature: 'publickey-credentials'.
+_ @ framework-fe39b080e2ebc567.js:1
+framework-fe39b080e2ebc567.js:1 Unrecognized feature: 'speaker-selection'.
+_ @ framework-fe39b080e2ebc567.js:1
+framework-fe39b080e2ebc567.js:1 Unrecognized feature: 'unoptimized-images'.
+_ @ framework-fe39b080e2ebc567.js:1
+framework-fe39b080e2ebc567.js:1 Unrecognized feature: 'unsized-media'.
+_ @ framework-fe39b080e2ebc567.js:1
+framework-fe39b080e2ebc567.js:1 Unrecognized feature: 'pointer-lock'.
+_ @ framework-fe39b080e2ebc567.js:1
+framework-fe39b080e2ebc567.js:1 Allow attribute will take precedence over 'allowfullscreen'.
+_ @ framework-fe39b080e2ebc567.js:1
+framework-fe39b080e2ebc567.js:1 Allow attribute will take precedence over 'allowpaymentrequest'.
+_ @ framework-fe39b080e2ebc567.js:1
+[Violation] Potential permissions policy violation: payment is not allowed in this document.
+ Failed to execute 'postMessage' on 'DOMWindow': The target origin provided ('https://www.google.com') does not match the recipient window's origin ('https://replit.com').
+Bv @ www.googletagmanager…=AW-11411994397:467
+ Failed to execute 'postMessage' on 'DOMWindow': The target origin provided ('https://www.youtube.com') does not match the recipient window's origin ('https://replit.com').
+Bv @ www.googletagmanager…=AW-11411994397:467
+ Failed to execute 'postMessage' on 'DOMWindow': The target origin provided ('https://m.youtube.com') does not match the recipient window's origin ('https://replit.com').
+Bv @ www.googletagmanager…=AW-11411994397:467
+[Violation] Potential permissions policy violation: payment is not allowed in this document.
+_app-ee9d21544066d743.js:38 onClick is deprecated, please use onPress
+(anonymous) @ _app-ee9d21544066d743.js:38
+stallwart.build.js:1 stallwart: failed ping 1
+stallwart.build.js:1 stallwart: failed ping 2
+workspace_iframe.html:32 Unrecognized feature: 'ambient-light-sensor'.
+workspace_iframe.html:32 Unrecognized feature: 'battery'.
+workspace_iframe.html:32 Unrecognized feature: 'execution-while-not-rendered'.
+workspace_iframe.html:32 Unrecognized feature: 'execution-while-out-of-viewport'.
+workspace_iframe.html:32 Unrecognized feature: 'layout-animations'.
+workspace_iframe.html:32 Unrecognized feature: 'legacy-image-formats'.
+workspace_iframe.html:32 Unrecognized feature: 'navigation-override'.
+workspace_iframe.html:32 Unrecognized feature: 'oversized-images'.
+workspace_iframe.html:32 Unrecognized feature: 'publickey-credentials'.
+workspace_iframe.html:32 Unrecognized feature: 'speaker-selection'.
+workspace_iframe.html:32 Unrecognized feature: 'unoptimized-images'.
+workspace_iframe.html:32 Unrecognized feature: 'unsized-media'.
+workspace_iframe.html:32 Allow attribute will take precedence over 'allowfullscreen'.
+workspace_iframe.html:32 Allow attribute will take precedence over 'allowpaymentrequest'.

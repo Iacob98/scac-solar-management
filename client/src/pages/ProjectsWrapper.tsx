@@ -181,16 +181,23 @@ function ProjectsList({ selectedFirm, onViewProject, onManageServices }: { selec
     },
   });
 
-  const onSubmit = (data: z.infer<typeof projectFormSchema>) => {
+  const onSubmit = async (data: z.infer<typeof projectFormSchema>) => {
+    console.log('Form submission started');
     console.log('Form data:', data);
     console.log('Form errors:', form.formState.errors);
     console.log('Form is valid:', form.formState.isValid);
     
-    if (!form.formState.isValid) {
+    // Принудительная валидация
+    const isValid = await form.trigger();
+    console.log('Manual validation result:', isValid);
+    
+    if (!isValid) {
       console.log('Form validation failed');
+      console.log('All errors:', form.formState.errors);
       return;
     }
     
+    console.log('Submitting project data...');
     createProjectMutation.mutate({
       ...data,
       leiterId: user?.id || data.leiterId,
@@ -390,7 +397,11 @@ function ProjectsList({ selectedFirm, onViewProject, onManageServices }: { selec
                   <Button type="button" variant="outline" onClick={() => setIsCreateDialogOpen(false)}>
                     Отмена
                   </Button>
-                  <Button type="submit" disabled={createProjectMutation.isPending}>
+                  <Button 
+                    type="submit" 
+                    disabled={createProjectMutation.isPending}
+                    onClick={() => console.log('Submit button clicked')}
+                  >
                     {createProjectMutation.isPending ? 'Создание...' : 'Создать проект'}
                   </Button>
                 </div>
