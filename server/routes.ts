@@ -243,12 +243,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const apiKey = process.env.INVOICE_NINJA_API_KEY;
       const baseUrl = process.env.INVOICE_NINJA_URL;
       
+      console.log('API credentials:', { apiKey: apiKey ? 'exists' : 'missing', baseUrl });
+      
       if (!apiKey || !baseUrl) {
         return res.status(500).json({ message: "Invoice Ninja API credentials not configured" });
       }
 
       const ninjaService = new InvoiceNinjaService(baseUrl, apiKey);
       const products = await ninjaService.getProducts();
+      
+      console.log('Raw products from Invoice Ninja:', products.length);
       
       // Transform products to match our expected format
       const transformedProducts = products.map(product => ({
@@ -258,9 +262,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         price: product.price,
         cost: product.cost,
         taxRate: product.tax_rate1,
-        category: product.custom_value1 || 'General',
-        unit: product.custom_value2 || 'шт'
+        category: product.custom_value1 || 'Услуги',
+        unit: product.custom_value2 || product.custom_value1 || 'шт'
       }));
+      
+      console.log('Transformed products:', transformedProducts.length);
       
       res.json(transformedProducts);
     } catch (error) {
