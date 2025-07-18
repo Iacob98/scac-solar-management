@@ -404,7 +404,11 @@ function ProjectsList({ selectedFirm, onViewProject, onManageServices }: { selec
                       console.log('Submit button clicked');
                       
                       // Получаем данные формы напрямую
-                      const formData = form.getValues();
+                      const formData = {
+                        ...form.getValues(),
+                        firmId: selectedFirm,
+                        leiterId: user?.id || '',
+                      };
                       console.log('Form data:', formData);
                       
                       // Проверяем валидность
