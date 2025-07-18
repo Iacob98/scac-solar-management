@@ -48,7 +48,7 @@ export default function Crews() {
   }, []);
 
   const { data: crews = [], isLoading } = useQuery({
-    queryKey: ['/api/crews', { firmId: selectedFirmId }],
+    queryKey: ['/api/crews', selectedFirmId],
     enabled: !!selectedFirmId,
   });
 

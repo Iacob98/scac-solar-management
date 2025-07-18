@@ -60,6 +60,8 @@ export const translations = {
     loading: 'Laden...',
     error: 'Fehler',
     success: 'Erfolg',
+    settings: 'Einstellungen',
+    logout: 'Abmelden',
     
     // Messages
     loginRequired: 'Anmeldung erforderlich',
@@ -104,18 +106,18 @@ export const translations = {
     crew: 'Бригада',
     amount: 'Сумма',
     status: 'Статус',
-    invoice: 'Счёт',
+    invoice: 'Счет',
     actions: 'Действия',
     
     // Statuses
     inProgress: 'В работе',
-    done: 'Завершён',
-    invoiced: 'Выставлен счёт',
-    paid: 'Оплачен',
+    done: 'Завершено',
+    invoiced: 'Выставлен счет',
+    paid: 'Оплачено',
     
     // Actions
-    generateInvoice: 'Создать счёт',
-    markAsPaid: 'Отметить как оплаченный',
+    generateInvoice: 'Создать счет',
+    markAsPaid: 'Отметить как оплачено',
     edit: 'Редактировать',
     view: 'Просмотр',
     delete: 'Удалить',
@@ -126,11 +128,11 @@ export const translations = {
     allStatuses: 'Все статусы',
     allCrews: 'Все бригады',
     fromDate: 'С даты',
-    toDate: 'До даты',
+    toDate: 'По дату',
     
     // Stats
     activeProjects: 'Активные проекты',
-    pendingInvoices: 'Ожидающие оплаты',
+    pendingInvoices: 'Неоплаченные счета',
     monthlyRevenue: 'Месячная выручка',
     activeCrews: 'Активные бригады',
     
@@ -144,28 +146,30 @@ export const translations = {
     loading: 'Загрузка...',
     error: 'Ошибка',
     success: 'Успех',
+    settings: 'Настройки',
+    logout: 'Выход',
     
     // Messages
-    loginRequired: 'Требуется вход в систему',
-    loggingIn: 'Выполняется вход...',
-    unauthorized: 'Нет доступа',
+    loginRequiredRu: 'Требуется авторизация',
+    loggingInRu: 'Вход в систему...',
+    unauthorizedRu: 'Не авторизован',
     
     // Project Wizard
-    projectWizard: 'Мастер проекта',
-    basicInfo: 'Основная информация',
-    services: 'Услуги',
-    files: 'Файлы',
-    completion: 'Завершение',
+    projectWizardRu: 'Мастер проектов',
+    basicInfoRu: 'Основная информация',
+    servicesRu: 'Услуги',
+    filesRu: 'Файлы',
+    completionRu: 'Завершение',
     
-    // Forms
-    name: 'Имя',
-    email: 'Email',
-    phone: 'Телефон',
-    address: 'Адрес',
-    description: 'Описание',
-    price: 'Цена',
-    quantity: 'Количество',
-    notes: 'Заметки',
+    // Forms (Russian specific)
+    nameRu: 'Имя',
+    emailRu: 'Email',
+    phoneRu: 'Телефон',
+    addressRu: 'Адрес',
+    descriptionRu: 'Описание',
+    priceRu: 'Цена',
+    quantityRu: 'Количество',
+    notesRu: 'Заметки',
   },
 };
 

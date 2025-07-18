@@ -5,7 +5,8 @@ import { useQuery } from '@tanstack/react-query';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Search, Bell, ChevronDown, Building } from 'lucide-react';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { Search, Bell, ChevronDown, Settings, LogOut, UserCircle } from 'lucide-react';
 
 export function TopHeader() {
   const { t, language, changeLanguage } = useI18n();
@@ -97,20 +98,35 @@ export function TopHeader() {
         </Button>
 
         {/* User Profile */}
-        <div className="flex items-center space-x-3 cursor-pointer" onClick={() => window.location.href = '/api/logout'}>
-          <img
-            src={user?.profileImageUrl || "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=32&h=32"}
-            alt="User Avatar"
-            className="w-8 h-8 rounded-full object-cover"
-          />
-          <div className="text-sm">
-            <p className="font-medium">
-              {user?.firstName} {user?.lastName}
-            </p>
-            <p className="text-gray-500">{user?.role === 'admin' ? 'Administrator' : 'Project Leiter'}</p>
-          </div>
-          <ChevronDown className="w-4 h-4 text-gray-400" />
-        </div>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <div className="flex items-center space-x-3 cursor-pointer hover:bg-gray-50 rounded-lg p-2 transition-colors">
+              <img
+                src={user?.profileImageUrl || "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=32&h=32"}
+                alt="User Avatar"
+                className="w-8 h-8 rounded-full object-cover"
+              />
+              <div className="text-sm">
+                <p className="font-medium">
+                  {user?.firstName} {user?.lastName}
+                </p>
+                <p className="text-gray-500">{user?.role === 'admin' ? 'Administrator' : 'Project Leiter'}</p>
+              </div>
+              <ChevronDown className="w-4 h-4 text-gray-400" />
+            </div>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-56">
+            <DropdownMenuItem>
+              <Settings className="w-4 h-4 mr-2" />
+              {t('settings')}
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={() => window.location.href = '/api/logout'}>
+              <LogOut className="w-4 h-4 mr-2" />
+              {t('logout')}
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
     </header>
   );

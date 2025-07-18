@@ -48,7 +48,7 @@ export default function Clients() {
   }, []);
 
   const { data: clients = [], isLoading } = useQuery({
-    queryKey: ['/api/clients', { firmId: selectedFirmId }],
+    queryKey: ['/api/clients', selectedFirmId],
     enabled: !!selectedFirmId,
   });
 

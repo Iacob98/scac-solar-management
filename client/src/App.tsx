@@ -68,7 +68,7 @@ function Router() {
       {isLoading || !isAuthenticated ? (
         <>
           <Route path="/" component={Landing} />
-          <Route component={NotFound} />
+          <Route path="*" component={Landing} />
         </>
       ) : (
         <>
