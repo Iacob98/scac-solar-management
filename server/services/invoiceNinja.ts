@@ -192,10 +192,19 @@ export class InvoiceNinjaService {
 
   async getProducts(): Promise<InvoiceNinjaProduct[]> {
     try {
-      const response = await axios.get(
-        `${this.baseUrl}/api/v1/products`,
-        { headers: this.getHeaders() }
-      );
+      const url = `${this.baseUrl}/products`;
+      console.log('Making request to:', url);
+      console.log('Headers:', this.getHeaders());
+      
+      const response = await axios.get(url, { headers: this.getHeaders() });
+      
+      console.log('Response status:', response.status);
+      console.log('Response data structure:', {
+        hasData: !!response.data.data,
+        dataLength: response.data.data?.length || 0,
+        hasMeta: !!response.data.meta
+      });
+      
       return response.data.data || [];
     } catch (error: any) {
       console.error('Error fetching products from Invoice Ninja:', error.response?.data || error.message);
