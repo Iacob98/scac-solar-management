@@ -1,0 +1,49 @@
+Warning: Each child in a list should have a unique "key" prop.%s%s See https://reactjs.org/link/warning-keys for more information.%s 
+
+Check the render method of `Select`.  It was passed a child from SelectItemText. 
+    at option
+    at Select (https://9250c105-7dad-41be-b60b-6c1ce62f0d09-00-o7jc6pb8osw9.picard.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/@radix-ui_react-select.js?v=84f58dd5:92:5)
+    at div
+    at form
+    at FormProvider (https://9250c105-7dad-41be-b60b-6c1ce62f0d09-00-o7jc6pb8osw9.picard.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-4BFJKWC4.js?v=84f58dd5:102:11)
+    at div
+    at https://9250c105-7dad-41be-b60b-6c1ce62f0d09-00-o7jc6pb8osw9.picard.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-IWFJIMEQ.js?v=84f58dd5:42:13
+    at https://9250c105-7dad-41be-b60b-6c1ce62f0d09-00-o7jc6pb8osw9.picard.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-OR3OWOBI.js?v=84f58dd5:61:7
+    at https://9250c105-7dad-41be-b60b-6c1ce62f0d09-00-o7jc6pb8osw9.picard.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-LHPXHTGV.js?v=84f58dd5:43:13
+    at https://9250c105-7dad-41be-b60b-6c1ce62f0d09-00-o7jc6pb8osw9.picard.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-LHPXHTGV.js?v=84f58dd5:20:13
+    at https://9250c105-7dad-41be-b60b-6c1ce62f0d09-00-o7jc6pb8osw9.picard.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-IWFJIMEQ.js?v=84f58dd5:42:13
+    at https://9250c105-7dad-41be-b60b-6c1ce62f0d09-00-o7jc6pb8osw9.picard.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-HP6KL7FS.js?v=84f58dd5:29:5
+    at https://9250c105-7dad-41be-b60b-6c1ce62f0d09-00-o7jc6pb8osw9.picard.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/@radix-ui_react-dialog.js?v=84f58dd5:238:13
+    at https://9250c105-7dad-41be-b60b-6c1ce62f0d09-00-o7jc6pb8osw9.picard.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/@radix-ui_react-dialog.js?v=84f58dd5:161:58
+    at Presence (https://9250c105-7dad-41be-b60b-6c1ce62f0d09-00-o7jc6pb8osw9.picard.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-FDH7FQDE.js?v=84f58dd5:24:11)
+    at https://9250c105-7dad-41be-b60b-6c1ce62f0d09-00-o7jc6pb8osw9.picard.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/@radix-ui_react-dialog.js?v=84f58dd5:152:64
+    at https://9250c105-7dad-41be-b60b-6c1ce62f0d09-00-o7jc6pb8osw9.picard.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-LHPXHTGV.js?v=84f58dd5:43:13
+    at https://9250c105-7dad-41be-b60b-6c1ce62f0d09-00-o7jc6pb8osw9.picard.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-LHPXHTGV.js?v=84f58dd5:20:13
+    at https://9250c105-7dad-41be-b60b-6c1ce62f0d09-00-o7jc6pb8osw9.picard.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-IWFJIMEQ.js?v=84f58dd5:42:13
+    at https://9250c105-7dad-41be-b60b-6c1ce62f0d09-00-o7jc6pb8osw9.picard.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-OR3OWOBI.js?v=84f58dd5:260:22
+    at Presence (https://9250c105-7dad-41be-b60b-6c1ce62f0d09-00-o7jc6pb8osw9.picard.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-FDH7FQDE.js?v=84f58dd5:24:11)
+    at Provider (https://9250c105-7dad-41be-b60b-6c1ce62f0d09-00-o7jc6pb8osw9.picard.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-OXZDJRWN.js?v=84f58dd5:38:15)
+    at DialogPortal (https://9250c105-7dad-41be-b60b-6c1ce62f0d09-00-o7jc6pb8osw9.picard.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/@radix-ui_react-dialog.js?v=84f58dd5:114:11)
+    at _c3 (https://9250c105-7dad-41be-b60b-6c1ce62f0d09-00-o7jc6pb8osw9.picard.replit.dev/src/components/ui/dialog.tsx:52:12)
+    at Provider (https://9250c105-7dad-41be-b60b-6c1ce62f0d09-00-o7jc6pb8osw9.picard.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-OXZDJRWN.js?v=84f58dd5:38:15)
+    at Dialog (https://9250c105-7dad-41be-b60b-6c1ce62f0d09-00-o7jc6pb8osw9.picard.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/@radix-ui_react-dialog.js?v=84f58dd5:55:5)
+    at div
+    at div
+    at ServicesPage (https://9250c105-7dad-41be-b60b-6c1ce62f0d09-00-o7jc6pb8osw9.picard.replit.dev/src/pages/Services.tsx:39:40)
+    at div
+    at ProjectsWrapper (https://9250c105-7dad-41be-b60b-6c1ce62f0d09-00-o7jc6pb8osw9.picard.replit.dev/src/pages/ProjectsWrapper.tsx:1135:43)
+    at div
+    at main
+    at div
+    at div
+    at MainLayout (https://9250c105-7dad-41be-b60b-6c1ce62f0d09-00-o7jc6pb8osw9.picard.replit.dev/src/components/Layout/MainLayout.tsx:19:30)
+    at Projects (https://9250c105-7dad-41be-b60b-6c1ce62f0d09-00-o7jc6pb8osw9.picard.replit.dev/src/pages/Projects.tsx:984:47)
+    at ProtectedRoute (https://9250c105-7dad-41be-b60b-6c1ce62f0d09-00-o7jc6pb8osw9.picard.replit.dev/src/App.tsx?v=cmBmgbdDY-_22ITMjnhuR:36:38)
+    at component
+    at Route (https://9250c105-7dad-41be-b60b-6c1ce62f0d09-00-o7jc6pb8osw9.picard.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/wouter.js?v=84f58dd5:323:16)
+    at Switch (https://9250c105-7dad-41be-b60b-6c1ce62f0d09-00-o7jc6pb8osw9.picard.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/wouter.js?v=84f58dd5:379:17)
+    at Router (https://9250c105-7dad-41be-b60b-6c1ce62f0d09-00-o7jc6pb8osw9.picard.replit.dev/src/App.tsx?v=cmBmgbdDY-_22ITMjnhuR:97:42)
+    at Provider (https://9250c105-7dad-41be-b60b-6c1ce62f0d09-00-o7jc6pb8osw9.picard.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-OXZDJRWN.js?v=84f58dd5:38:15)
+    at TooltipProvider (https://9250c105-7dad-41be-b60b-6c1ce62f0d09-00-o7jc6pb8osw9.picard.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/@radix-ui_react-tooltip.js?v=84f58dd5:64:5)
+    at QueryClientProvider (https://9250c105-7dad-41be-b60b-6c1ce62f0d09-00-o7jc6pb8osw9.picard.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/@tanstack_react-query.js?v=84f58dd5:2805:3)
+    at App

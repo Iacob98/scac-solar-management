@@ -43,12 +43,11 @@ export default function ServicesPage({ selectedFirm, projectId }: ServicesPagePr
   });
 
   const { data: products = [] } = useQuery({
-    queryKey: ['/api/catalog/products', selectedFirm],
+    queryKey: ['/api/catalog/products'],
     queryFn: async () => {
-      const response = await apiRequest(`/api/catalog/products?firmId=${selectedFirm}`, 'GET');
+      const response = await apiRequest('/api/catalog/products', 'GET');
       return await response.json();
     },
-    enabled: !!selectedFirm,
   });
 
   const form = useForm({
@@ -129,12 +128,12 @@ export default function ServicesPage({ selectedFirm, projectId }: ServicesPagePr
     }
   };
 
-  const handleProductSelect = (productKey: string) => {
-    const product = (products as any[]).find(p => p.product_key === productKey);
+  const handleProductSelect = (productId: string) => {
+    const product = (products as any[]).find(p => p.id === productId);
     if (product) {
-      form.setValue('productKey', product.product_key);
-      form.setValue('description', product.notes || product.product_key);
-      form.setValue('price', product.cost?.toString() || '0');
+      form.setValue('productKey', product.name);
+      form.setValue('description', product.description || product.name);
+      form.setValue('price', product.price?.toString() || '0');
       form.setValue('isCustom', false);
     }
   };
@@ -219,8 +218,12 @@ export default function ServicesPage({ selectedFirm, projectId }: ServicesPagePr
                       </SelectTrigger>
                       <SelectContent>
                         {(products as any[]).map((product: any) => (
-                          <SelectItem key={product.id} value={product.product_key}>
-                            {product.product_key} - {product.notes} (€{product.cost})
+                          <SelectItem key={product.id} value={product.id}>
+                            <div className="flex flex-col">
+                              <span className="font-medium">{product.name}</span>
+                              <span className="text-sm text-gray-500 truncate">{product.description}</span>
+                              <span className="text-sm font-medium text-blue-600">€{product.price}</span>
+                            </div>
                           </SelectItem>
                         ))}
                       </SelectContent>
