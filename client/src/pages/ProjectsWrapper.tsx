@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -8,7 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Textarea } from '@/components/ui/textarea';
-import { CalendarIcon, Download, FileText, Plus, Users, Building2, Receipt, Settings, Eye, Edit, Trash2 } from 'lucide-react';
+import { CalendarIcon, Download, FileText, Plus, Users, Building2, Receipt, Settings, Eye, ArrowLeft } from 'lucide-react';
 import { format } from 'date-fns';
 import { ru } from 'date-fns/locale';
 import { useForm } from 'react-hook-form';
@@ -18,8 +18,14 @@ import { insertProjectSchema, type Project, type Client, type Crew } from '@shar
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
 import { apiRequest } from '@/lib/queryClient';
-import { MainLayout } from '@/components/Layout/MainLayout';
-import ProjectsWrapper from './ProjectsWrapper';
+import ProjectDetail from './ProjectDetail';
+import Services from './Services';
+
+interface ProjectsWrapperProps {
+  selectedFirm: string;
+}
+
+type ViewMode = 'list' | 'detail' | 'services';
 
 const projectFormSchema = insertProjectSchema.extend({
   startDate: z.string(),
@@ -42,13 +48,7 @@ const statusColors = {
   paid: 'bg-purple-100 text-purple-800'
 };
 
-interface ProjectsProps {
-  selectedFirm: string;
-  onViewProject?: (projectId: number) => void;
-  onManageServices?: (projectId: number) => void;
-}
-
-function ProjectsList({ selectedFirm, onViewProject, onManageServices }: ProjectsProps) {
+function ProjectsList({ selectedFirm, onViewProject, onManageServices }: { selectedFirm: string; onViewProject: (id: number) => void; onManageServices: (id: number) => void }) {
   const { toast } = useToast();
   const { user } = useAuth();
   const queryClient = useQueryClient();
@@ -63,7 +63,7 @@ function ProjectsList({ selectedFirm, onViewProject, onManageServices }: Project
       return await response.json();
     },
     enabled: !!selectedFirm,
-    refetchInterval: 30000, // Автообновление каждые 30 секунд
+    refetchInterval: 30000,
   });
 
   const { data: clients = [] } = useQuery({
@@ -102,55 +102,21 @@ function ProjectsList({ selectedFirm, onViewProject, onManageServices }: Project
   });
 
   const createProjectMutation = useMutation({
-    mutationFn: (data: any) => apiRequest('/api/projects', 'POST', {
-      ...data,
-      startDate: new Date(data.startDate),
-      endDate: data.endDate ? new Date(data.endDate) : null,
-    }),
+    mutationFn: (data: z.infer<typeof projectFormSchema>) => apiRequest('/api/projects', 'POST', data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/projects', selectedFirm] });
-      toast({ title: 'Проект создан успешно' });
       setIsCreateDialogOpen(false);
       form.reset();
+      toast({
+        title: 'Проект создан',
+        description: 'Новый проект успешно добавлен в систему',
+      });
     },
     onError: (error: any) => {
-      toast({ 
-        title: 'Ошибка', 
+      toast({
+        title: 'Ошибка создания проекта',
         description: error.message || 'Не удалось создать проект',
-        variant: 'destructive' 
-      });
-    },
-  });
-
-  const createInvoiceMutation = useMutation({
-    mutationFn: (projectId: number) => apiRequest('/api/invoice/create', 'POST', { projectId }),
-    onSuccess: (data: any) => {
-      queryClient.invalidateQueries({ queryKey: ['/api/projects', selectedFirm] });
-      toast({ 
-        title: 'Счет выставлен', 
-        description: `Счет №${data.invoiceNumber} создан успешно` 
-      });
-    },
-    onError: (error: any) => {
-      toast({ 
-        title: 'Ошибка выставления счета', 
-        description: error.message || 'Не удалось выставить счет',
-        variant: 'destructive' 
-      });
-    },
-  });
-
-  const markPaidMutation = useMutation({
-    mutationFn: (invoiceNumber: string) => apiRequest('/api/invoice/mark-paid', 'PATCH', { invoiceNumber }),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/projects', selectedFirm] });
-      toast({ title: 'Счет отмечен как оплаченный' });
-    },
-    onError: (error: any) => {
-      toast({ 
-        title: 'Ошибка', 
-        description: error.message || 'Не удалось отметить счет как оплаченный',
-        variant: 'destructive' 
+        variant: 'destructive',
       });
     },
   });
@@ -171,6 +137,39 @@ function ProjectsList({ selectedFirm, onViewProject, onManageServices }: Project
     },
   });
 
+  const createInvoiceMutation = useMutation({
+    mutationFn: (projectId: number) => apiRequest('/api/invoice/create', 'POST', { projectId }),
+    onSuccess: (data: any) => {
+      queryClient.invalidateQueries({ queryKey: ['/api/projects', selectedFirm] });
+      toast({ 
+        title: 'Счет создан успешно',
+        description: `Счет №${data.invoiceNumber} создан в Invoice Ninja`
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: 'Ошибка',
+        description: error.message || 'Не удалось создать счет',
+        variant: 'destructive'
+      });
+    },
+  });
+
+  const markPaidMutation = useMutation({
+    mutationFn: (invoiceNumber: string) => apiRequest('/api/invoice/mark-paid', 'PATCH', { invoiceNumber }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/projects', selectedFirm] });
+      toast({ title: 'Счет отмечен как оплаченный' });
+    },
+    onError: (error: any) => {
+      toast({
+        title: 'Ошибка',
+        description: error.message || 'Не удалось отметить счет как оплаченный',
+        variant: 'destructive'
+      });
+    },
+  });
+
   const onSubmit = (data: z.infer<typeof projectFormSchema>) => {
     createProjectMutation.mutate({
       ...data,
@@ -183,14 +182,14 @@ function ProjectsList({ selectedFirm, onViewProject, onManageServices }: Project
     updateProjectStatusMutation.mutate({ projectId, status });
   };
 
-  const filteredProjects = (projects as Project[]).filter((project: Project & { client?: Client; crew?: Crew }) => {
-    const matchesSearch = project.notes?.toLowerCase().includes(filter.toLowerCase()) ||
-      project.client?.name?.toLowerCase().includes(filter.toLowerCase()) ||
+  const filteredProjects = (projects as Project[]).filter((project: Project) => {
+    const matchesFilter = !filter || 
+      getClientName(project.clientId).toLowerCase().includes(filter.toLowerCase()) ||
       project.teamNumber?.toLowerCase().includes(filter.toLowerCase());
     
     const matchesStatus = statusFilter === 'all' || project.status === statusFilter;
     
-    return matchesSearch && matchesStatus;
+    return matchesFilter && matchesStatus;
   });
 
   const getClientName = (clientId: number) => {
@@ -421,7 +420,7 @@ function ProjectsList({ selectedFirm, onViewProject, onManageServices }: Project
                     <Button 
                       size="sm" 
                       variant="outline"
-                      onClick={() => onViewProject?.(project.id)}
+                      onClick={() => onViewProject(project.id)}
                     >
                       <Eye className="h-4 w-4 mr-2" />
                       Просмотр
@@ -430,7 +429,7 @@ function ProjectsList({ selectedFirm, onViewProject, onManageServices }: Project
                     <Button 
                       size="sm" 
                       variant="outline"
-                      onClick={() => onManageServices?.(project.id)}
+                      onClick={() => onManageServices(project.id)}
                     >
                       <Settings className="h-4 w-4 mr-2" />
                       Услуги
@@ -511,21 +510,57 @@ function ProjectsList({ selectedFirm, onViewProject, onManageServices }: Project
   );
 }
 
-export default function Projects() {
-  const [selectedFirmId, setSelectedFirmId] = useState<string>('');
+export default function ProjectsWrapper({ selectedFirm }: ProjectsWrapperProps) {
+  const [viewMode, setViewMode] = useState<ViewMode>('list');
+  const [selectedProjectId, setSelectedProjectId] = useState<number | null>(null);
 
-  useEffect(() => {
-    const firmId = localStorage.getItem('selectedFirmId');
-    if (firmId) {
-      setSelectedFirmId(firmId);
-    }
-  }, []);
+  const handleViewProject = (projectId: number) => {
+    setSelectedProjectId(projectId);
+    setViewMode('detail');
+  };
+
+  const handleManageServices = (projectId: number) => {
+    setSelectedProjectId(projectId);
+    setViewMode('services');
+  };
+
+  const handleBackToList = () => {
+    setViewMode('list');
+    setSelectedProjectId(null);
+  };
+
+  if (viewMode === 'detail' && selectedProjectId) {
+    return (
+      <ProjectDetail
+        projectId={selectedProjectId}
+        selectedFirm={selectedFirm}
+        onBack={handleBackToList}
+      />
+    );
+  }
+
+  if (viewMode === 'services' && selectedProjectId) {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-4">
+            <Button variant="outline" onClick={handleBackToList}>
+              <ArrowLeft className="h-4 w-4 mr-2" />
+              Назад к проектам
+            </Button>
+            <h1 className="text-2xl font-bold">Управление услугами</h1>
+          </div>
+        </div>
+        <Services selectedFirm={selectedFirm} projectId={selectedProjectId} />
+      </div>
+    );
+  }
 
   return (
-    <MainLayout>
-      <div className="p-6">
-        <ProjectsWrapper selectedFirm={selectedFirmId} />
-      </div>
-    </MainLayout>
+    <ProjectsList
+      selectedFirm={selectedFirm}
+      onViewProject={handleViewProject}
+      onManageServices={handleManageServices}
+    />
   );
 }
