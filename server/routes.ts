@@ -1,0 +1,381 @@
+import type { Express } from "express";
+import { createServer, type Server } from "http";
+import { storage } from "./storage";
+import { setupAuth, isAuthenticated } from "./replitAuth";
+import { InvoiceNinjaService } from "./services/invoiceNinja";
+import { 
+  insertFirmSchema, 
+  insertClientSchema, 
+  insertCrewSchema, 
+  insertProjectSchema, 
+  insertServiceSchema 
+} from "@shared/schema";
+import { z } from "zod";
+
+export async function registerRoutes(app: Express): Promise<Server> {
+  await setupAuth(app);
+
+  // Auth routes
+  app.get('/api/auth/user', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const user = await storage.getUser(userId);
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      res.json(user);
+    } catch (error) {
+      console.error("Error fetching user:", error);
+      res.status(500).json({ message: "Failed to fetch user" });
+    }
+  });
+
+  // Firm routes
+  app.get('/api/firms', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const user = await storage.getUser(userId);
+      
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      let firms;
+      if (user.role === 'admin') {
+        firms = await storage.getFirms();
+      } else {
+        firms = await storage.getFirmsByUserId(userId);
+      }
+      
+      res.json(firms);
+    } catch (error) {
+      console.error("Error fetching firms:", error);
+      res.status(500).json({ message: "Failed to fetch firms" });
+    }
+  });
+
+  app.post('/api/firms', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const user = await storage.getUser(userId);
+      
+      if (!user || user.role !== 'admin') {
+        return res.status(403).json({ message: "Access denied" });
+      }
+
+      const firmData = insertFirmSchema.parse(req.body);
+      const firm = await storage.createFirm(firmData);
+      res.json(firm);
+    } catch (error) {
+      console.error("Error creating firm:", error);
+      res.status(500).json({ message: "Failed to create firm" });
+    }
+  });
+
+  // Client routes
+  app.get('/api/clients', isAuthenticated, async (req: any, res) => {
+    try {
+      const firmId = req.query.firmId as string;
+      if (!firmId) {
+        return res.status(400).json({ message: "Firm ID is required" });
+      }
+      
+      const clients = await storage.getClientsByFirmId(firmId);
+      res.json(clients);
+    } catch (error) {
+      console.error("Error fetching clients:", error);
+      res.status(500).json({ message: "Failed to fetch clients" });
+    }
+  });
+
+  app.post('/api/clients', isAuthenticated, async (req: any, res) => {
+    try {
+      const clientData = insertClientSchema.parse(req.body);
+      const client = await storage.createClient(clientData);
+      res.json(client);
+    } catch (error) {
+      console.error("Error creating client:", error);
+      res.status(500).json({ message: "Failed to create client" });
+    }
+  });
+
+  // Crew routes
+  app.get('/api/crews', isAuthenticated, async (req: any, res) => {
+    try {
+      const firmId = req.query.firmId as string;
+      if (!firmId) {
+        return res.status(400).json({ message: "Firm ID is required" });
+      }
+      
+      const crews = await storage.getCrewsByFirmId(firmId);
+      res.json(crews);
+    } catch (error) {
+      console.error("Error fetching crews:", error);
+      res.status(500).json({ message: "Failed to fetch crews" });
+    }
+  });
+
+  app.post('/api/crews', isAuthenticated, async (req: any, res) => {
+    try {
+      const crewData = insertCrewSchema.parse(req.body);
+      const crew = await storage.createCrew(crewData);
+      res.json(crew);
+    } catch (error) {
+      console.error("Error creating crew:", error);
+      res.status(500).json({ message: "Failed to create crew" });
+    }
+  });
+
+  app.delete('/api/crews/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      const crewId = parseInt(req.params.id);
+      await storage.archiveCrew(crewId);
+      res.json({ message: "Crew archived successfully" });
+    } catch (error) {
+      console.error("Error archiving crew:", error);
+      res.status(500).json({ message: "Failed to archive crew" });
+    }
+  });
+
+  // Project routes
+  app.get('/api/projects', isAuthenticated, async (req: any, res) => {
+    try {
+      const firmId = req.query.firmId as string;
+      if (!firmId) {
+        return res.status(400).json({ message: "Firm ID is required" });
+      }
+      
+      const projects = await storage.getProjectsByFirmId(firmId);
+      res.json(projects);
+    } catch (error) {
+      console.error("Error fetching projects:", error);
+      res.status(500).json({ message: "Failed to fetch projects" });
+    }
+  });
+
+  app.post('/api/projects', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const projectData = insertProjectSchema.parse({
+        ...req.body,
+        leiterId: userId,
+      });
+      const project = await storage.createProject(projectData);
+      res.json(project);
+    } catch (error) {
+      console.error("Error creating project:", error);
+      res.status(500).json({ message: "Failed to create project" });
+    }
+  });
+
+  app.put('/api/projects/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      const projectId = parseInt(req.params.id);
+      const updateData = req.body;
+      const project = await storage.updateProject(projectId, updateData);
+      res.json(project);
+    } catch (error) {
+      console.error("Error updating project:", error);
+      res.status(500).json({ message: "Failed to update project" });
+    }
+  });
+
+  // Service routes
+  app.get('/api/services', isAuthenticated, async (req: any, res) => {
+    try {
+      const projectId = parseInt(req.query.projectId as string);
+      if (!projectId) {
+        return res.status(400).json({ message: "Project ID is required" });
+      }
+      
+      const services = await storage.getServicesByProjectId(projectId);
+      res.json(services);
+    } catch (error) {
+      console.error("Error fetching services:", error);
+      res.status(500).json({ message: "Failed to fetch services" });
+    }
+  });
+
+  app.post('/api/services', isAuthenticated, async (req: any, res) => {
+    try {
+      const serviceData = insertServiceSchema.parse(req.body);
+      const service = await storage.createService(serviceData);
+      res.json(service);
+    } catch (error) {
+      console.error("Error creating service:", error);
+      res.status(500).json({ message: "Failed to create service" });
+    }
+  });
+
+  app.delete('/api/services/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      const serviceId = parseInt(req.params.id);
+      await storage.deleteService(serviceId);
+      res.json({ message: "Service deleted successfully" });
+    } catch (error) {
+      console.error("Error deleting service:", error);
+      res.status(500).json({ message: "Failed to delete service" });
+    }
+  });
+
+  // Invoice routes
+  app.post('/api/invoices/create', isAuthenticated, async (req: any, res) => {
+    try {
+      const { projectId } = req.body;
+      
+      if (!projectId) {
+        return res.status(400).json({ message: "Project ID is required" });
+      }
+
+      const project = await storage.getProjectById(projectId);
+      if (!project) {
+        return res.status(404).json({ message: "Project not found" });
+      }
+
+      const services = await storage.getServicesByProjectId(projectId);
+      if (services.length === 0) {
+        return res.status(400).json({ message: "No services found for this project" });
+      }
+
+      // Get firm details for Invoice Ninja integration
+      const firms = await storage.getFirmsByUserId(req.user.claims.sub);
+      const firm = firms.find(f => f.id === project.firmId);
+      
+      if (!firm) {
+        return res.status(404).json({ message: "Firm not found" });
+      }
+
+      const client = await storage.getClientsByFirmId(firm.id);
+      const projectClient = client.find(c => c.id === project.clientId);
+      
+      if (!projectClient) {
+        return res.status(404).json({ message: "Client not found" });
+      }
+
+      const invoiceNinja = new InvoiceNinjaService(firm.invoiceNinjaUrl, firm.token);
+      
+      // Create invoice in Invoice Ninja
+      const invoiceData = {
+        client_id: projectClient.ninjaClientId || '',
+        line_items: services.map(service => ({
+          quantity: parseFloat(service.quantity),
+          cost: parseFloat(service.price),
+          product_key: service.productKey || '',
+          notes: service.description,
+          custom_value1: service.isCustom ? 'custom' : 'catalog',
+          custom_value2: '',
+        })),
+        custom_value1: `PROJ-${projectId}`,
+        custom_value2: project.crewId ? `CREW-${project.crewId}` : '',
+        date: new Date().toISOString().split('T')[0],
+        due_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+        public_notes: project.notes || '',
+        private_notes: `Generated from SCAC Project ${projectId}`,
+      };
+
+      const ninjaInvoice = await invoiceNinja.createInvoice(invoiceData);
+      
+      // Save invoice to database
+      const invoice = await storage.createInvoice({
+        projectId: projectId,
+        invoiceId: ninjaInvoice.id,
+        invoiceNumber: ninjaInvoice.number,
+        invoiceDate: ninjaInvoice.date,
+        dueDate: ninjaInvoice.due_date,
+        totalAmount: ninjaInvoice.amount.toString(),
+        isPaid: false,
+      });
+
+      // Update project status and invoice info
+      await storage.updateProject(projectId, {
+        status: 'invoiced',
+        invoiceNumber: ninjaInvoice.number,
+        invoiceUrl: `${firm.invoiceNinjaUrl}/invoices/${ninjaInvoice.id}`,
+      });
+
+      res.json({
+        invoice,
+        invoiceNumber: ninjaInvoice.number,
+        invoiceUrl: `${firm.invoiceNinjaUrl}/invoices/${ninjaInvoice.id}`,
+      });
+    } catch (error) {
+      console.error("Error creating invoice:", error);
+      res.status(500).json({ message: "Failed to create invoice" });
+    }
+  });
+
+  app.patch('/api/invoices/:invoiceNumber/mark-paid', isAuthenticated, async (req: any, res) => {
+    try {
+      const invoiceNumber = req.params.invoiceNumber;
+      const userId = req.user.claims.sub;
+      const user = await storage.getUser(userId);
+      
+      if (!user || user.role !== 'admin') {
+        return res.status(403).json({ message: "Only administrators can mark invoices as paid" });
+      }
+
+      // Find the invoice and update its status
+      const invoices = await storage.getInvoicesByFirmId(req.query.firmId as string);
+      const invoice = invoices.find(inv => inv.invoiceNumber === invoiceNumber);
+      
+      if (!invoice) {
+        return res.status(404).json({ message: "Invoice not found" });
+      }
+
+      await storage.updateInvoice(invoice.id, { isPaid: true });
+      
+      // Update project status
+      await storage.updateProject(invoice.projectId, { status: 'paid' });
+
+      res.json({ message: "Invoice marked as paid successfully" });
+    } catch (error) {
+      console.error("Error marking invoice as paid:", error);
+      res.status(500).json({ message: "Failed to mark invoice as paid" });
+    }
+  });
+
+  // Invoice Ninja catalog routes
+  app.get('/api/catalog/products', isAuthenticated, async (req: any, res) => {
+    try {
+      const firmId = req.query.firmId as string;
+      if (!firmId) {
+        return res.status(400).json({ message: "Firm ID is required" });
+      }
+
+      const userId = req.user.claims.sub;
+      const firms = await storage.getFirmsByUserId(userId);
+      const firm = firms.find(f => f.id === firmId);
+      
+      if (!firm) {
+        return res.status(404).json({ message: "Firm not found" });
+      }
+
+      const invoiceNinja = new InvoiceNinjaService(firm.invoiceNinjaUrl, firm.token);
+      const products = await invoiceNinja.getProducts();
+      
+      res.json(products);
+    } catch (error) {
+      console.error("Error fetching catalog products:", error);
+      res.status(500).json({ message: "Failed to fetch catalog products" });
+    }
+  });
+
+  // Statistics routes
+  app.get('/api/stats', isAuthenticated, async (req: any, res) => {
+    try {
+      const firmId = req.query.firmId as string;
+      if (!firmId) {
+        return res.status(400).json({ message: "Firm ID is required" });
+      }
+      
+      const stats = await storage.getProjectStats(firmId);
+      res.json(stats);
+    } catch (error) {
+      console.error("Error fetching statistics:", error);
+      res.status(500).json({ message: "Failed to fetch statistics" });
+    }
+  });
+
+  const httpServer = createServer(app);
+  return httpServer;
+}
