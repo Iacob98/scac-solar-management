@@ -464,15 +464,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post('/api/projects', isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
+      console.log('Creating project with data:', req.body);
+      
       const projectData = insertProjectSchema.parse({
         ...req.body,
         leiterId: userId,
       });
+      
+      console.log('Parsed project data:', projectData);
       const project = await storage.createProject(projectData);
+      console.log('Project created successfully:', project);
       res.json(project);
     } catch (error) {
       console.error("Error creating project:", error);
-      res.status(500).json({ message: "Failed to create project" });
+      res.status(500).json({ message: "Failed to create project", error: error instanceof Error ? error.message : String(error) });
     }
   });
 

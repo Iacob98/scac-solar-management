@@ -106,8 +106,12 @@ function ProjectsList({ selectedFirm, onViewProject, onManageServices }: { selec
   });
 
   const createProjectMutation = useMutation({
-    mutationFn: (data: z.infer<typeof projectFormSchema>) => apiRequest('/api/projects', 'POST', data),
+    mutationFn: (data: z.infer<typeof projectFormSchema>) => {
+      console.log('Sending data to API:', data);
+      return apiRequest('/api/projects', 'POST', data);
+    },
     onSuccess: () => {
+      console.log('Project created successfully');
       queryClient.invalidateQueries({ queryKey: ['/api/projects', selectedFirm] });
       setIsCreateDialogOpen(false);
       form.reset();
@@ -117,6 +121,7 @@ function ProjectsList({ selectedFirm, onViewProject, onManageServices }: { selec
       });
     },
     onError: (error: any) => {
+      console.error('Project creation error:', error);
       toast({
         title: 'Ошибка создания проекта',
         description: error.message || 'Не удалось создать проект',
@@ -175,6 +180,9 @@ function ProjectsList({ selectedFirm, onViewProject, onManageServices }: { selec
   });
 
   const onSubmit = (data: z.infer<typeof projectFormSchema>) => {
+    console.log('Form data:', data);
+    console.log('Form errors:', form.formState.errors);
+    
     createProjectMutation.mutate({
       ...data,
       leiterId: user?.id || data.leiterId,

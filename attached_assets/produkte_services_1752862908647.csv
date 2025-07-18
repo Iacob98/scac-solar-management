@@ -1,0 +1,92 @@
+﻿"Artikelnummer";"GTIN/EAN";"Bezeichnung";"Beschreibung";"Notiz";"Einheit";"Steuerart";"VK (Netto)"
+"";"";"'-";"";"";"kWp";"None";"0,00"
+"";"";"2tlg Zählerschrank Optional";"Erweiterung des vorhandenen Zählerschranks (optional)
+Material inklusive (Zuleitung max. 15m)";"";"Stück";"None";"2180,00"
+"";"";"3tlg Zählerschrank Optional";"Erweiterung des vorhandenen Zählerschranks (optional)
+Material inklusive (Zuleitung max. 15m)";"";"Stück";"None";"2400,00"
+"";"";"Administrativer Aufwand";"Anmeldung im Portal des Netzbetreiber
+Anmeldung der PV Anlage beim Netzbetreiber
+Zählertausch anmelden, ggf. Zählerabmeldung
+Marktstammregister";"";"Stück";"None";"450,00"
+"";"";"Administrativer Aufwand";"Anmeldung im Portal des Netzbetreiber
+Anmeldung der PV Anlage beim Netzbetreiber
+Zählertausch anmelden, ggf. Zählerabmeldung
+Marktstammregister";"";"Stück";"None";"450,00"
+"";"";"Anfahrtpauschale";"Pro Kunde einmalig für maximal 2 Tage";"";"Stück";"None";"100,00"
+"";"";"Anfahrtskosten";"";"";"Pauschal";"None";"500,00"
+"";"";"Anschluss der PV Anlage";"Montage WR und Speicher
+Inbetriebnahme
+Kundenkonto anlegen
+Einweisung für den Kunden
+Anschlussarbeiten im Zählerschrank
+Messung + Dokumentation
+Abnahmeprotokoll";"";"Stück";"None";"1500,00"
+"";"";"Anschluss der PV Anlage";"Montage WR und Speicher
+Inbetriebnahme
+Kundenkonto anlegen
+Einweisung für den Kunden
+Anschlussarbeiten im Zählerschrank
+Messung + Dokumentation
+Abnahmeprotokoll";"";"Stück";"None";"1500,00"
+"";"";"Ausfallpauschale";"";"";"Stück";"None";"500,00"
+"";"";"Balkonkraftwerk DC Montage";"";"";"Stück";"None";"400,00"
+"";"";"DC Material";"";"";"Stück";"None";"250,00"
+"";"";"DC Montage";"Montage der Unterkonstruktion und PV Module
+Vollständige DC Verkabelung";"";"Module";"None";"72,00"
+"";"";"Einbau Wärmepumpe pauschal gem,Ramenvertrag";"";"";"Pauschal";"None";"6000,00"
+"";"";"Gerüstpauschale Optional";"";"";"Stück";"None";"400,00"
+"";"";"HAK Zuleitung";"NYM 5x16 je 5m inklusive Befestigungsmaterial";"";"Stück";"None";"300,00"
+"";"";"HAK Zuleitung";"NYM 5x10 je 5m inklusive Befestigungsmaterial";"";"Stück";"None";"250,00"
+"";"";"HAK Zuleitung";"NYM 5x16 je 5m inklusive Befestigungsmaterial";"";"Stück";"None";"300,00"
+"";"";"Heizkörpertausch";"Kundendaten: 
+Kundenanschrift: 
+Kundennummer:
+Leistungsdatum:";"";"Stück";"None";"150,00"
+"";"";"Herstellung der Erdungsanlage";"Tiefenerder
+Messung
+Potischiene
+Durchbrüche bis 20m";"";"Stück";"None";"480,00"
+"";"";"Kabel";"Alle Kabel werden dem Auftraggeber in Meter angegeben und werden nach EK + 10% weiterverrechnet";"";"Stück";"None";"0,00"
+"";"";"Kleinmaterialpauschale AC";"Schrauben
+Dübel
+Stangenrohr
+Flexrohr
+Dichtmasse
+Aderendhülsen
+Abdeckstreifen";"";"Pauschal";"None";"250,00"
+"";"";"Kleinmaterialpauschale DC";"Schrauben
+Dübel
+Stangenrohr
+Flexrohr";"";"Pauschal";"None";"200,00"
+"";"";"Materialkosten";"";"";"Pauschal";"None";"1500,00"
+"";"";"Mehraufwand";"";"";"Pauschal";"None";"1000,00"
+"";"";"Notstrom";"Montage und Inbetriebnahme einer Notstrombox";"";"Stück";"None";"400,00"
+"";"";"SLS Schalter Optional";"Mögliche Nachrüstung eines SLS Schalters";"";"Stück";"None";"220,00"
+"";"";"Service Einsatz";"";"";"Pauschal";"None";"500,00"
+"";"";"Vollständige Installation und Inbetriebnahme eine Wärmepumpe";"Kundendaten: 
+Kundenanschrift: 
+Kundennummer:
+Leistungsdatum:";"";"Pauschal";"None";"6100,00"
+"";"";"Vollständige Installation und Inbetriebnahme eine Wärmepumpe";"";"";"Pauschal";"None";"6100,00"
+"";"";"Vollständige Installation und Inbetriebnahme eine Wärmepumpe mit Hydrocage";"";"";"Pauschal";"None";"4200,00"
+"";"";"Vollständige Installation und Inbetriebnahme eine Wärmepumpe mit Hydrocage";"Kundendaten:
+Kundenanschrift: 
+Kundennummer:
+Leistungsdatum:";"";"Pauschal";"None";"6100,00"
+"";"";"WP Montage";"";"";"Pauschal";"None";"1200,00"
+"";"";"Wallbox";"Durchbrüche
+Kabelkanal
+Kabel 15m
+Inbetriebnahme";"";"Stück";"None";"650,00"
+"";"";"Wartungsarbeiten pauschal gern.Rahmenvertrag";"";"";"Pauschal";"None";"300,00"
+"";"";"Zusätzliche Arbeiten";"Nach Aufwand in Absprache mit dem Auftraggeber 
+Beispielsweise Montage eines zweiten Wechselrichters oder Speichers
+
+Preis auf Anfrage je nach Aufwand";"";"Stück";"None";"0,00"
+"";"";"Zusätzliche Arbeiten Optional";"Nach Aufwand in Absprache mit dem Auftraggeber 
+Beispielsweise Montage eines zweiten Wechselrichters oder Speichers
+
+Preis auf Anfrage je nach Aufwand";"";"Stück";"None";"0,00"
+"";"";"Zählerzusammenlegung";"Preis pro Zähler";"";"Stück";"None";"300,00"
+"";"";"Zählerzusammenlegung";"Preis pro Zähler";"";"Stück";"None";"300,00"
+"";"";"ÜSS";"Verbau von einem Überspannungsschutz";"";"Stück";"None";"380,00"
