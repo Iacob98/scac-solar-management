@@ -7,6 +7,8 @@ The SCAC platform is a comprehensive web application designed to automate solar 
 ## User Preferences
 
 Preferred communication style: Simple, everyday language.
+Language: Russian only (no language switching)
+Focus on real data integration and proper business logic implementation
 
 ## System Architecture
 
@@ -95,3 +97,29 @@ The system uses PostgreSQL with the following main entities:
 - `ISSUER_URL`: OpenID Connect issuer URL
 
 The application follows a monolithic architecture with clear separation between client and server code, utilizing modern tooling for optimal developer experience and production performance.
+
+## Recent Changes (January 2025)
+
+### Language and UI Updates
+- Removed language switching functionality, set to Russian only
+- Translated all UI elements to Russian language
+- Updated i18n hooks to always use Russian locale
+- Fixed currency and date formatting for Russian locale
+
+### Dashboard and Statistics
+- Completely redesigned Home page with working statistics
+- Added real-time data display (active projects, clients, crews)
+- Implemented quick action cards for navigation
+- Connected statistics to actual database queries
+
+### Profile Settings
+- Added comprehensive Settings page with profile editing
+- Implemented user profile update API endpoints
+- Added avatar management and form validation
+- Connected settings to user dropdown menu
+
+### Data Integration Fixes
+- Fixed all TypeScript compilation errors
+- Resolved React Query type annotations
+- Fixed nullable field handling throughout the application
+- Ensured proper data flow from database to frontend

@@ -30,6 +30,40 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.patch('/api/auth/profile', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const profileData = z.object({
+        firstName: z.string().optional(),
+        lastName: z.string().optional(),
+        email: z.string().email().optional(),
+        profileImageUrl: z.string().url().optional().or(z.literal('')),
+      }).parse(req.body);
+
+      const updatedUser = await storage.updateUserProfile(userId, profileData);
+      res.json(updatedUser);
+    } catch (error) {
+      console.error("Error updating profile:", error);
+      res.status(500).json({ message: "Failed to update profile" });
+    }
+  });
+
+  app.patch('/api/auth/password', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const passwordData = z.object({
+        currentPassword: z.string(),
+        newPassword: z.string().min(8),
+      }).parse(req.body);
+
+      // Note: This is a placeholder - password changes should be handled by Replit Auth
+      res.status(501).json({ message: "Password changes are handled by Replit Auth" });
+    } catch (error) {
+      console.error("Error changing password:", error);
+      res.status(500).json({ message: "Failed to change password" });
+    }
+  });
+
   // Firm routes
   app.get('/api/firms', isAuthenticated, async (req: any, res) => {
     try {
