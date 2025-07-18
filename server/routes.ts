@@ -124,23 +124,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
         await storage.updateClient(client.id, { ninjaClientId });
       }
 
-      // Create invoice in Invoice Ninja
+      // Create invoice in Invoice Ninja (German format)
       const invoiceData = {
         client_id: ninjaClientId,
         line_items: services.map(service => ({
           quantity: Number(service.quantity) || 1,
           cost: parseFloat(service.price.toString()),
-          product_key: service.productKey || '',
+          product_key: service.productKey || service.description.split(' ')[0],
           notes: service.description,
-          custom_value1: service.isCustom ? 'CUSTOM' : '',
+          custom_value1: '',
           custom_value2: '',
         })),
-        custom_value1: `PROJ-${projectId}`,
-        custom_value2: `CREW-${project.crewId}`,
+        // German invoice format
         date: new Date().toISOString().split('T')[0],
-        due_date: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-        public_notes: `Проект: ${project.notes || 'Установка солнечных панелей'}`,
-        private_notes: `Project ID: ${projectId}, Team: ${project.teamNumber}`,
+        due_date: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // 14 days
+        public_notes: `Kundendaten: ${client.name}\nKundenanschrift: ${client.address}\nKundennummer: CLIENT-${client.id}`,
+        private_notes: `Projekt ID: ${projectId}, Team: ${project.teamNumber || 'N/A'}`,
+        custom_value1: `PROJ-${projectId}`,
+        custom_value2: `CREW-${project.crewId || 'N/A'}`,
+        // Add German tax settings
+        tax_name1: 'USt.',
+        tax_rate1: 0, // 0% as per German §13b UStG for B2B solar installations
+        footer: 'Umsatzsteuerfreie Leistungen gemäß §13b Abs. 2 UStG.\nVielen Dank für die gute Zusammenarbeit.',
       };
 
       const invoice = await ninjaService.createInvoice(invoiceData);
