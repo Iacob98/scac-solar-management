@@ -1,26 +1,27 @@
 import { useQuery } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { TrendingUp, FileText, Euro, Users } from 'lucide-react';
+import type { Project, Crew } from '@shared/schema';
 
 interface StatsCardsProps {
   firmId: string;
 }
 
 export function StatsCards({ firmId }: StatsCardsProps) {
-  const { data: projects = [] } = useQuery({
+  const { data: projects = [] } = useQuery<Project[]>({
     queryKey: ['/api/projects', firmId],
     enabled: !!firmId,
   });
 
-  const { data: crews = [] } = useQuery({
+  const { data: crews = [] } = useQuery<Crew[]>({
     queryKey: ['/api/crews', firmId],
     enabled: !!firmId,
   });
 
-  const activeProjects = projects.filter((p: any) => p.status === 'in_progress').length;
-  const completedProjects = projects.filter((p: any) => p.status === 'done').length;
-  const invoicedProjects = projects.filter((p: any) => p.status === 'invoiced').length;
-  const paidProjects = projects.filter((p: any) => p.status === 'paid').length;
+  const activeProjects = projects.filter((p) => p.status === 'in_progress').length;
+  const completedProjects = projects.filter((p) => p.status === 'done').length;
+  const invoicedProjects = projects.filter((p) => p.status === 'invoiced').length;
+  const paidProjects = projects.filter((p) => p.status === 'paid').length;
 
   const stats = [
     {
@@ -46,7 +47,7 @@ export function StatsCards({ firmId }: StatsCardsProps) {
     },
     {
       title: 'Aktive Crews',
-      value: crews.filter((c: any) => !c.archived).length.toString(),
+      value: crews.filter((c) => !c.archived).length.toString(),
       icon: Users,
       description: 'Verfügbare Teams',
       color: 'text-purple-600',

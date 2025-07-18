@@ -3,6 +3,7 @@ import { useI18n } from '@/hooks/useI18n';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useToast } from '@/hooks/use-toast';
 import { apiRequest } from '@/lib/queryClient';
+import type { Invoice, Project } from '@shared/schema';
 import { MainLayout } from '@/components/Layout/MainLayout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -38,12 +39,12 @@ export default function Invoices() {
     }
   }, []);
 
-  const { data: invoices = [], isLoading } = useQuery({
+  const { data: invoices = [], isLoading } = useQuery<Invoice[]>({
     queryKey: ['/api/invoices', { firmId: selectedFirmId, ...filters }],
     enabled: !!selectedFirmId,
   });
 
-  const { data: projects = [] } = useQuery({
+  const { data: projects = [] } = useQuery<Project[]>({
     queryKey: ['/api/projects', { firmId: selectedFirmId }],
     enabled: !!selectedFirmId,
   });
@@ -70,7 +71,7 @@ export default function Invoices() {
   });
 
   const getProject = (projectId: number) => {
-    return projects.find((p: any) => p.id === projectId);
+    return projects.find((p) => p.id === projectId);
   };
 
   const getStatusBadge = (isPaid: boolean, dueDate: string) => {
@@ -114,7 +115,7 @@ export default function Invoices() {
     setFilters(prev => ({ ...prev, [key]: value }));
   };
 
-  const filteredInvoices = invoices.filter((invoice: any) => {
+  const filteredInvoices = invoices.filter((invoice) => {
     if (filters.status && filters.status !== 'all') {
       if (filters.status === 'paid' && !invoice.isPaid) return false;
       if (filters.status === 'unpaid' && invoice.isPaid) return false;
@@ -126,13 +127,13 @@ export default function Invoices() {
     return true;
   });
 
-  const totalAmount = filteredInvoices.reduce((sum: number, invoice: any) => 
+  const totalAmount = filteredInvoices.reduce((sum: number, invoice) => 
     sum + parseFloat(invoice.totalAmount), 0
   );
 
   const unpaidAmount = filteredInvoices
-    .filter((invoice: any) => !invoice.isPaid)
-    .reduce((sum: number, invoice: any) => sum + parseFloat(invoice.totalAmount), 0);
+    .filter((invoice) => !invoice.isPaid)
+    .reduce((sum: number, invoice) => sum + parseFloat(invoice.totalAmount), 0);
 
   if (!selectedFirmId) {
     return (

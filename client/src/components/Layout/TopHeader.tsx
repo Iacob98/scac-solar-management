@@ -7,13 +7,14 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Search, Bell, ChevronDown, Settings, LogOut, UserCircle } from 'lucide-react';
+import type { Firm } from '@shared/schema';
 
 export function TopHeader() {
   const { t, language, changeLanguage } = useI18n();
   const { user } = useAuth();
   const [selectedFirmId, setSelectedFirmId] = useState<string>('');
 
-  const { data: firms = [] } = useQuery({
+  const { data: firms = [] } = useQuery<Firm[]>({
     queryKey: ['/api/firms'],
     enabled: !!user,
   });
@@ -51,7 +52,7 @@ export function TopHeader() {
             <SelectValue placeholder="Firma auswählen" />
           </SelectTrigger>
           <SelectContent>
-            {firms.map((firm: any) => (
+            {firms.map((firm) => (
               <SelectItem key={firm.id} value={firm.id}>
                 {firm.name}
               </SelectItem>

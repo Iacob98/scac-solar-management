@@ -3,6 +3,7 @@ import { useI18n } from '@/hooks/useI18n';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useToast } from '@/hooks/use-toast';
 import { apiRequest } from '@/lib/queryClient';
+import type { Client } from '@shared/schema';
 import { MainLayout } from '@/components/Layout/MainLayout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -47,7 +48,7 @@ export default function Clients() {
     }
   }, []);
 
-  const { data: clients = [], isLoading } = useQuery({
+  const { data: clients = [], isLoading } = useQuery<Client[]>({
     queryKey: ['/api/clients', selectedFirmId],
     enabled: !!selectedFirmId,
   });
@@ -226,7 +227,7 @@ export default function Clients() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {clients.map((client: any) => (
+                {clients.map((client) => (
                   <TableRow key={client.id}>
                     <TableCell>
                       <div className="font-medium">{client.name}</div>

@@ -4,6 +4,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent } from '@/components/ui/card';
 import { Filter } from 'lucide-react';
+import type { Client, Crew } from '@shared/schema';
 
 interface FilterPanelProps {
   firmId: string;
@@ -18,12 +19,12 @@ interface FilterPanelProps {
 }
 
 export function FilterPanel({ firmId, filters, onFilterChange }: FilterPanelProps) {
-  const { data: clients = [] } = useQuery({
+  const { data: clients = [] } = useQuery<Client[]>({
     queryKey: ['/api/clients', firmId],
     enabled: !!firmId,
   });
 
-  const { data: crews = [] } = useQuery({
+  const { data: crews = [] } = useQuery<Crew[]>({
     queryKey: ['/api/crews', firmId],
     enabled: !!firmId,
   });
@@ -44,7 +45,7 @@ export function FilterPanel({ firmId, filters, onFilterChange }: FilterPanelProp
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Alle Kunden</SelectItem>
-                {clients.map((client: any) => (
+                {clients.map((client) => (
                   <SelectItem key={client.id} value={client.id.toString()}>
                     {client.name}
                   </SelectItem>
@@ -77,7 +78,7 @@ export function FilterPanel({ firmId, filters, onFilterChange }: FilterPanelProp
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Alle Crews</SelectItem>
-                {crews.map((crew: any) => (
+                {crews.map((crew) => (
                   <SelectItem key={crew.id} value={crew.id.toString()}>
                     {crew.name}
                   </SelectItem>

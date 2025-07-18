@@ -79,11 +79,11 @@ export const translations = {
     name: 'Name',
     email: 'E-Mail',
     phone: 'Telefon',
-    address: 'Adresse',
     description: 'Beschreibung',
     price: 'Preis',
     quantity: 'Menge',
     notes: 'Notizen',
+    address: 'Adresse',
   },
   ru: {
     // Navigation
@@ -150,26 +150,26 @@ export const translations = {
     logout: 'Выход',
     
     // Messages
-    loginRequiredRu: 'Требуется авторизация',
-    loggingInRu: 'Вход в систему...',
-    unauthorizedRu: 'Не авторизован',
+    loginRequired: 'Требуется авторизация',
+    loggingIn: 'Вход в систему...',
+    unauthorized: 'Не авторизован',
     
     // Project Wizard
-    projectWizardRu: 'Мастер проектов',
-    basicInfoRu: 'Основная информация',
-    servicesRu: 'Услуги',
-    filesRu: 'Файлы',
-    completionRu: 'Завершение',
+    projectWizard: 'Мастер проектов',
+    basicInfo: 'Основная информация',
+    services: 'Услуги',
+    files: 'Файлы',
+    completion: 'Завершение',
     
-    // Forms (Russian specific)
-    nameRu: 'Имя',
-    emailRu: 'Email',
-    phoneRu: 'Телефон',
-    addressRu: 'Адрес',
-    descriptionRu: 'Описание',
-    priceRu: 'Цена',
-    quantityRu: 'Количество',
-    notesRu: 'Заметки',
+    // Forms
+    name: 'Имя',
+    email: 'Email',
+    phone: 'Телефон',
+    address: 'Адрес',
+    description: 'Описание',
+    price: 'Цена',
+    quantity: 'Количество',
+    notes: 'Заметки',
   },
 };
 

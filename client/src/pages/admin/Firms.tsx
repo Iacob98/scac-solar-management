@@ -3,6 +3,7 @@ import { useI18n } from '@/hooks/useI18n';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useToast } from '@/hooks/use-toast';
 import { apiRequest } from '@/lib/queryClient';
+import type { Firm } from '@shared/schema';
 import { useAuth } from '@/hooks/useAuth';
 import { MainLayout } from '@/components/Layout/MainLayout';
 import { Button } from '@/components/ui/button';
@@ -62,7 +63,7 @@ export default function Firms() {
     );
   }
 
-  const { data: firms = [], isLoading } = useQuery({
+  const { data: firms = [], isLoading } = useQuery<Firm[]>({
     queryKey: ['/api/firms'],
   });
 
@@ -250,7 +251,7 @@ export default function Firms() {
             </div>
           ) : (
             <div className="grid gap-6">
-              {firms.map((firm: any) => (
+              {firms.map((firm) => (
                 <Card key={firm.id}>
                   <CardHeader className="pb-3">
                     <div className="flex items-center justify-between">
@@ -299,7 +300,7 @@ export default function Firms() {
                       </div>
                     </div>
                     <div className="text-xs text-gray-500">
-                      Erstellt: {new Date(firm.createdAt).toLocaleDateString('de-DE')}
+                      Erstellt: {firm.createdAt ? new Date(firm.createdAt).toLocaleDateString('de-DE') : 'N/A'}
                     </div>
                   </CardContent>
                 </Card>

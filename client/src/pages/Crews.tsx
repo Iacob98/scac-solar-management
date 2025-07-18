@@ -3,6 +3,7 @@ import { useI18n } from '@/hooks/useI18n';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useToast } from '@/hooks/use-toast';
 import { apiRequest } from '@/lib/queryClient';
+import type { Crew } from '@shared/schema';
 import { MainLayout } from '@/components/Layout/MainLayout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -47,7 +48,7 @@ export default function Crews() {
     }
   }, []);
 
-  const { data: crews = [], isLoading } = useQuery({
+  const { data: crews = [], isLoading } = useQuery<Crew[]>({
     queryKey: ['/api/crews', selectedFirmId],
     enabled: !!selectedFirmId,
   });
@@ -127,7 +128,7 @@ export default function Crews() {
 
   const filteredCrews = showArchived 
     ? crews 
-    : crews.filter((crew: any) => !crew.archived);
+    : crews.filter((crew) => !crew.archived);
 
   if (!selectedFirmId) {
     return (

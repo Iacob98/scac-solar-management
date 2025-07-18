@@ -4,6 +4,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useToast } from '@/hooks/use-toast';
 import { apiRequest } from '@/lib/queryClient';
 import { useAuth } from '@/hooks/useAuth';
+import type { User, Firm } from '@shared/schema';
 import { MainLayout } from '@/components/Layout/MainLayout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -13,7 +14,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Plus, Edit, User, Shield, Mail, Calendar, Building } from 'lucide-react';
+import { Plus, Edit, User as UserIcon, Shield, Mail, Calendar, Building } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -61,11 +62,11 @@ export default function Users() {
     );
   }
 
-  const { data: users = [], isLoading: loadingUsers } = useQuery({
+  const { data: users = [], isLoading: loadingUsers } = useQuery<User[]>({
     queryKey: ['/api/users'],
   });
 
-  const { data: firms = [], isLoading: loadingFirms } = useQuery({
+  const { data: firms = [], isLoading: loadingFirms } = useQuery<Firm[]>({
     queryKey: ['/api/firms'],
   });
 
@@ -122,7 +123,7 @@ export default function Users() {
       </Badge>
     ) : (
       <Badge variant="secondary">
-        <User className="w-3 h-3 mr-1" />
+        <UserIcon className="w-3 h-3 mr-1" />
         Project Leiter
       </Badge>
     );
@@ -220,7 +221,7 @@ export default function Users() {
                   <div>
                     <Label>Zugewiesene Firmen</Label>
                     <div className="space-y-2 mt-2">
-                      {firms.map((firm: any) => (
+                      {firms.map((firm) => (
                         <div key={firm.id} className="flex items-center space-x-2">
                           <input
                             type="checkbox"

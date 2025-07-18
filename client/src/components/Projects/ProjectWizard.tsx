@@ -6,6 +6,7 @@ import { useI18n } from '@/hooks/useI18n';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
+import type { Client, Crew } from '@shared/schema';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -46,12 +47,12 @@ export function ProjectWizard({ isOpen, onClose, firmId }: ProjectWizardProps) {
   const [projectData, setProjectData] = useState<any>(null);
   const [services, setServices] = useState<any[]>([]);
 
-  const { data: clients = [] } = useQuery({
+  const { data: clients = [] } = useQuery<Client[]>({
     queryKey: ['/api/clients', firmId],
     enabled: !!firmId && isOpen,
   });
 
-  const { data: crews = [] } = useQuery({
+  const { data: crews = [] } = useQuery<Crew[]>({
     queryKey: ['/api/crews', firmId],
     enabled: !!firmId && isOpen,
   });
@@ -192,12 +193,13 @@ export function ProjectWizard({ isOpen, onClose, firmId }: ProjectWizardProps) {
   };
 
   const getClientName = (clientId: string) => {
-    const client = clients.find((c: any) => c.id.toString() === clientId);
+    const client = clients.find((c) => c.id.toString() === clientId);
     return client?.name || 'Unbekannt';
   };
 
-  const getCrewName = (crewId: string) => {
-    const crew = crews.find((c: any) => c.id.toString() === crewId);
+  const getCrewName = (crewId: string | undefined) => {
+    if (!crewId) return 'Nicht zugewiesen';
+    const crew = crews.find((c) => c.id.toString() === crewId);
     return crew?.name || 'Nicht zugewiesen';
   };
 
@@ -273,7 +275,7 @@ export function ProjectWizard({ isOpen, onClose, firmId }: ProjectWizardProps) {
                         <SelectValue placeholder="Kunde auswählen" />
                       </SelectTrigger>
                       <SelectContent>
-                        {clients.map((client: any) => (
+                        {clients.map((client) => (
                           <SelectItem key={client.id} value={client.id.toString()}>
                             {client.name}
                           </SelectItem>
@@ -300,7 +302,7 @@ export function ProjectWizard({ isOpen, onClose, firmId }: ProjectWizardProps) {
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="none">Später zuweisen</SelectItem>
-                        {crews.filter((c: any) => !c.archived).map((crew: any) => (
+                        {crews.filter((c) => !c.archived).map((crew) => (
                           <SelectItem key={crew.id} value={crew.id.toString()}>
                             {crew.name}
                           </SelectItem>
@@ -509,8 +511,8 @@ export function ProjectWizard({ isOpen, onClose, firmId }: ProjectWizardProps) {
                       <p><strong>Team-Nummer:</strong> {projectData?.teamNumber}</p>
                       <p><strong>Kunde:</strong> {getClientName(projectForm.watch('clientId'))}</p>
                       <p><strong>Crew:</strong> {projectForm.watch('crewId') ? getCrewName(projectForm.watch('crewId')) : 'Nicht zugewiesen'}</p>
-                      <p><strong>Startdatum:</strong> {projectForm.watch('startDate') ? new Date(projectForm.watch('startDate')).toLocaleDateString('de-DE') : 'TBD'}</p>
-                      <p><strong>Enddatum:</strong> {projectForm.watch('endDate') ? new Date(projectForm.watch('endDate')).toLocaleDateString('de-DE') : 'TBD'}</p>
+                      <p><strong>Startdatum:</strong> {projectForm.watch('startDate') ? new Date(projectForm.watch('startDate')!).toLocaleDateString('de-DE') : 'TBD'}</p>
+                      <p><strong>Enddatum:</strong> {projectForm.watch('endDate') ? new Date(projectForm.watch('endDate')!).toLocaleDateString('de-DE') : 'TBD'}</p>
                     </div>
                   </div>
 

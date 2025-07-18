@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useToast } from '@/hooks/use-toast';
 import { apiRequest } from '@/lib/queryClient';
 import { useI18n } from '@/hooks/useI18n';
+import type { Project, Client, Crew, Service } from '@shared/schema';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -25,25 +26,25 @@ export function ProjectsTable({ firmId, filters }: ProjectsTableProps) {
   const { t } = useI18n();
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const [selectedProject, setSelectedProject] = useState<any>(null);
+  const [selectedProject, setSelectedProject] = useState<Project | null>(null);
   const [isDetailOpen, setIsDetailOpen] = useState(false);
 
-  const { data: projects = [], isLoading } = useQuery({
+  const { data: projects = [], isLoading } = useQuery<Project[]>({
     queryKey: ['/api/projects', firmId],
     enabled: !!firmId,
   });
 
-  const { data: clients = [] } = useQuery({
+  const { data: clients = [] } = useQuery<Client[]>({
     queryKey: ['/api/clients', firmId],
     enabled: !!firmId,
   });
 
-  const { data: crews = [] } = useQuery({
+  const { data: crews = [] } = useQuery<Crew[]>({
     queryKey: ['/api/crews', firmId],
     enabled: !!firmId,
   });
 
-  const { data: services = [] } = useQuery({
+  const { data: services = [] } = useQuery<Service[]>({
     queryKey: ['/api/services', selectedProject?.id],
     enabled: !!selectedProject?.id,
   });
@@ -102,16 +103,17 @@ export function ProjectsTable({ firmId, filters }: ProjectsTableProps) {
   };
 
   const getClientName = (clientId: number) => {
-    const client = clients.find((c: any) => c.id === clientId);
+    const client = clients.find((c) => c.id === clientId);
     return client?.name || 'Unbekannt';
   };
 
-  const getCrewName = (crewId: number) => {
-    const crew = crews.find((c: any) => c.id === crewId);
+  const getCrewName = (crewId: number | null) => {
+    if (!crewId) return 'Nicht zugewiesen';
+    const crew = crews.find((c) => c.id === crewId);
     return crew?.name || 'Nicht zugewiesen';
   };
 
-  const handleViewDetails = (project: any) => {
+  const handleViewDetails = (project: Project) => {
     setSelectedProject(project);
     setIsDetailOpen(true);
   };
@@ -126,17 +128,17 @@ export function ProjectsTable({ firmId, filters }: ProjectsTableProps) {
 
   const calculateProjectTotal = () => {
     if (!services.length) return 0;
-    return services.reduce((total: number, service: any) => {
+    return services.reduce((total: number, service) => {
       return total + (parseFloat(service.price) * parseFloat(service.quantity));
     }, 0);
   };
 
-  const filteredProjects = projects.filter((project: any) => {
+  const filteredProjects = projects.filter((project) => {
     if (filters.clientId && filters.clientId !== 'all' && project.clientId.toString() !== filters.clientId) return false;
     if (filters.status && filters.status !== 'all' && project.status !== filters.status) return false;
     if (filters.crewId && filters.crewId !== 'all' && project.crewId?.toString() !== filters.crewId) return false;
-    if (filters.startDate && project.startDate < filters.startDate) return false;
-    if (filters.endDate && project.endDate > filters.endDate) return false;
+    if (filters.startDate && project.startDate && project.startDate < filters.startDate) return false;
+    if (filters.endDate && project.endDate && project.endDate > filters.endDate) return false;
     return true;
   });
 
@@ -214,11 +216,12 @@ export function ProjectsTable({ firmId, filters }: ProjectsTableProps) {
                           variant="ghost"
                           size="sm"
                           onClick={() => {
-                            const nextStatus = {
-                              in_progress: 'done',
-                              done: 'invoiced',
-                              invoiced: 'paid',
-                            }[project.status];
+                            const statusMap: Record<string, string> = {
+                              'in_progress': 'done',
+                              'done': 'invoiced',
+                              'invoiced': 'paid',
+                            };
+                            const nextStatus = statusMap[project.status];
                             if (nextStatus) {
                               handleStatusChange(project.id, nextStatus);
                             }
@@ -303,7 +306,7 @@ export function ProjectsTable({ firmId, filters }: ProjectsTableProps) {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {services.map((service: any) => (
+                      {services.map((service) => (
                         <TableRow key={service.id}>
                           <TableCell>{service.description}</TableCell>
                           <TableCell>{service.quantity}</TableCell>
