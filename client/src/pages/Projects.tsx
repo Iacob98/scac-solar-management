@@ -8,7 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Textarea } from '@/components/ui/textarea';
-import { CalendarIcon, Download, FileText, Plus, Users, Building2, Receipt } from 'lucide-react';
+import { CalendarIcon, Download, FileText, Plus, Users, Building2, Receipt, Settings, Eye, Edit, Trash2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ru } from 'date-fns/locale';
 import { useForm } from 'react-hook-form';
@@ -16,6 +16,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { insertProjectSchema, type Project, type Client, type Crew } from '@shared/schema';
 import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/hooks/useAuth';
 import { apiRequest } from '@/lib/queryClient';
 
 const projectFormSchema = insertProjectSchema.extend({
@@ -39,12 +40,13 @@ const statusColors = {
   paid: 'bg-purple-100 text-purple-800'
 };
 
-interface ProjectsPageProps {
+interface ProjectsProps {
   selectedFirm: string;
 }
 
-export default function ProjectsPage({ selectedFirm }: ProjectsPageProps) {
+export default function Projects({ selectedFirm }: ProjectsProps) {
   const { toast } = useToast();
+  const { user } = useAuth();
   const queryClient = useQueryClient();
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [filter, setFilter] = useState('');
@@ -52,27 +54,39 @@ export default function ProjectsPage({ selectedFirm }: ProjectsPageProps) {
 
   const { data: projects = [], isLoading: projectsLoading } = useQuery({
     queryKey: ['/api/projects', selectedFirm],
-    queryFn: () => apiRequest(`/api/projects?firmId=${selectedFirm}`, 'GET'),
+    queryFn: async () => {
+      const response = await apiRequest(`/api/projects?firmId=${selectedFirm}`, 'GET');
+      return await response.json();
+    },
     enabled: !!selectedFirm,
+    refetchInterval: 30000, // Автообновление каждые 30 секунд
   });
 
   const { data: clients = [] } = useQuery({
     queryKey: ['/api/clients', selectedFirm],
-    queryFn: () => apiRequest(`/api/clients/${selectedFirm}`, 'GET'),
+    queryFn: async () => {
+      const response = await apiRequest(`/api/clients?firmId=${selectedFirm}`, 'GET');
+      return await response.json();
+    },
     enabled: !!selectedFirm,
+    refetchInterval: 30000,
   });
 
   const { data: crews = [] } = useQuery({
     queryKey: ['/api/crews', selectedFirm],
-    queryFn: () => apiRequest(`/api/crews/${selectedFirm}`, 'GET'),
+    queryFn: async () => {
+      const response = await apiRequest(`/api/crews?firmId=${selectedFirm}`, 'GET');
+      return await response.json();
+    },
     enabled: !!selectedFirm,
+    refetchInterval: 30000,
   });
 
   const form = useForm({
     resolver: zodResolver(projectFormSchema),
     defaultValues: {
       firmId: selectedFirm,
-      leiterId: '',
+      leiterId: user?.id || '',
       clientId: 0,
       crewId: 0,
       startDate: '',
@@ -137,8 +151,32 @@ export default function ProjectsPage({ selectedFirm }: ProjectsPageProps) {
     },
   });
 
+  const updateProjectStatusMutation = useMutation({
+    mutationFn: ({ projectId, status }: { projectId: number; status: string }) => 
+      apiRequest(`/api/projects/${projectId}/status`, 'PATCH', { status }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/projects', selectedFirm] });
+      toast({ title: 'Статус проекта обновлен' });
+    },
+    onError: (error: any) => {
+      toast({
+        title: 'Ошибка',
+        description: error.message || 'Не удалось обновить статус проекта',
+        variant: 'destructive'
+      });
+    },
+  });
+
   const onSubmit = (data: z.infer<typeof projectFormSchema>) => {
-    createProjectMutation.mutate(data);
+    createProjectMutation.mutate({
+      ...data,
+      leiterId: user?.id || data.leiterId,
+      firmId: selectedFirm,
+    });
+  };
+
+  const updateProjectStatus = (projectId: number, status: string) => {
+    updateProjectStatusMutation.mutate({ projectId, status });
   };
 
   const filteredProjects = (projects as Project[]).filter((project: Project & { client?: Client; crew?: Crew }) => {
@@ -375,7 +413,35 @@ export default function ProjectsPage({ selectedFirm }: ProjectsPageProps) {
                 )}
                 
                 <div className="flex justify-between items-center">
-                  <div className="flex space-x-2">
+                  <div className="flex flex-wrap gap-2">
+                    <Button size="sm" variant="outline">
+                      <Eye className="h-4 w-4 mr-2" />
+                      Просмотр
+                    </Button>
+                    
+                    <Button size="sm" variant="outline">
+                      <Settings className="h-4 w-4 mr-2" />
+                      Услуги
+                    </Button>
+                    
+                    {project.status === 'planning' && (
+                      <Button 
+                        size="sm" 
+                        onClick={() => updateProjectStatus(project.id, 'in_progress')}
+                      >
+                        Начать работу
+                      </Button>
+                    )}
+                    
+                    {project.status === 'in_progress' && (
+                      <Button 
+                        size="sm" 
+                        onClick={() => updateProjectStatus(project.id, 'done')}
+                      >
+                        Завершить
+                      </Button>
+                    )}
+                    
                     {project.status === 'done' && (
                       <Button 
                         size="sm" 

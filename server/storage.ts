@@ -47,11 +47,13 @@ export interface IStorage {
   
   // Client operations
   getClientsByFirmId(firmId: string): Promise<Client[]>;
+  getClientById(id: number): Promise<Client | undefined>;
   createClient(client: InsertClient): Promise<Client>;
   updateClient(id: number, client: Partial<InsertClient>): Promise<Client>;
   
   // Crew operations
   getCrewsByFirmId(firmId: string): Promise<Crew[]>;
+  getCrewById(id: number): Promise<Crew | undefined>;
   createCrew(crew: InsertCrew): Promise<Crew>;
   updateCrew(id: number, crew: Partial<InsertCrew>): Promise<Crew>;
   archiveCrew(id: number): Promise<void>;
@@ -64,6 +66,7 @@ export interface IStorage {
   
   // Service operations
   getServicesByProjectId(projectId: number): Promise<Service[]>;
+  getServicesByProject(projectId: number): Promise<Service[]>;
   createService(service: InsertService): Promise<Service>;
   updateService(id: number, service: Partial<InsertService>): Promise<Service>;
   deleteService(id: number): Promise<void>;
@@ -72,6 +75,10 @@ export interface IStorage {
   getInvoicesByFirmId(firmId: string): Promise<Invoice[]>;
   createInvoice(invoice: InsertInvoice): Promise<Invoice>;
   updateInvoice(id: number, invoice: Partial<InsertInvoice>): Promise<Invoice>;
+  
+  // Additional methods
+  getFirmById(firmId: string): Promise<Firm | undefined>;
+  getProjectStats(firmId: string): Promise<any>;
   
   // File operations
   getFilesByProjectId(projectId: number): Promise<ProjectFile[]>;
@@ -176,6 +183,14 @@ export class DatabaseStorage implements IStorage {
     return newClient;
   }
 
+  async getClientById(id: number): Promise<Client | undefined> {
+    const [client] = await db
+      .select()
+      .from(clients)
+      .where(eq(clients.id, id));
+    return client;
+  }
+
   async updateClient(id: number, client: Partial<InsertClient>): Promise<Client> {
     const [updated] = await db
       .update(clients)
@@ -197,6 +212,14 @@ export class DatabaseStorage implements IStorage {
   async createCrew(crew: InsertCrew): Promise<Crew> {
     const [newCrew] = await db.insert(crews).values(crew).returning();
     return newCrew;
+  }
+
+  async getCrewById(id: number): Promise<Crew | undefined> {
+    const [crew] = await db
+      .select()
+      .from(crews)
+      .where(eq(crews.id, id));
+    return crew;
   }
 
   async updateCrew(id: number, crew: Partial<InsertCrew>): Promise<Crew> {
@@ -252,6 +275,10 @@ export class DatabaseStorage implements IStorage {
       .orderBy(desc(services.createdAt));
   }
 
+  async getServicesByProject(projectId: number): Promise<Service[]> {
+    return this.getServicesByProjectId(projectId);
+  }
+
   async createService(service: InsertService): Promise<Service> {
     const [newService] = await db.insert(services).values(service).returning();
     return newService;
@@ -302,6 +329,14 @@ export class DatabaseStorage implements IStorage {
       .where(eq(invoices.id, id))
       .returning();
     return updated;
+  }
+
+  async getFirmById(firmId: string): Promise<Firm | undefined> {
+    const [firm] = await db
+      .select()
+      .from(firms)
+      .where(eq(firms.id, firmId));
+    return firm;
   }
 
   // File operations

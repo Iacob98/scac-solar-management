@@ -294,6 +294,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.get('/api/clients/single/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      const { id } = req.params;
+      const client = await storage.getClientById(Number(id));
+      res.json(client);
+    } catch (error) {
+      console.error("Error fetching client:", error);
+      res.status(500).json({ message: "Failed to fetch client" });
+    }
+  });
+
   app.post('/api/clients', isAuthenticated, async (req: any, res) => {
     try {
       const clientData = insertClientSchema.parse(req.body);
@@ -318,6 +329,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error fetching crews:", error);
       res.status(500).json({ message: "Failed to fetch crews" });
+    }
+  });
+
+  app.get('/api/crews/single/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      const { id } = req.params;
+      const crew = await storage.getCrewById(Number(id));
+      res.json(crew);
+    } catch (error) {
+      console.error("Error fetching crew:", error);
+      res.status(500).json({ message: "Failed to fetch crew" });
     }
   });
 
@@ -453,7 +475,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Invoice routes
-  app.post('/api/invoices/create', isAuthenticated, async (req: any, res) => {
+  app.post('/api/invoice/create', isAuthenticated, async (req: any, res) => {
     try {
       const { projectId } = req.body;
       
@@ -538,9 +560,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.patch('/api/invoices/:invoiceNumber/mark-paid', isAuthenticated, async (req: any, res) => {
+  app.patch('/api/invoice/mark-paid', isAuthenticated, async (req: any, res) => {
     try {
-      const invoiceNumber = req.params.invoiceNumber;
+      const { invoiceNumber } = req.body;
       const userId = req.user.claims.sub;
       const user = await storage.getUser(userId);
       
