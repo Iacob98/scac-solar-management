@@ -178,13 +178,15 @@ export class InvoiceNinjaService {
   private token: string;
 
   constructor(baseUrl: string, token: string) {
-    this.baseUrl = baseUrl.replace(/\/$/, ''); // Remove trailing slash
+    // Remove trailing slash and ensure clean base URL
+    this.baseUrl = baseUrl.replace(/\/$/, '').replace(/\/api\/v1$/, ''); 
     this.token = token;
   }
 
   private getHeaders() {
     return {
-      'X-API-Token': this.token,
+      'X-API-TOKEN': this.token,
+      'X-Requested-With': 'XMLHttpRequest',
       'Content-Type': 'application/json',
       'Accept': 'application/json',
     };
@@ -192,7 +194,7 @@ export class InvoiceNinjaService {
 
   async getProducts(): Promise<InvoiceNinjaProduct[]> {
     try {
-      const url = `${this.baseUrl}/products`;
+      const url = `${this.baseUrl}/api/v1/products`;
       console.log('Making request to:', url);
       console.log('Headers:', this.getHeaders());
       
@@ -215,7 +217,7 @@ export class InvoiceNinjaService {
   async getClients(): Promise<InvoiceNinjaClient[]> {
     try {
       const response = await axios.get(
-        `${this.baseUrl}/clients`,
+        `${this.baseUrl}/api/v1/clients`,
         { headers: this.getHeaders() }
       );
       return response.data.data || [];
@@ -255,7 +257,7 @@ export class InvoiceNinjaService {
       console.log('Creating client with data:', transformedData);
       
       const response = await axios.post(
-        `${this.baseUrl}/clients`,
+        `${this.baseUrl}/api/v1/clients`,
         transformedData,
         { headers: this.getHeaders() }
       );
@@ -271,7 +273,7 @@ export class InvoiceNinjaService {
       console.log('Creating invoice with data:', invoiceData);
       
       const response = await axios.post(
-        `${this.baseUrl}/invoices`,
+        `${this.baseUrl}/api/v1/invoices`,
         invoiceData,
         { headers: this.getHeaders() }
       );
