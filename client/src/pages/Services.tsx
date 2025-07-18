@@ -129,7 +129,7 @@ export default function ServicesPage({ selectedFirm, projectId }: ServicesPagePr
   };
 
   const handleProductSelect = (productId: string) => {
-    const product = (products as any[]).find(p => p.id === productId);
+    const product = (products as any[]).find(p => p.id.toString() === productId);
     if (product) {
       form.setValue('productKey', product.name);
       form.setValue('description', product.description || product.name);
@@ -221,7 +221,7 @@ export default function ServicesPage({ selectedFirm, projectId }: ServicesPagePr
                       </SelectTrigger>
                       <SelectContent>
                         {(products as any[]).map((product: any) => (
-                          <SelectItem key={product.id} value={product.id}>
+                          <SelectItem key={product.id} value={product.id.toString()}>
                             <div className="flex justify-between items-start w-full">
                               <div className="flex-1 min-w-0">
                                 <div className="font-medium text-sm truncate">{product.name}</div>
