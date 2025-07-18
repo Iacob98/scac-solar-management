@@ -400,7 +400,11 @@ function ProjectsList({ selectedFirm, onViewProject, onManageServices }: { selec
                   <Button 
                     type="submit" 
                     disabled={createProjectMutation.isPending}
-                    onClick={() => console.log('Submit button clicked')}
+                    onClick={(e) => {
+                      console.log('Submit button clicked');
+                      e.preventDefault();
+                      form.handleSubmit(onSubmit)();
+                    }}
                   >
                     {createProjectMutation.isPending ? 'Создание...' : 'Создать проект'}
                   </Button>
