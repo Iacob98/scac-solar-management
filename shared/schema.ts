@@ -89,9 +89,9 @@ export const projects = pgTable("projects", {
   crewId: integer("crew_id").references(() => crews.id),
   startDate: date("start_date"),
   endDate: date("end_date"),
-  status: varchar("status", { enum: ["in_progress", "done", "invoiced", "paid"] })
+  status: varchar("status", { enum: ["planning", "in_progress", "done", "invoiced", "paid"] })
     .notNull()
-    .default("in_progress"),
+    .default("planning"),
   teamNumber: varchar("team_number"),
   notes: text("notes"),
   invoiceNumber: varchar("invoice_number"),

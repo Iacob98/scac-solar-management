@@ -64,6 +64,178 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Invoice routes  
+  app.post('/api/invoice/create', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const user = await storage.getUser(userId);
+      
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      const { projectId } = z.object({
+        projectId: z.number(),
+      }).parse(req.body);
+
+      // Get project with all related data
+      const project = await storage.getProjectById(projectId);
+      if (!project) {
+        return res.status(404).json({ message: "Project not found" });
+      }
+
+      // Get firm info for Invoice Ninja API
+      const firms = await storage.getFirms();
+      const firm = firms.find(f => f.id === project.firmId);
+      if (!firm) {
+        return res.status(404).json({ message: "Firm not found" });
+      }
+
+      // Get client info
+      const clients = await storage.getClientsByFirmId(project.firmId);
+      const client = clients.find(c => c.id === project.clientId);
+      if (!client) {
+        return res.status(404).json({ message: "Client not found" });
+      }
+
+      // Get services for the project
+      const services = await storage.getServicesByProjectId(projectId);
+      if (services.length === 0) {
+        return res.status(400).json({ message: "No services found for project" });
+      }
+
+      // Create Invoice Ninja service instance
+      const ninjaService = new InvoiceNinjaService(firm.invoiceNinjaUrl, firm.token);
+
+      // Check if client exists in Invoice Ninja, create if not
+      let ninjaClientId = client.ninjaClientId;
+      if (!ninjaClientId) {
+        const ninjaClient = await ninjaService.createClient({
+          name: client.name,
+          email: client.email || '',
+          phone: client.phone || '',
+          address1: client.address || '',
+          country_id: "276", // Germany
+        });
+        ninjaClientId = ninjaClient.id;
+        
+        // Update our client with the ninja_client_id
+        await storage.updateClient(client.id, { ninjaClientId });
+      }
+
+      // Create invoice in Invoice Ninja
+      const invoiceData = {
+        client_id: ninjaClientId,
+        line_items: services.map(service => ({
+          quantity: Number(service.quantity) || 1,
+          cost: parseFloat(service.price.toString()),
+          product_key: service.productKey || '',
+          notes: service.description,
+          custom_value1: service.isCustom ? 'CUSTOM' : '',
+          custom_value2: '',
+        })),
+        custom_value1: `PROJ-${projectId}`,
+        custom_value2: `CREW-${project.crewId}`,
+        date: new Date().toISOString().split('T')[0],
+        due_date: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+        public_notes: `Проект: ${project.notes || 'Установка солнечных панелей'}`,
+        private_notes: `Project ID: ${projectId}, Team: ${project.teamNumber}`,
+      };
+
+      const invoice = await ninjaService.createInvoice(invoiceData);
+
+      // Save invoice to our database
+      const newInvoice = await storage.createInvoice({
+        projectId: projectId,
+        invoiceId: invoice.id,
+        invoiceNumber: invoice.number,
+        invoiceDate: invoice.date,
+        dueDate: invoice.due_date,
+        totalAmount: invoice.amount.toString(),
+        isPaid: false,
+      });
+
+      // Get PDF link from Invoice Ninja
+      const pdfUrl = await ninjaService.downloadInvoicePDF ? 
+        `/api/v1/invoices/${invoice.id}/download` : '';
+
+      // Update project status
+      await storage.updateProject(projectId, {
+        status: 'invoiced',
+        invoiceNumber: invoice.number,
+        invoiceUrl: pdfUrl,
+      });
+
+      res.json({
+        success: true,
+        invoice: newInvoice,
+        invoiceNumber: invoice.number,
+        invoiceUrl: pdfUrl,
+        totalAmount: invoice.amount,
+      });
+
+    } catch (error: any) {
+      console.error("Error creating invoice:", error);
+      res.status(500).json({ message: error?.message || "Failed to create invoice" });
+    }
+  });
+
+  app.patch('/api/invoice/mark-paid', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const user = await storage.getUser(userId);
+      
+      if (!user || user.role !== 'admin') {
+        return res.status(403).json({ message: "Access denied. Admin only." });
+      }
+
+      const { invoiceNumber } = z.object({
+        invoiceNumber: z.string(),
+      }).parse(req.body);
+
+      // Find invoice in our database
+      const invoices = await storage.getInvoicesByFirmId(''); // TODO: Add firm filtering
+      const invoice = invoices.find(inv => inv.invoiceNumber === invoiceNumber);
+      
+      if (!invoice) {
+        return res.status(404).json({ message: "Invoice not found" });
+      }
+
+      // Update invoice as paid
+      await storage.updateInvoice(invoice.id, { isPaid: true });
+
+      // Update project status
+      await storage.updateProject(invoice.projectId, { status: 'paid' });
+
+      res.json({ success: true, message: "Invoice marked as paid" });
+
+    } catch (error) {
+      console.error("Error marking invoice as paid:", error);
+      res.status(500).json({ message: "Failed to mark invoice as paid" });
+    }
+  });
+
+  app.get('/api/catalog/products/:firmId', isAuthenticated, async (req: any, res) => {
+    try {
+      const { firmId } = req.params;
+      
+      const firms = await storage.getFirms();
+      const firm = firms.find(f => f.id === firmId);
+      
+      if (!firm) {
+        return res.status(404).json({ message: "Firm not found" });
+      }
+
+      const ninjaService = new InvoiceNinjaService(firm.invoiceNinjaUrl, firm.token);
+      const products = await ninjaService.getProducts();
+      
+      res.json(products);
+    } catch (error) {
+      console.error("Error fetching products:", error);
+      res.status(500).json({ message: "Failed to fetch products" });
+    }
+  });
+
   // Firm routes
   app.get('/api/firms', isAuthenticated, async (req: any, res) => {
     try {
@@ -249,6 +421,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error deleting service:", error);
       res.status(500).json({ message: "Failed to delete service" });
+    }
+  });
+
+  // Project status management routes
+  app.patch('/api/projects/:id/status', isAuthenticated, async (req: any, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const { status } = z.object({
+        status: z.enum(['planning', 'in_progress', 'done', 'invoiced', 'paid']),
+      }).parse(req.body);
+
+      const project = await storage.updateProject(id, { status });
+      res.json(project);
+    } catch (error) {
+      console.error("Error updating project status:", error);
+      res.status(500).json({ message: "Failed to update project status" });
+    }
+  });
+
+  // Statistics routes
+  app.get('/api/stats/:firmId', isAuthenticated, async (req: any, res) => {
+    try {
+      const { firmId } = req.params;
+      const stats = await storage.getProjectStats(firmId);
+      res.json(stats);
+    } catch (error) {
+      console.error("Error fetching stats:", error);
+      res.status(500).json({ message: "Failed to fetch stats" });
     }
   });
 

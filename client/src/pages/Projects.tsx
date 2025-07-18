@@ -1,104 +1,434 @@
-import { useState, useEffect } from 'react';
-import { useI18n } from '@/hooks/useI18n';
-import { MainLayout } from '@/components/Layout/MainLayout';
-import { FilterPanel } from '@/components/Projects/FilterPanel';
-import { ProjectsTable } from '@/components/Projects/ProjectsTable';
-import { ProjectWizard } from '@/components/Projects/ProjectWizard';
-import { StatsCards } from '@/components/Projects/StatsCards';
+import { useState } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
-import { Plus } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Badge } from '@/components/ui/badge';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { Textarea } from '@/components/ui/textarea';
+import { CalendarIcon, Download, FileText, Plus, Users, Building2, Receipt } from 'lucide-react';
+import { format } from 'date-fns';
+import { ru } from 'date-fns/locale';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
+import { insertProjectSchema, type Project, type Client, type Crew } from '@shared/schema';
+import { useToast } from '@/hooks/use-toast';
+import { apiRequest } from '@/lib/queryClient';
 
-export default function Projects() {
-  const { t } = useI18n();
-  const [selectedFirmId, setSelectedFirmId] = useState<string>('');
-  const [isWizardOpen, setIsWizardOpen] = useState(false);
-  const [filters, setFilters] = useState({
-    clientId: 'all',
-    status: 'all',
-    crewId: 'all',
-    startDate: '',
-    endDate: '',
+const projectFormSchema = insertProjectSchema.extend({
+  startDate: z.string(),
+  endDate: z.string().optional(),
+});
+
+const statusLabels = {
+  planning: 'Планируется',
+  in_progress: 'В работе',
+  done: 'Завершен',
+  invoiced: 'Счет выставлен',
+  paid: 'Оплачен'
+};
+
+const statusColors = {
+  planning: 'bg-gray-100 text-gray-800',
+  in_progress: 'bg-blue-100 text-blue-800',
+  done: 'bg-green-100 text-green-800',
+  invoiced: 'bg-yellow-100 text-yellow-800',
+  paid: 'bg-purple-100 text-purple-800'
+};
+
+interface ProjectsPageProps {
+  selectedFirm: string;
+}
+
+export default function ProjectsPage({ selectedFirm }: ProjectsPageProps) {
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+  const [filter, setFilter] = useState('');
+  const [statusFilter, setStatusFilter] = useState('all');
+
+  const { data: projects = [], isLoading: projectsLoading } = useQuery({
+    queryKey: ['/api/projects', selectedFirm],
+    queryFn: () => apiRequest(`/api/projects?firmId=${selectedFirm}`, 'GET'),
+    enabled: !!selectedFirm,
   });
 
-  useEffect(() => {
-    // Get selected firm from localStorage  
-    const firmId = localStorage.getItem('selectedFirmId');
-    if (firmId) {
-      setSelectedFirmId(firmId);
-    }
-    
-    // Listen for storage changes to update when firm selection changes
-    const handleStorageChange = () => {
-      const newFirmId = localStorage.getItem('selectedFirmId');
-      if (newFirmId && newFirmId !== selectedFirmId) {
-        setSelectedFirmId(newFirmId);
-      }
-    };
-    
-    window.addEventListener('storage', handleStorageChange);
-    return () => window.removeEventListener('storage', handleStorageChange);
-  }, [selectedFirmId]);
+  const { data: clients = [] } = useQuery({
+    queryKey: ['/api/clients', selectedFirm],
+    queryFn: () => apiRequest(`/api/clients/${selectedFirm}`, 'GET'),
+    enabled: !!selectedFirm,
+  });
 
-  const handleFilterChange = (key: string, value: string) => {
-    setFilters(prev => ({ ...prev, [key]: value }));
+  const { data: crews = [] } = useQuery({
+    queryKey: ['/api/crews', selectedFirm],
+    queryFn: () => apiRequest(`/api/crews/${selectedFirm}`, 'GET'),
+    enabled: !!selectedFirm,
+  });
+
+  const form = useForm({
+    resolver: zodResolver(projectFormSchema),
+    defaultValues: {
+      firmId: selectedFirm,
+      leiterId: '',
+      clientId: 0,
+      crewId: 0,
+      startDate: '',
+      endDate: '',
+      status: 'planning' as const,
+      teamNumber: '',
+      notes: '',
+    },
+  });
+
+  const createProjectMutation = useMutation({
+    mutationFn: (data: any) => apiRequest('/api/projects', 'POST', {
+      ...data,
+      startDate: new Date(data.startDate),
+      endDate: data.endDate ? new Date(data.endDate) : null,
+    }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/projects', selectedFirm] });
+      toast({ title: 'Проект создан успешно' });
+      setIsCreateDialogOpen(false);
+      form.reset();
+    },
+    onError: (error: any) => {
+      toast({ 
+        title: 'Ошибка', 
+        description: error.message || 'Не удалось создать проект',
+        variant: 'destructive' 
+      });
+    },
+  });
+
+  const createInvoiceMutation = useMutation({
+    mutationFn: (projectId: number) => apiRequest('/api/invoice/create', 'POST', { projectId }),
+    onSuccess: (data: any) => {
+      queryClient.invalidateQueries({ queryKey: ['/api/projects', selectedFirm] });
+      toast({ 
+        title: 'Счет выставлен', 
+        description: `Счет №${data.invoiceNumber} создан успешно` 
+      });
+    },
+    onError: (error: any) => {
+      toast({ 
+        title: 'Ошибка выставления счета', 
+        description: error.message || 'Не удалось выставить счет',
+        variant: 'destructive' 
+      });
+    },
+  });
+
+  const markPaidMutation = useMutation({
+    mutationFn: (invoiceNumber: string) => apiRequest('/api/invoice/mark-paid', 'PATCH', { invoiceNumber }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/projects', selectedFirm] });
+      toast({ title: 'Счет отмечен как оплаченный' });
+    },
+    onError: (error: any) => {
+      toast({ 
+        title: 'Ошибка', 
+        description: error.message || 'Не удалось отметить счет как оплаченный',
+        variant: 'destructive' 
+      });
+    },
+  });
+
+  const onSubmit = (data: z.infer<typeof projectFormSchema>) => {
+    createProjectMutation.mutate(data);
   };
 
-  if (!selectedFirmId) {
+  const filteredProjects = (projects as Project[]).filter((project: Project & { client?: Client; crew?: Crew }) => {
+    const matchesSearch = project.notes?.toLowerCase().includes(filter.toLowerCase()) ||
+      project.client?.name?.toLowerCase().includes(filter.toLowerCase()) ||
+      project.teamNumber?.toLowerCase().includes(filter.toLowerCase());
+    
+    const matchesStatus = statusFilter === 'all' || project.status === statusFilter;
+    
+    return matchesSearch && matchesStatus;
+  });
+
+  const getClientName = (clientId: number) => {
+    const client = (clients as Client[]).find((c: Client) => c.id === clientId);
+    return client?.name || 'Неизвестный клиент';
+  };
+
+  const getCrewName = (crewId: number) => {
+    const crew = (crews as Crew[]).find((c: Crew) => c.id === crewId);
+    return crew?.name || 'Не назначена';
+  };
+
+  if (!selectedFirm) {
     return (
-      <MainLayout>
-        <div className="p-6 text-center">
-          <h1 className="text-2xl font-semibold text-gray-900 mb-4">
-            {t('projectsTitle')}
-          </h1>
-          <p className="text-gray-600">
-            Пожалуйста, выберите фирму в заголовке для управления проектами.
-          </p>
+      <div className="flex items-center justify-center h-96">
+        <div className="text-center">
+          <Building2 className="h-12 w-12 mx-auto text-gray-400 mb-4" />
+          <h3 className="text-lg font-medium text-gray-900 mb-2">Выберите фирму</h3>
+          <p className="text-gray-500">Для просмотра проектов необходимо выбрать фирму</p>
         </div>
-      </MainLayout>
+      </div>
     );
   }
 
   return (
-    <MainLayout>
-      {/* Page Header */}
-      <div className="p-6 border-b bg-white">
-        <div className="flex items-center justify-between mb-6">
-          <div>
-            <h1 className="text-2xl font-semibold text-gray-900">{t('projectsTitle')}</h1>
-            <p className="text-gray-600 mt-1">{t('projectsDescription')}</p>
-          </div>
-          <Button 
-            onClick={() => setIsWizardOpen(true)}
-            className="bg-primary hover:bg-primary-dark text-white"
-          >
-            <Plus className="w-4 h-4 mr-2" />
-            {t('newProject')}
-          </Button>
+    <div className="space-y-6">
+      <div className="flex justify-between items-center">
+        <div>
+          <h1 className="text-2xl font-bold">Проекты</h1>
+          <p className="text-gray-600">Управление проектами установки солнечных панелей</p>
         </div>
 
-        <FilterPanel 
-          firmId={selectedFirmId} 
-          filters={filters} 
-          onFilterChange={handleFilterChange} 
+        <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
+          <DialogTrigger asChild>
+            <Button>
+              <Plus className="h-4 w-4 mr-2" />
+              Создать проект
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="max-w-2xl">
+            <DialogHeader>
+              <DialogTitle>Создание нового проекта</DialogTitle>
+            </DialogHeader>
+            <Form {...form}>
+              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <FormField
+                    control={form.control}
+                    name="clientId"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Клиент</FormLabel>
+                        <Select onValueChange={(value) => field.onChange(parseInt(value))}>
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Выберите клиента" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {(clients as Client[]).map((client: Client) => (
+                              <SelectItem key={client.id} value={client.id.toString()}>
+                                {client.name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="crewId"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Бригада</FormLabel>
+                        <Select onValueChange={(value) => field.onChange(parseInt(value))}>
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Выберите бригаду" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {(crews as Crew[]).map((crew: Crew) => (
+                              <SelectItem key={crew.id} value={crew.id.toString()}>
+                                {crew.name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <FormField
+                    control={form.control}
+                    name="startDate"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Дата начала</FormLabel>
+                        <FormControl>
+                          <Input type="date" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="endDate"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Дата окончания</FormLabel>
+                        <FormControl>
+                          <Input type="date" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+
+                <FormField
+                  control={form.control}
+                  name="teamNumber"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Номер команды</FormLabel>
+                      <FormControl>
+                        <Input placeholder="Например: Команда-1" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="notes"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Описание проекта</FormLabel>
+                      <FormControl>
+                        <Textarea placeholder="Дополнительная информация о проекте" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <div className="flex justify-end space-x-2">
+                  <Button type="button" variant="outline" onClick={() => setIsCreateDialogOpen(false)}>
+                    Отмена
+                  </Button>
+                  <Button type="submit" disabled={createProjectMutation.isPending}>
+                    {createProjectMutation.isPending ? 'Создание...' : 'Создать проект'}
+                  </Button>
+                </div>
+              </form>
+            </Form>
+          </DialogContent>
+        </Dialog>
+      </div>
+
+      <div className="flex space-x-4">
+        <Input
+          placeholder="Поиск проектов..."
+          value={filter}
+          onChange={(e) => setFilter(e.target.value)}
+          className="max-w-sm"
         />
+        <Select value={statusFilter} onValueChange={setStatusFilter}>
+          <SelectTrigger className="w-48">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Все статусы</SelectItem>
+            {Object.entries(statusLabels).map(([key, label]) => (
+              <SelectItem key={key} value={key}>{label}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
 
-      {/* Projects Table */}
-      <div className="p-6">
-        <ProjectsTable firmId={selectedFirmId} filters={filters} />
-      </div>
-
-      {/* Stats Cards */}
-      <div className="px-6 pb-6">
-        <StatsCards firmId={selectedFirmId} />
-      </div>
-
-      {/* Project Wizard */}
-      <ProjectWizard 
-        isOpen={isWizardOpen} 
-        onClose={() => setIsWizardOpen(false)} 
-        firmId={selectedFirmId} 
-      />
-    </MainLayout>
+      {projectsLoading ? (
+        <div className="flex justify-center py-8">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+        </div>
+      ) : (
+        <div className="grid gap-4">
+          {filteredProjects.map((project: Project) => (
+            <Card key={project.id}>
+              <CardHeader className="pb-3">
+                <div className="flex justify-between items-start">
+                  <div>
+                    <CardTitle className="text-lg">{getClientName(project.clientId)}</CardTitle>
+                    <div className="flex items-center space-x-4 text-sm text-gray-500 mt-1">
+                      <span className="flex items-center">
+                        <Users className="h-4 w-4 mr-1" />
+                        {getCrewName(project.crewId || 0)}
+                      </span>
+                      <span>#{project.teamNumber}</span>
+                      {project.startDate && (
+                        <span className="flex items-center">
+                          <CalendarIcon className="h-4 w-4 mr-1" />
+                          {format(new Date(project.startDate), 'dd.MM.yyyy', { locale: ru })}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                  <Badge className={statusColors[project.status as keyof typeof statusColors]}>
+                    {statusLabels[project.status as keyof typeof statusLabels]}
+                  </Badge>
+                </div>
+              </CardHeader>
+              <CardContent>
+                {project.notes && (
+                  <p className="text-gray-600 mb-4">{project.notes}</p>
+                )}
+                
+                <div className="flex justify-between items-center">
+                  <div className="flex space-x-2">
+                    {project.status === 'done' && (
+                      <Button 
+                        size="sm" 
+                        onClick={() => createInvoiceMutation.mutate(project.id)}
+                        disabled={createInvoiceMutation.isPending}
+                      >
+                        <Receipt className="h-4 w-4 mr-2" />
+                        {createInvoiceMutation.isPending ? 'Выставление...' : 'Выставить счет'}
+                      </Button>
+                    )}
+                    
+                    {project.status === 'invoiced' && project.invoiceNumber && (
+                      <>
+                        <Button 
+                          size="sm" 
+                          variant="outline"
+                          onClick={() => markPaidMutation.mutate(project.invoiceNumber!)}
+                          disabled={markPaidMutation.isPending}
+                        >
+                          Отметить оплаченным
+                        </Button>
+                        {project.invoiceUrl && (
+                          <Button size="sm" variant="outline" asChild>
+                            <a href={project.invoiceUrl} target="_blank" rel="noopener noreferrer">
+                              <Download className="h-4 w-4 mr-2" />
+                              Скачать PDF
+                            </a>
+                          </Button>
+                        )}
+                      </>
+                    )}
+                  </div>
+                  
+                  {project.invoiceNumber && (
+                    <div className="flex items-center text-sm text-gray-500">
+                      <FileText className="h-4 w-4 mr-1" />
+                      Счет №{project.invoiceNumber}
+                    </div>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+          
+          {filteredProjects.length === 0 && (
+            <div className="text-center py-8">
+              <FileText className="h-12 w-12 mx-auto text-gray-400 mb-4" />
+              <h3 className="text-lg font-medium text-gray-900 mb-2">Проекты не найдены</h3>
+              <p className="text-gray-500">Создайте новый проект или измените фильтры поиска</p>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
   );
 }
