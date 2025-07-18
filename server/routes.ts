@@ -191,20 +191,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const userId = req.user.claims.sub;
       const user = await storage.getUser(userId);
       
-      if (!user || user.role !== 'admin') {
-        return res.status(403).json({ message: "Access denied. Admin only." });
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
       }
 
       const { invoiceNumber } = z.object({
         invoiceNumber: z.string(),
       }).parse(req.body);
 
-      // Find invoice in our database
-      const invoices = await storage.getInvoicesByFirmId(''); // TODO: Add firm filtering
-      const invoice = invoices.find(inv => inv.invoiceNumber === invoiceNumber);
+      // Find invoice in our database - we need to get all invoices first
+      // and find the one matching the invoice number
+      let invoice;
+      if (user.role === 'admin') {
+        // Admin can see all invoices
+        const allInvoices = await storage.getInvoicesByFirmId(''); 
+        invoice = allInvoices.find(inv => inv.invoiceNumber === invoiceNumber);
+      } else {
+        // Non-admin users can only see invoices for their firms
+        const userFirms = await storage.getFirmsByUserId(userId);
+        for (const firm of userFirms) {
+          const firmInvoices = await storage.getInvoicesByFirmId(firm.id);
+          const foundInvoice = firmInvoices.find(inv => inv.invoiceNumber === invoiceNumber);
+          if (foundInvoice) {
+            invoice = foundInvoice;
+            break;
+          }
+        }
+      }
       
       if (!invoice) {
-        return res.status(404).json({ message: "Invoice not found" });
+        return res.status(404).json({ message: "Invoice not found or access denied" });
       }
 
       // Update invoice as paid
