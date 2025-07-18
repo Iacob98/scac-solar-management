@@ -215,7 +215,7 @@ export class InvoiceNinjaService {
   async getClients(): Promise<InvoiceNinjaClient[]> {
     try {
       const response = await axios.get(
-        `${this.baseUrl}/api/v1/clients`,
+        `${this.baseUrl}/clients`,
         { headers: this.getHeaders() }
       );
       return response.data.data || [];
@@ -237,9 +237,26 @@ export class InvoiceNinjaService {
     vat_number?: string;
   }): Promise<InvoiceNinjaClient> {
     try {
+      // Трансформируем данные для API Invoice Ninja v1
+      const transformedData = {
+        name: clientData.name,
+        contact: {
+          email: clientData.email,
+          phone: clientData.phone || '',
+        },
+        address1: clientData.address1 || '',
+        city: clientData.city || '',
+        state: clientData.state || '',
+        postal_code: clientData.postal_code || '',
+        country_id: clientData.country_id || '276', // Default to Germany
+        vat_number: clientData.vat_number || '',
+      };
+
+      console.log('Creating client with data:', transformedData);
+      
       const response = await axios.post(
-        `${this.baseUrl}/api/v1/clients`,
-        clientData,
+        `${this.baseUrl}/clients`,
+        transformedData,
         { headers: this.getHeaders() }
       );
       return response.data.data;
@@ -251,8 +268,10 @@ export class InvoiceNinjaService {
 
   async createInvoice(invoiceData: CreateInvoiceRequest): Promise<InvoiceNinjaInvoice> {
     try {
+      console.log('Creating invoice with data:', invoiceData);
+      
       const response = await axios.post(
-        `${this.baseUrl}/api/v1/invoices`,
+        `${this.baseUrl}/invoices`,
         invoiceData,
         { headers: this.getHeaders() }
       );
