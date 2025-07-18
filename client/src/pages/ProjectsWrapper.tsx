@@ -8,13 +8,14 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from '@/components/ui/dialog';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Textarea } from '@/components/ui/textarea';
-import { CalendarIcon, Download, FileText, Plus, Users, Building2, Receipt, Settings, Eye, ArrowLeft } from 'lucide-react';
+import { CalendarIcon, Download, FileText, Plus, Users, Building2, Receipt, Settings, Eye, ArrowLeft, Sun } from 'lucide-react';
 import { format } from 'date-fns';
 import { ru } from 'date-fns/locale';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { insertProjectSchema, type Project, type Client, type Crew } from '@shared/schema';
+import Tutorial from '@/components/Tutorial';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
 import { apiRequest } from '@/lib/queryClient';
@@ -27,7 +28,7 @@ interface ProjectsWrapperProps {
 
 type ViewMode = 'list' | 'detail' | 'services';
 
-const projectFormSchema = insertProjectSchema.extend({
+const projectFormSchema = insertProjectSchema.omit({ firmId: true, leiterId: true }).extend({
   startDate: z.string().min(1, 'Дата начала обязательна'),
   clientId: z.number().min(1, 'Выберите клиента'),
   crewId: z.number().min(1, 'Выберите бригаду'),
@@ -60,6 +61,7 @@ function ProjectsList({ selectedFirm, onViewProject, onManageServices }: { selec
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [filter, setFilter] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
+  const [isTutorialOpen, setIsTutorialOpen] = useState(false);
 
   const { data: projects = [], isLoading: projectsLoading } = useQuery({
     queryKey: ['/api/projects', selectedFirm],
@@ -94,8 +96,6 @@ function ProjectsList({ selectedFirm, onViewProject, onManageServices }: { selec
   const form = useForm({
     resolver: zodResolver(projectFormSchema),
     defaultValues: {
-      firmId: selectedFirm,
-      leiterId: user?.id || '',
       clientId: undefined,
       crewId: undefined,
       startDate: '',
@@ -249,13 +249,18 @@ function ProjectsList({ selectedFirm, onViewProject, onManageServices }: { selec
           <p className="text-gray-600">Управление проектами установки солнечных панелей</p>
         </div>
 
-        <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
-          <DialogTrigger asChild>
-            <Button>
-              <Plus className="h-4 w-4 mr-2" />
-              Создать проект
-            </Button>
-          </DialogTrigger>
+        <div className="flex space-x-2">
+          <Button variant="outline" onClick={() => setIsTutorialOpen(true)}>
+            <Sun className="h-4 w-4 mr-2" />
+            Руководство
+          </Button>
+          <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
+            <DialogTrigger asChild>
+              <Button>
+                <Plus className="h-4 w-4 mr-2" />
+                Создать проект
+              </Button>
+            </DialogTrigger>
           <DialogContent className="max-w-2xl">
             <DialogHeader>
               <DialogTitle>Создание нового проекта</DialogTitle>
@@ -432,6 +437,19 @@ function ProjectsList({ selectedFirm, onViewProject, onManageServices }: { selec
             </Form>
           </DialogContent>
         </Dialog>
+        </div>
+        
+        <Tutorial 
+          isOpen={isTutorialOpen} 
+          onClose={() => setIsTutorialOpen(false)}
+          onComplete={() => {
+            setIsTutorialOpen(false);
+            toast({
+              title: 'Руководство завершено',
+              description: 'Теперь вы готовы к работе с системой!',
+            });
+          }}
+        />
       </div>
 
       <div className="flex space-x-4">

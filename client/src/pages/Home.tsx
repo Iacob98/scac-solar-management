@@ -13,15 +13,21 @@ import {
   Building,
   UserCircle,
   TrendingUp,
-  Calendar
+  Calendar,
+  Sun,
+  Play
 } from 'lucide-react';
 import type { Project, Client, Crew } from '@shared/schema';
 import { useState, useEffect } from 'react';
+import Tutorial from '@/components/Tutorial';
+import { useToast } from '@/hooks/use-toast';
 
 export default function Home() {
   const { user } = useAuth();
   const { t } = useI18n();
+  const { toast } = useToast();
   const [selectedFirmId, setSelectedFirmId] = useState<string>('');
+  const [isTutorialOpen, setIsTutorialOpen] = useState(false);
 
   useEffect(() => {
     const firmId = localStorage.getItem('selectedFirmId');
@@ -116,15 +122,25 @@ export default function Home() {
           <p className="text-blue-100 text-lg">
             Система управления проектами установки солнечных панелей
           </p>
-          <div className="mt-4 flex items-center space-x-4 text-sm">
-            <div className="flex items-center space-x-2">
-              <Calendar className="w-4 h-4" />
-              <span>Сегодня: {new Date().toLocaleDateString('ru-RU')}</span>
+          <div className="mt-4 flex items-center justify-between">
+            <div className="flex items-center space-x-4 text-sm">
+              <div className="flex items-center space-x-2">
+                <Calendar className="w-4 h-4" />
+                <span>Сегодня: {new Date().toLocaleDateString('ru-RU')}</span>
+              </div>
+              <div className="flex items-center space-x-2">
+                <UserCircle className="w-4 h-4" />
+                <span>Роль: {user?.role === 'admin' ? 'Администратор' : 'Руководитель проектов'}</span>
+              </div>
             </div>
-            <div className="flex items-center space-x-2">
-              <UserCircle className="w-4 h-4" />
-              <span>Роль: {user?.role === 'admin' ? 'Администратор' : 'Руководитель проектов'}</span>
-            </div>
+            <Button 
+              variant="secondary" 
+              onClick={() => setIsTutorialOpen(true)}
+              className="bg-white/20 hover:bg-white/30 text-white border-white/30"
+            >
+              <Play className="w-4 h-4 mr-2" />
+              Начать туториал
+            </Button>
           </div>
         </div>
 
@@ -202,6 +218,18 @@ export default function Home() {
             </Card>
           )}
         </div>
+        
+        <Tutorial 
+          isOpen={isTutorialOpen} 
+          onClose={() => setIsTutorialOpen(false)}
+          onComplete={() => {
+            setIsTutorialOpen(false);
+            toast({
+              title: 'Руководство завершено',
+              description: 'Теперь вы готовы к работе с системой!',
+            });
+          }}
+        />
       </div>
     </MainLayout>
   );
