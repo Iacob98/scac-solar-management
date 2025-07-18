@@ -69,7 +69,10 @@ export default function ProjectDetail({ projectId, selectedFirm, onBack }: Proje
 
   const { data: services = [] } = useQuery({
     queryKey: ['/api/services', projectId],
-    queryFn: () => apiRequest(`/api/services?projectId=${projectId}`, 'GET'),
+    queryFn: async () => {
+      const response = await apiRequest(`/api/services?projectId=${projectId}`, 'GET');
+      return await response.json();
+    },
     enabled: !!projectId,
   });
 
