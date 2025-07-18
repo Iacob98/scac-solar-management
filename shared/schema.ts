@@ -136,7 +136,7 @@ export const services = pgTable("services", {
 export const invoices = pgTable("invoices", {
   id: serial("id").primaryKey(),
   projectId: integer("project_id").notNull().references(() => projects.id),
-  invoiceId: uuid("invoice_id").notNull(), // UUID from Invoice Ninja
+  invoiceId: varchar("invoice_id").notNull(), // String ID from Invoice Ninja
   invoiceNumber: varchar("invoice_number").notNull(),
   invoiceDate: date("invoice_date").notNull(),
   dueDate: date("due_date").notNull(),
