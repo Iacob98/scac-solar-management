@@ -237,6 +237,38 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Global products endpoint using environment variables
+  app.get('/api/catalog/products', isAuthenticated, async (req: any, res) => {
+    try {
+      const apiKey = process.env.INVOICE_NINJA_API_KEY;
+      const baseUrl = process.env.INVOICE_NINJA_URL;
+      
+      if (!apiKey || !baseUrl) {
+        return res.status(500).json({ message: "Invoice Ninja API credentials not configured" });
+      }
+
+      const ninjaService = new InvoiceNinjaService(baseUrl, apiKey);
+      const products = await ninjaService.getProducts();
+      
+      // Transform products to match our expected format
+      const transformedProducts = products.map(product => ({
+        id: product.id,
+        name: product.product_key,
+        description: product.notes,
+        price: product.price,
+        cost: product.cost,
+        taxRate: product.tax_rate1,
+        category: product.custom_value1 || 'General',
+        unit: product.custom_value2 || 'шт'
+      }));
+      
+      res.json(transformedProducts);
+    } catch (error) {
+      console.error("Error fetching products from Invoice Ninja:", error);
+      res.status(500).json({ message: "Failed to fetch products from Invoice Ninja" });
+    }
+  });
+
   // Firm routes
   app.get('/api/firms', isAuthenticated, async (req: any, res) => {
     try {
