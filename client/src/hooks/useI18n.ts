@@ -2,13 +2,12 @@ import { useState, useEffect } from 'react';
 import { translations, type Language, type TranslationKey } from '@/lib/i18n';
 
 export function useI18n() {
-  const [language, setLanguage] = useState<Language>('de');
+  const [language, setLanguage] = useState<Language>('ru');
 
   useEffect(() => {
-    const savedLanguage = localStorage.getItem('language') as Language;
-    if (savedLanguage && translations[savedLanguage]) {
-      setLanguage(savedLanguage);
-    }
+    // Всегда использовать русский язык
+    setLanguage('ru');
+    localStorage.setItem('language', 'ru');
   }, []);
 
   const changeLanguage = (newLanguage: Language) => {
@@ -22,7 +21,7 @@ export function useI18n() {
 
   const formatCurrency = (amount: number | string): string => {
     const numericAmount = typeof amount === 'string' ? parseFloat(amount) : amount;
-    return new Intl.NumberFormat('de-DE', {
+    return new Intl.NumberFormat('ru-RU', {
       style: 'currency',
       currency: 'EUR',
       minimumFractionDigits: 2,
@@ -31,7 +30,7 @@ export function useI18n() {
 
   const formatDate = (date: string | Date): string => {
     const dateObj = typeof date === 'string' ? new Date(date) : date;
-    return new Intl.DateTimeFormat('de-DE', {
+    return new Intl.DateTimeFormat('ru-RU', {
       day: '2-digit',
       month: '2-digit',
       year: 'numeric',

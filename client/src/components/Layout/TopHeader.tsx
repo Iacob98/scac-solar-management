@@ -10,7 +10,7 @@ import { Search, Bell, ChevronDown, Settings, LogOut, UserCircle } from 'lucide-
 import type { Firm } from '@shared/schema';
 
 export function TopHeader() {
-  const { t, language, changeLanguage } = useI18n();
+  const { t } = useI18n();
   const { user } = useAuth();
   const [selectedFirmId, setSelectedFirmId] = useState<string>('');
 
@@ -49,7 +49,7 @@ export function TopHeader() {
         {/* Firm Selector */}
         <Select value={selectedFirmId} onValueChange={handleFirmChange}>
           <SelectTrigger className="w-64">
-            <SelectValue placeholder="Firma auswählen" />
+            <SelectValue placeholder="Выберите фирму" />
           </SelectTrigger>
           <SelectContent>
             {firms.map((firm) => (
@@ -72,26 +72,6 @@ export function TopHeader() {
       </div>
 
       <div className="flex items-center space-x-4">
-        {/* Language Switch */}
-        <div className="flex items-center bg-gray-100 rounded-lg p-1">
-          <Button
-            variant={language === 'de' ? 'default' : 'ghost'}
-            size="sm"
-            onClick={() => changeLanguage('de')}
-            className="px-3 py-1 text-sm"
-          >
-            DE
-          </Button>
-          <Button
-            variant={language === 'ru' ? 'default' : 'ghost'}
-            size="sm"
-            onClick={() => changeLanguage('ru')}
-            className="px-3 py-1 text-sm"
-          >
-            RU
-          </Button>
-        </div>
-
         {/* Notification Bell */}
         <Button variant="ghost" size="icon" className="relative">
           <Bell className="w-5 h-5" />
@@ -111,13 +91,13 @@ export function TopHeader() {
                 <p className="font-medium">
                   {user?.firstName} {user?.lastName}
                 </p>
-                <p className="text-gray-500">{user?.role === 'admin' ? 'Administrator' : 'Project Leiter'}</p>
+                <p className="text-gray-500">{user?.role === 'admin' ? 'Администратор' : 'Руководитель проектов'}</p>
               </div>
               <ChevronDown className="w-4 h-4 text-gray-400" />
             </div>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-56">
-            <DropdownMenuItem>
+            <DropdownMenuItem onClick={() => window.location.href = '/settings'}>
               <Settings className="w-4 h-4 mr-2" />
               {t('settings')}
             </DropdownMenuItem>

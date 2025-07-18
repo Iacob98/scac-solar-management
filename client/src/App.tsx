@@ -17,6 +17,7 @@ import Crews from "@/pages/Crews";
 import Invoices from "@/pages/Invoices";
 import Firms from "@/pages/admin/Firms";
 import Users from "@/pages/admin/Users";
+import Settings from "@/pages/Settings";
 import NotFound from "@/pages/not-found";
 
 function ProtectedRoute({ component: Component, ...props }: any) {
@@ -26,8 +27,8 @@ function ProtectedRoute({ component: Component, ...props }: any) {
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
       toast({
-        title: "Nicht autorisiert",
-        description: "Sie werden zur Anmeldung weitergeleitet...",
+        title: "Не авторизован",
+        description: "Вы будете перенаправлены на страницу входа...",
         variant: "destructive",
       });
       setTimeout(() => {
@@ -49,7 +50,7 @@ function ProtectedRoute({ component: Component, ...props }: any) {
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
           <h1 className="text-2xl font-semibold text-gray-900 mb-4">
-            Weiterleitung zur Anmeldung...
+            Перенаправление на страницу входа...
           </h1>
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
         </div>
@@ -77,6 +78,7 @@ function Router() {
           <Route path="/clients" component={() => <ProtectedRoute component={Clients} />} />
           <Route path="/crews" component={() => <ProtectedRoute component={Crews} />} />
           <Route path="/invoices" component={() => <ProtectedRoute component={Invoices} />} />
+          <Route path="/settings" component={() => <ProtectedRoute component={Settings} />} />
           <Route path="/admin/firms" component={() => <ProtectedRoute component={Firms} />} />
           <Route path="/admin/users" component={() => <ProtectedRoute component={Users} />} />
           <Route component={NotFound} />

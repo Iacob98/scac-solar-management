@@ -51,7 +51,7 @@ export default function Projects() {
             {t('projectsTitle')}
           </h1>
           <p className="text-gray-600">
-            Bitte wählen Sie eine Firma aus dem Header aus, um Projekte zu verwalten.
+            Пожалуйста, выберите фирму в заголовке для управления проектами.
           </p>
         </div>
       </MainLayout>

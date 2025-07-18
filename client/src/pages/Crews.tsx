@@ -138,7 +138,7 @@ export default function Crews() {
             {t('crews')}
           </h1>
           <p className="text-gray-600">
-            Bitte wählen Sie eine Firma aus dem Header aus, um Brigaden zu verwalten.
+            Пожалуйста, выберите фирму в заголовке для управления бригадами.
           </p>
         </div>
       </MainLayout>
@@ -151,7 +151,7 @@ export default function Crews() {
         <div className="flex items-center justify-between mb-6">
           <div>
             <h1 className="text-2xl font-semibold text-gray-900">{t('crews')}</h1>
-            <p className="text-gray-600 mt-1">Verwalten Sie Ihre Installationsbrigaden</p>
+            <p className="text-gray-600 mt-1">Управление бригадами установки</p>
           </div>
           <div className="flex items-center space-x-4">
             <div className="flex items-center space-x-2">
@@ -161,25 +161,25 @@ export default function Crews() {
                 id="show-archived"
               />
               <Label htmlFor="show-archived" className="text-sm">
-                Archivierte anzeigen
+                Показать архивированные
               </Label>
             </div>
             <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
               <DialogTrigger asChild>
                 <Button className="bg-primary hover:bg-primary-dark text-white">
                   <Plus className="w-4 h-4 mr-2" />
-                  Neue Brigade hinzufügen
+                  Добавить новую бригаду
                 </Button>
               </DialogTrigger>
               <DialogContent className="max-w-md">
                 <DialogHeader>
                   <DialogTitle>
-                    {editingCrew ? 'Brigade bearbeiten' : 'Neue Brigade hinzufügen'}
+                    {editingCrew ? 'Редактировать бригаду' : 'Добавить новую бригаду'}
                   </DialogTitle>
                 </DialogHeader>
                 <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
                   <div>
-                    <Label htmlFor="name">Brigade Name</Label>
+                    <Label htmlFor="name">Название бригады</Label>
                     <Input
                       id="name"
                       {...form.register('name')}

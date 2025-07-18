@@ -121,19 +121,19 @@ export default function Clients() {
         <div className="flex items-center justify-between mb-6">
           <div>
             <h1 className="text-2xl font-semibold text-gray-900">{t('clients')}</h1>
-            <p className="text-gray-600 mt-1">Verwalten Sie Ihre Kunden und Kontaktinformationen</p>
+            <p className="text-gray-600 mt-1">Управление клиентами и контактной информацией</p>
           </div>
           <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
             <DialogTrigger asChild>
               <Button className="bg-primary hover:bg-primary-dark text-white">
                 <Plus className="w-4 h-4 mr-2" />
-                Neuen Kunden hinzufügen
+                Добавить нового клиента
               </Button>
             </DialogTrigger>
             <DialogContent className="max-w-md">
               <DialogHeader>
                 <DialogTitle>
-                  {editingClient ? 'Kunde bearbeiten' : 'Neuen Kunden hinzufügen'}
+                  {editingClient ? 'Редактировать клиента' : 'Добавить нового клиента'}
                 </DialogTitle>
               </DialogHeader>
               <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
@@ -142,7 +142,7 @@ export default function Clients() {
                   <Input
                     id="name"
                     {...form.register('name')}
-                    placeholder="Firmenname oder Vollständiger Name"
+                    placeholder="Название компании или полное имя"
                   />
                   {form.formState.errors.name && (
                     <p className="text-red-500 text-sm mt-1">
@@ -157,7 +157,7 @@ export default function Clients() {
                     id="email"
                     type="email"
                     {...form.register('email')}
-                    placeholder="kunde@beispiel.de"
+                    placeholder="клиент@пример.de"
                   />
                   {form.formState.errors.email && (
                     <p className="text-red-500 text-sm mt-1">
@@ -180,7 +180,7 @@ export default function Clients() {
                   <Textarea
                     id="address"
                     {...form.register('address')}
-                    placeholder="Straße, Stadt, PLZ"
+                    placeholder="Улица, город, почтовый индекс"
                   />
                 </div>
 
