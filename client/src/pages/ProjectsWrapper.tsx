@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from '@/components/ui/dialog';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Textarea } from '@/components/ui/textarea';
 import { CalendarIcon, Download, FileText, Plus, Users, Building2, Receipt, Settings, Eye, ArrowLeft } from 'lucide-react';
@@ -252,7 +252,9 @@ function ProjectsList({ selectedFirm, onViewProject, onManageServices }: { selec
           <DialogContent className="max-w-2xl">
             <DialogHeader>
               <DialogTitle>Создание нового проекта</DialogTitle>
-              <p className="text-sm text-gray-600">Заполните форму для создания нового проекта установки солнечных панелей</p>
+              <DialogDescription>
+                Заполните форму для создания нового проекта установки солнечных панелей
+              </DialogDescription>
             </DialogHeader>
             <Form {...form}>
               <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
