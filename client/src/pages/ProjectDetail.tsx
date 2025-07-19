@@ -50,26 +50,45 @@ export default function ProjectDetail({ projectId, selectedFirm, onBack }: Proje
 
   const { data: project, isLoading: projectLoading, error: projectError } = useQuery({
     queryKey: ['/api/projects', projectId],
-    queryFn: () => apiRequest(`/api/projects/${projectId}`, 'GET'),
+    queryFn: async () => {
+      console.log('Making API request for project:', projectId);
+      const response = await apiRequest(`/api/projects/${projectId}`, 'GET');
+      const data = await response.json();
+      console.log('Project API response:', data);
+      return data;
+    },
+    retry: 1,
+    staleTime: 0,
+    cacheTime: 0,
   });
 
   console.log('Project state:', { project, projectLoading, projectError, projectId });
+  console.log('Project data keys:', project ? Object.keys(project) : 'no project');
 
   const { data: services } = useQuery({
     queryKey: ['/api/services', projectId],
-    queryFn: () => apiRequest(`/api/services?projectId=${projectId}`, 'GET'),
+    queryFn: async () => {
+      const response = await apiRequest(`/api/services?projectId=${projectId}`, 'GET');
+      return await response.json();
+    },
     enabled: !!project,
   });
 
   const { data: client, error: clientError } = useQuery({
     queryKey: ['/api/clients/single', project?.clientId],
-    queryFn: () => apiRequest(`/api/clients/single/${project.clientId}`, 'GET'),
+    queryFn: async () => {
+      const response = await apiRequest(`/api/clients/single/${project.clientId}`, 'GET');
+      return await response.json();
+    },
     enabled: !!project?.clientId,
   });
 
   const { data: crew, error: crewError } = useQuery({
     queryKey: ['/api/crews/single', project?.crewId],
-    queryFn: () => apiRequest(`/api/crews/single/${project.crewId}`, 'GET'),
+    queryFn: async () => {
+      const response = await apiRequest(`/api/crews/single/${project.crewId}`, 'GET');
+      return await response.json();
+    },
     enabled: !!project?.crewId,
   });
 
