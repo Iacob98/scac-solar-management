@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { ArrowLeft, Edit, Settings, FileText, Users, CalendarIcon, Package, Plus, Receipt, MapPin, Clock, Euro, Calendar, Building2, PlayCircle, DollarSign, CheckCircle, AlertTriangle, Phone, History } from 'lucide-react';
+import { ArrowLeft, FileText, Users, Package, Clock, Euro, Calendar, Building2, Phone, History } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
 import { format } from 'date-fns';
@@ -17,7 +17,6 @@ import { apiRequest } from '@/lib/queryClient';
 import ServicesPage from './Services';
 import ProjectHistory from './ProjectHistory';
 import { ProjectShareButton } from '@/components/ProjectShareButton';
-import { StatusUpdateDialog } from '@/components/Projects/StatusUpdateDialog';
 
 interface ProjectDetailProps {
   projectId: number;
@@ -50,8 +49,6 @@ const statusColors = {
 export default function ProjectDetail({ projectId, selectedFirm, onBack }: ProjectDetailProps) {
   const [activeTab, setActiveTab] = useState('services');
   const [showAllHistory, setShowAllHistory] = useState(false);
-  const [statusDialogOpen, setStatusDialogOpen] = useState(false);
-  const [targetStatus, setTargetStatus] = useState('');
   const { toast } = useToast();
   const { user } = useAuth();
   const queryClient = useQueryClient();
@@ -102,34 +99,7 @@ export default function ProjectDetail({ projectId, selectedFirm, onBack }: Proje
 
   console.log('Related data:', { client, clientError, crew, crewError });
 
-  const openStatusDialog = (status: string) => {
-    setTargetStatus(status);
-    setStatusDialogOpen(true);
-  };
 
-  // Функция для валидации возможности смены статуса
-  const canChangeStatus = (currentStatus: string, targetStatus: string): boolean => {
-    switch (targetStatus) {
-      case 'equipment_arrived':
-        // Можно перейти, если оборудование ожидается
-        return currentStatus === 'equipment_waiting';
-      case 'work_scheduled':
-        // Можно перейти, если оборудование прибыло
-        return currentStatus === 'equipment_arrived';
-      case 'work_in_progress':
-        // Можно начать работу, если оборудование прибыло и дата начала работ прошла/сегодня
-        if (currentStatus !== 'work_scheduled') return false;
-        if (!project?.workStartDate) return false;
-        const workStartDate = new Date(project.workStartDate);
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-        return workStartDate <= today;
-      case 'work_completed':
-        return currentStatus === 'work_in_progress';
-      default:
-        return true;
-    }
-  };
 
   const updateProjectStatusMutation = useMutation({
     mutationFn: (data: any) => apiRequest(`/api/projects/${projectId}`, 'PATCH', data),
@@ -149,53 +119,7 @@ export default function ProjectDetail({ projectId, selectedFirm, onBack }: Proje
     },
   });
 
-  const createInvoiceMutation = useMutation({
-    mutationFn: (projectId: number) => apiRequest('/api/invoice/create', 'POST', { projectId }),
-    onSuccess: (data: any) => {
-      // Обновляем все связанные кэши после создания счета
-      queryClient.invalidateQueries({ queryKey: ['/api/projects'] }); // Главный список проектов
-      queryClient.invalidateQueries({ queryKey: ['/api/projects', projectId] }); // Детали проекта
-      queryClient.invalidateQueries({ queryKey: ['/api/projects', projectId, 'history'] }); // История проекта
-      queryClient.invalidateQueries({ queryKey: ['/api/invoices', selectedFirm] });
-      queryClient.invalidateQueries({ queryKey: ['/api/invoices'] });
-      toast({ 
-        title: 'Счет создан успешно',
-        description: `Счет №${data.invoiceNumber} создан в Invoice Ninja`
-      });
-    },
-    onError: (error: any) => {
-      toast({
-        title: 'Ошибка',
-        description: error.message || 'Не удалось создать счет',
-        variant: 'destructive'
-      });
-    },
-  });
 
-  const markPaidMutation = useMutation({
-    mutationFn: (invoiceNumber: string) => apiRequest('/api/invoice/mark-paid', 'PATCH', { invoiceNumber }),
-    onSuccess: () => {
-      // Принудительно обновляем все кэши для пересчета статистики
-      queryClient.invalidateQueries({ queryKey: ['/api/projects'] });
-      queryClient.invalidateQueries({ queryKey: ['/api/invoices'] });
-      queryClient.refetchQueries({ queryKey: ['/api/projects', projectId] });
-      queryClient.refetchQueries({ queryKey: ['/api/invoices', selectedFirm] });
-      toast({ title: 'Счет отмечен как оплаченный' });
-    },
-    onError: (error: any) => {
-      toast({
-        title: 'Ошибка',
-        description: error.message || 'Не удалось отметить счет как оплаченный',
-        variant: 'destructive'
-      });
-    },
-  });
-
-  const updateProjectStatus = (newStatus: string) => {
-    updateProjectStatusMutation.mutate({ 
-      status: newStatus 
-    });
-  };
 
   const updateProjectDates = (updates: Partial<Project>) => {
     updateProjectStatusMutation.mutate(updates);
@@ -256,81 +180,6 @@ export default function ProjectDetail({ projectId, selectedFirm, onBack }: Proje
             <div className="flex items-center space-x-3">
               {/* Кнопка "Поделиться" */}
               <ProjectShareButton projectId={project.id} firmId={project.firmId} />
-              
-              {/* Кнопки управления статусом с валидацией */}
-              {project.status === 'planning' && (
-                <Button 
-                  onClick={() => openStatusDialog('equipment_waiting')}
-                  className="bg-blue-600 hover:bg-blue-700"
-                >
-                  <Package className="h-4 w-4 mr-2" />
-                  Ожидать оборудование
-                </Button>
-              )}
-              
-              {project.status === 'equipment_waiting' && (
-                <Button 
-                  onClick={() => openStatusDialog('equipment_arrived')}
-                  className="bg-green-600 hover:bg-green-700"
-                >
-                  <CheckCircle className="h-4 w-4 mr-2" />
-                  Оборудование прибыло
-                </Button>
-              )}
-              
-              {project.status === 'equipment_arrived' && (
-                <Button 
-                  onClick={() => openStatusDialog('work_scheduled')}
-                  className="bg-purple-600 hover:bg-purple-700"
-                >
-                  <Calendar className="h-4 w-4 mr-2" />
-                  Запланировать работы
-                </Button>
-              )}
-              
-              {project.status === 'work_scheduled' && (
-                <Button 
-                  onClick={() => openStatusDialog('work_in_progress')}
-                  disabled={!canChangeStatus(project.status, 'work_in_progress')}
-                  className="bg-yellow-600 hover:bg-yellow-700 disabled:bg-gray-400"
-                  title={!canChangeStatus(project.status, 'work_in_progress') ? 'Нельзя начать работу до указанной даты или без прибытия оборудования' : ''}
-                >
-                  <PlayCircle className="h-4 w-4 mr-2" />
-                  Начать работы
-                </Button>
-              )}
-              
-              {project.status === 'work_in_progress' && (
-                <Button 
-                  onClick={() => openStatusDialog('work_completed')}
-                  className="bg-emerald-600 hover:bg-emerald-700"
-                >
-                  <CheckCircle className="h-4 w-4 mr-2" />
-                  Завершить работы
-                </Button>
-              )}
-              
-              {project.status === 'work_completed' && !project.invoiceNumber && (
-                <Button 
-                  onClick={() => createInvoiceMutation.mutate(project.id)}
-                  disabled={createInvoiceMutation.isPending}
-                  className="bg-orange-600 hover:bg-orange-700"
-                >
-                  <Receipt className="h-4 w-4 mr-2" />
-                  {createInvoiceMutation.isPending ? 'Создание...' : 'Выставить счет'}
-                </Button>
-              )}
-              
-              {project.invoiceNumber && project.status === 'invoiced' && user?.role === 'admin' && (
-                <Button 
-                  onClick={() => markPaidMutation.mutate(project.invoiceNumber!)}
-                  disabled={markPaidMutation.isPending}
-                  className="bg-emerald-600 hover:bg-emerald-700"
-                >
-                  <DollarSign className="h-4 w-4 mr-2" />
-                  {markPaidMutation.isPending ? 'Обновление...' : 'Отметить оплаченным'}
-                </Button>
-              )}
             </div>
           </div>
         </div>
@@ -619,14 +468,7 @@ export default function ProjectDetail({ projectId, selectedFirm, onBack }: Proje
         </div>
       </div>
 
-      {/* Диалог обновления статуса */}
-      <StatusUpdateDialog
-        open={statusDialogOpen}
-        onOpenChange={setStatusDialogOpen}
-        project={project}
-        targetStatus={targetStatus}
-        firmId={selectedFirm}
-      />
+
     </div>
   );
 }
