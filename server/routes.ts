@@ -841,6 +841,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       const serviceData = serviceApiSchema.parse(req.body);
       const service = await storage.createService(serviceData);
+      
+      // Добавляем запись в историю проекта
+      const userId = req.user.claims.sub;
+      if (userId && service.projectId) {
+        await storage.createProjectHistoryEntry({
+          projectId: service.projectId,
+          userId,
+          changeType: 'info_update',
+          description: `Добавлена новая услуга: ${service.productName || service.productKey}`,
+        });
+      }
+      
       res.json(service);
     } catch (error) {
       console.error("Error creating service:", error);
@@ -848,10 +860,60 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.patch('/api/services/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      const serviceId = parseInt(req.params.id);
+      
+      // Получаем данные услуги до изменения для истории
+      const currentService = await storage.getServiceById(serviceId);
+      
+      // Кастомная схема для API которая принимает строки для price и quantity
+      const serviceApiSchema = insertServiceSchema.extend({
+        price: z.union([z.string(), z.number()]).transform(val => val.toString()),
+        quantity: z.union([z.string(), z.number()]).transform(val => val.toString()),
+      }).partial();
+      
+      const serviceData = serviceApiSchema.parse(req.body);
+      const service = await storage.updateService(serviceId, serviceData);
+      
+      // Добавляем запись в историю проекта об изменении
+      const userId = req.user.claims.sub;
+      if (userId && service && service.projectId) {
+        await storage.createProjectHistoryEntry({
+          projectId: service.projectId,
+          userId,
+          changeType: 'info_update',
+          description: `Изменена услуга: ${service.productName || service.productKey}`,
+        });
+      }
+      
+      res.json(service);
+    } catch (error) {
+      console.error("Error updating service:", error);
+      res.status(500).json({ message: "Failed to update service" });
+    }
+  });
+
   app.delete('/api/services/:id', isAuthenticated, async (req: any, res) => {
     try {
       const serviceId = parseInt(req.params.id);
+      
+      // Получаем данные услуги перед удалением для истории
+      const service = await storage.getServiceById(serviceId);
+      
       await storage.deleteService(serviceId);
+      
+      // Добавляем запись в историю проекта
+      const userId = req.user.claims.sub;
+      if (userId && service && service.projectId) {
+        await storage.createProjectHistoryEntry({
+          projectId: service.projectId,
+          userId,
+          changeType: 'info_update',
+          description: `Удалена услуга: ${service.productName || service.productKey}`,
+        });
+      }
+      
       res.json({ message: "Service deleted successfully" });
     } catch (error) {
       console.error("Error deleting service:", error);

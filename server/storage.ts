@@ -382,6 +382,14 @@ export class DatabaseStorage implements IStorage {
     return updated;
   }
 
+  async getServiceById(id: number): Promise<Service | undefined> {
+    const [service] = await db
+      .select()
+      .from(services)
+      .where(eq(services.id, id));
+    return service;
+  }
+
   async deleteService(id: number): Promise<void> {
     await db.delete(services).where(eq(services.id, id));
   }
