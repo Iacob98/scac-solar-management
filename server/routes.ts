@@ -421,7 +421,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get('/api/clients/single/:id', isAuthenticated, async (req: any, res) => {
     try {
       const { id } = req.params;
+      console.log('Fetching client with ID:', id);
       const client = await storage.getClientById(Number(id));
+      console.log('Client from database:', client);
       res.json(client);
     } catch (error) {
       console.error("Error fetching client:", error);
@@ -495,7 +497,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get('/api/crews/single/:id', isAuthenticated, async (req: any, res) => {
     try {
       const { id } = req.params;
+      console.log('Fetching crew with ID:', id);
       const crew = await storage.getCrewById(Number(id));
+      console.log('Crew from database:', crew);
       res.json(crew);
     } catch (error) {
       console.error("Error fetching crew:", error);
@@ -635,11 +639,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get('/api/projects/:id', isAuthenticated, async (req: any, res) => {
     try {
       const projectId = parseInt(req.params.id);
+      console.log('Fetching project with ID:', projectId);
+      
       if (isNaN(projectId)) {
         return res.status(400).json({ message: "Invalid project ID" });
       }
       
       const project = await storage.getProjectById(projectId);
+      console.log('Project from database:', project);
       
       if (!project) {
         return res.status(404).json({ message: "Project not found" });

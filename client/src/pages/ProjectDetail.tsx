@@ -48,13 +48,12 @@ export default function ProjectDetail({ projectId, selectedFirm, onBack }: Proje
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  const { data: project, isLoading: projectLoading } = useQuery({
+  const { data: project, isLoading: projectLoading, error: projectError } = useQuery({
     queryKey: ['/api/projects', projectId],
     queryFn: () => apiRequest(`/api/projects/${projectId}`, 'GET'),
-    onSuccess: (data) => {
-      console.log('Project data loaded:', data);
-    },
   });
+
+  console.log('Project state:', { project, projectLoading, projectError, projectId });
 
   const { data: services } = useQuery({
     queryKey: ['/api/services', projectId],
@@ -62,17 +61,19 @@ export default function ProjectDetail({ projectId, selectedFirm, onBack }: Proje
     enabled: !!project,
   });
 
-  const { data: client } = useQuery({
+  const { data: client, error: clientError } = useQuery({
     queryKey: ['/api/clients/single', project?.clientId],
     queryFn: () => apiRequest(`/api/clients/single/${project.clientId}`, 'GET'),
     enabled: !!project?.clientId,
   });
 
-  const { data: crew } = useQuery({
+  const { data: crew, error: crewError } = useQuery({
     queryKey: ['/api/crews/single', project?.crewId],
     queryFn: () => apiRequest(`/api/crews/single/${project.crewId}`, 'GET'),
     enabled: !!project?.crewId,
   });
+
+  console.log('Related data:', { client, clientError, crew, crewError });
 
   const updateProjectStatusMutation = useMutation({
     mutationFn: (data: any) => apiRequest(`/api/projects/${projectId}`, 'PATCH', data),
