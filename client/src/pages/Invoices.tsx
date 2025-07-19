@@ -40,30 +40,38 @@ export default function Invoices() {
   }, []);
 
   const { data: invoices = [], isLoading } = useQuery<Invoice[]>({
-    queryKey: ['/api/invoices', { firmId: selectedFirmId, ...filters }],
+    queryKey: ['/api/invoices', selectedFirmId],
+    queryFn: async () => {
+      const response = await apiRequest(`/api/invoices/${selectedFirmId}`, 'GET');
+      return response.json();
+    },
     enabled: !!selectedFirmId,
   });
 
   const { data: projects = [] } = useQuery<Project[]>({
-    queryKey: ['/api/projects', { firmId: selectedFirmId }],
+    queryKey: ['/api/projects', selectedFirmId],
+    queryFn: async () => {
+      const response = await apiRequest(`/api/projects/${selectedFirmId}`, 'GET');
+      return response.json();
+    },
     enabled: !!selectedFirmId,
   });
 
   const markPaidMutation = useMutation({
     mutationFn: async ({ invoiceNumber }: { invoiceNumber: string }) => {
-      const response = await apiRequest('PATCH', `/api/invoices/${invoiceNumber}/mark-paid?firmId=${selectedFirmId}`);
+      const response = await apiRequest('/api/invoice/mark-paid', 'PATCH', { invoiceNumber });
       return response.json();
     },
     onSuccess: () => {
       toast({
-        title: t('success'),
-        description: 'Rechnung als bezahlt markiert',
+        title: 'Успешно',
+        description: 'Счет отмечен как оплаченный',
       });
-      queryClient.invalidateQueries({ queryKey: ['/api/invoices'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/invoices', selectedFirmId] });
     },
     onError: (error) => {
       toast({
-        title: t('error'),
+        title: 'Ошибка',
         description: error.message,
         variant: 'destructive',
       });
@@ -81,7 +89,7 @@ export default function Invoices() {
       return (
         <Badge variant="default" className="bg-green-100 text-green-800">
           <CheckCircle className="w-3 h-3 mr-1" />
-          Bezahlt
+          Оплачен
         </Badge>
       );
     }
@@ -90,7 +98,7 @@ export default function Invoices() {
       return (
         <Badge variant="destructive">
           <AlertCircle className="w-3 h-3 mr-1" />
-          Überfällig
+          Просрочен
         </Badge>
       );
     }
@@ -98,7 +106,7 @@ export default function Invoices() {
     return (
       <Badge variant="secondary">
         <Clock className="w-3 h-3 mr-1" />
-        Ausstehend
+        В ожидании
       </Badge>
     );
   };
@@ -140,10 +148,10 @@ export default function Invoices() {
       <MainLayout>
         <div className="p-6 text-center">
           <h1 className="text-2xl font-semibold text-gray-900 mb-4">
-            {t('invoices')}
+            Счета
           </h1>
           <p className="text-gray-600">
-            Bitte wählen Sie eine Firma aus dem Header aus, um Rechnungen zu verwalten.
+            Пожалуйста, выберите фирму в шапке страницы для управления счетами.
           </p>
         </div>
       </MainLayout>
@@ -155,8 +163,8 @@ export default function Invoices() {
       <div className="p-6">
         <div className="flex items-center justify-between mb-6">
           <div>
-            <h1 className="text-2xl font-semibold text-gray-900">{t('invoices')}</h1>
-            <p className="text-gray-600 mt-1">Verwalten Sie Ihre Rechnungen und Zahlungen</p>
+            <h1 className="text-2xl font-semibold text-gray-900">Счета</h1>
+            <p className="text-gray-600 mt-1">Управляйте своими счетами и платежами</p>
           </div>
         </div>
 
@@ -165,7 +173,7 @@ export default function Invoices() {
           <div className="bg-white p-6 rounded-lg border shadow-sm">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600">Gesamtsumme</p>
+                <p className="text-sm font-medium text-gray-600">Общая сумма</p>
                 <p className="text-2xl font-semibold text-gray-900">{formatCurrency(totalAmount)}</p>
               </div>
               <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
@@ -177,7 +185,7 @@ export default function Invoices() {
           <div className="bg-white p-6 rounded-lg border shadow-sm">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600">Unbezahlt</p>
+                <p className="text-sm font-medium text-gray-600">Неоплачено</p>
                 <p className="text-2xl font-semibold text-gray-900">{formatCurrency(unpaidAmount)}</p>
               </div>
               <div className="w-12 h-12 bg-yellow-100 rounded-lg flex items-center justify-center">
@@ -189,7 +197,7 @@ export default function Invoices() {
           <div className="bg-white p-6 rounded-lg border shadow-sm">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600">Rechnungen</p>
+                <p className="text-sm font-medium text-gray-600">Счета</p>
                 <p className="text-2xl font-semibold text-gray-900">{filteredInvoices.length}</p>
               </div>
               <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
@@ -203,22 +211,22 @@ export default function Invoices() {
         <div className="bg-white p-6 border-b">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
-              <Label className="text-sm font-medium text-gray-700 mb-1">{t('status')}</Label>
+              <Label className="text-sm font-medium text-gray-700 mb-1">Статус</Label>
               <Select value={filters.status} onValueChange={(value) => handleFilterChange('status', value)}>
                 <SelectTrigger>
-                  <SelectValue placeholder="Alle Status" />
+                  <SelectValue placeholder="Все статусы" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">Alle Status</SelectItem>
-                  <SelectItem value="paid">Bezahlt</SelectItem>
-                  <SelectItem value="unpaid">Unbezahlt</SelectItem>
-                  <SelectItem value="overdue">Überfällig</SelectItem>
+                  <SelectItem value="all">Все статусы</SelectItem>
+                  <SelectItem value="paid">Оплачен</SelectItem>
+                  <SelectItem value="unpaid">Неоплачен</SelectItem>
+                  <SelectItem value="overdue">Просрочен</SelectItem>
                 </SelectContent>
               </Select>
             </div>
 
             <div>
-              <Label className="text-sm font-medium text-gray-700 mb-1">Von Datum</Label>
+              <Label className="text-sm font-medium text-gray-700 mb-1">С даты</Label>
               <Input
                 type="date"
                 value={filters.dateFrom}
@@ -227,7 +235,7 @@ export default function Invoices() {
             </div>
 
             <div>
-              <Label className="text-sm font-medium text-gray-700 mb-1">Bis Datum</Label>
+              <Label className="text-sm font-medium text-gray-700 mb-1">По дату</Label>
               <Input
                 type="date"
                 value={filters.dateTo}
@@ -251,14 +259,14 @@ export default function Invoices() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Rechnungsnummer</TableHead>
-                  <TableHead>Projekt</TableHead>
-                  <TableHead>Rechnungsdatum</TableHead>
-                  <TableHead>Fälligkeitsdatum</TableHead>
-                  <TableHead>Betrag</TableHead>
-                  <TableHead>{t('status')}</TableHead>
-                  <TableHead>Tage bis Fälligkeit</TableHead>
-                  <TableHead>{t('actions')}</TableHead>
+                  <TableHead>Номер счета</TableHead>
+                  <TableHead>Проект</TableHead>
+                  <TableHead>Дата счета</TableHead>
+                  <TableHead>Срок оплаты</TableHead>
+                  <TableHead>Сумма</TableHead>
+                  <TableHead>Статус</TableHead>
+                  <TableHead>Дней до срока</TableHead>
+                  <TableHead>Действия</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -277,7 +285,7 @@ export default function Invoices() {
                       <TableCell>
                         <div>
                           <p className="font-medium">PROJ-{project?.id}</p>
-                          <p className="text-sm text-gray-500">{project?.notes || 'Keine Beschreibung'}</p>
+                          <p className="text-sm text-gray-500">{project?.notes || 'Нет описания'}</p>
                         </div>
                       </TableCell>
                       <TableCell>
@@ -303,10 +311,10 @@ export default function Invoices() {
                           daysUntilDue < 0 ? 'text-red-600' : 
                           daysUntilDue <= 7 ? 'text-yellow-600' : 'text-green-600'
                         }`}>
-                          {invoice.isPaid ? 'Bezahlt' : 
-                           daysUntilDue < 0 ? `${Math.abs(daysUntilDue)} Tage überfällig` :
-                           daysUntilDue === 0 ? 'Heute fällig' :
-                           `${daysUntilDue} Tage`}
+                          {invoice.isPaid ? 'Оплачен' : 
+                           daysUntilDue < 0 ? `${Math.abs(daysUntilDue)} дней просрочки` :
+                           daysUntilDue === 0 ? 'Срок сегодня' :
+                           `${daysUntilDue} дней`}
                         </span>
                       </TableCell>
                       <TableCell>
@@ -318,7 +326,7 @@ export default function Invoices() {
                               disabled={markPaidMutation.isPending}
                             >
                               <CheckCircle className="w-4 h-4 mr-1" />
-                              Als bezahlt markieren
+                              Отметить как оплаченный
                             </Button>
                           )}
                           <Button

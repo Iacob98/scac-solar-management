@@ -553,9 +553,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get('/api/projects/:id', isAuthenticated, async (req: any, res) => {
+  app.get('/api/projects/:firmId', isAuthenticated, async (req: any, res) => {
+    try {
+      const { firmId } = req.params;
+      const projects = await storage.getProjectsByFirmId(firmId);
+      res.json(projects);
+    } catch (error) {
+      console.error("Error fetching projects by firm:", error);
+      res.status(500).json({ message: "Failed to fetch projects" });
+    }
+  });
+
+  app.get('/api/project/:id', isAuthenticated, async (req: any, res) => {
     try {
       const projectId = parseInt(req.params.id);
+      if (isNaN(projectId)) {
+        return res.status(400).json({ message: "Invalid project ID" });
+      }
+      
       const project = await storage.getProjectById(projectId);
       
       if (!project) {
@@ -676,6 +691,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error fetching users:", error);
       res.status(500).json({ message: "Failed to fetch users" });
+    }
+  });
+
+  // Invoice routes
+  app.get('/api/invoices/:firmId', isAuthenticated, async (req: any, res) => {
+    try {
+      const { firmId } = req.params;
+      const invoices = await storage.getInvoicesByFirmId(firmId);
+      res.json(invoices);
+    } catch (error) {
+      console.error("Error fetching invoices:", error);
+      res.status(500).json({ message: "Failed to fetch invoices" });
     }
   });
 
