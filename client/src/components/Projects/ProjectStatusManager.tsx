@@ -108,13 +108,13 @@ export function ProjectStatusManager({ project, selectedFirm }: ProjectStatusMan
       };
     }
 
-    // Если дата начала работ наступила -> предложить "работы в процессе"
+    // Если дата начала работ наступила и статус "работы запланированы" -> предложить "работы в процессе"
     if (project.status === 'work_scheduled' && project.workStartDate) {
       const workStartDate = new Date(project.workStartDate);
       if (workStartDate <= today) {
         return {
           newStatus: 'work_in_progress', 
-          message: 'Пора начинать работы. Подтвердить начало?',
+          message: 'Время начинать работы. Подтвердить начало?',
           action: 'Начать работы'
         };
       }
@@ -162,7 +162,7 @@ export function ProjectStatusManager({ project, selectedFirm }: ProjectStatusMan
         )}
 
         {/* Ручные переходы статусов */}
-        <div className="space-y-2">
+        <div className="space-y-3">
           {project.status === 'planning' && (
             <Button
               onClick={() => updateStatusMutation.mutate('equipment_waiting')}
@@ -185,15 +185,53 @@ export function ProjectStatusManager({ project, selectedFirm }: ProjectStatusMan
             </Button>
           )}
 
+          {project.status === 'work_scheduled' && (
+            <div className="space-y-2">
+              <Button
+                onClick={() => updateStatusMutation.mutate('work_in_progress')}
+                disabled={updateStatusMutation.isPending}
+                className="w-full bg-yellow-600 hover:bg-yellow-700"
+              >
+                <PlayCircle className="h-4 w-4 mr-2" />
+                Начать работы
+              </Button>
+              <Button
+                onClick={() => updateStatusMutation.mutate('work_completed')}
+                disabled={updateStatusMutation.isPending}
+                className="w-full bg-green-600 hover:bg-green-700"
+              >
+                <CheckCircle className="h-4 w-4 mr-2" />
+                Завершить проект
+              </Button>
+            </div>
+          )}
+
           {canCreateInvoice && (
-            <Button
-              onClick={() => createInvoiceMutation.mutate()}
-              disabled={createInvoiceMutation.isPending}
-              className="w-full bg-orange-600 hover:bg-orange-700"
-            >
-              <Receipt className="h-4 w-4 mr-2" />
-              {createInvoiceMutation.isPending ? 'Создание...' : 'Выставить счет'}
-            </Button>
+            <div className="pt-2 border-t">
+              <p className="text-sm text-green-700 font-medium mb-2">✅ Проект завершен</p>
+              <Button
+                onClick={() => createInvoiceMutation.mutate()}
+                disabled={createInvoiceMutation.isPending}
+                className="w-full bg-orange-600 hover:bg-orange-700"
+              >
+                <Receipt className="h-4 w-4 mr-2" />
+                {createInvoiceMutation.isPending ? 'Создание счета...' : 'Выставить счет'}
+              </Button>
+            </div>
+          )}
+
+          {project.status === 'invoiced' && (
+            <div className="pt-2 border-t">
+              <p className="text-sm text-purple-700 font-medium mb-2">💼 Счет выставлен</p>
+              <p className="text-xs text-gray-600">Ожидание оплаты от клиента</p>
+            </div>
+          )}
+
+          {project.status === 'paid' && (
+            <div className="pt-2 border-t">
+              <p className="text-sm text-emerald-700 font-medium mb-2">✅ Проект полностью завершен</p>
+              <p className="text-xs text-gray-600">Счет оплачен клиентом</p>
+            </div>
           )}
         </div>
 
