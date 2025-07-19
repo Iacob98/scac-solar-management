@@ -19,6 +19,7 @@ import Tutorial from '@/components/Tutorial';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
 import { apiRequest } from '@/lib/queryClient';
+import { StatusUpdateDialog } from '@/components/Projects/StatusUpdateDialog';
 import ProjectDetail from './ProjectDetail';
 import Services from './Services';
 import Reports from './Reports';
@@ -70,6 +71,9 @@ function ProjectsList({ selectedFirm, onViewProject, onManageServices, onManageR
   const [filter, setFilter] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [isTutorialOpen, setIsTutorialOpen] = useState(false);
+  const [statusDialogOpen, setStatusDialogOpen] = useState(false);
+  const [selectedProject, setSelectedProject] = useState<any>(null);
+  const [targetStatus, setTargetStatus] = useState<string>('');
 
   const { data: projects = [], isLoading: projectsLoading } = useQuery({
     queryKey: ['/api/projects', selectedFirm],
@@ -215,6 +219,12 @@ function ProjectsList({ selectedFirm, onViewProject, onManageServices, onManageR
 
   const updateProjectStatus = (projectId: number, status: string) => {
     updateProjectStatusMutation.mutate({ projectId, status });
+  };
+
+  const openStatusDialog = (project: any, status: string) => {
+    setSelectedProject(project);
+    setTargetStatus(status);
+    setStatusDialogOpen(true);
   };
 
   const filteredProjects = (projects as Project[]).filter((project: Project) => {
@@ -668,7 +678,7 @@ function ProjectsList({ selectedFirm, onViewProject, onManageServices, onManageR
                     {project.status === 'planning' && (
                       <Button 
                         size="sm" 
-                        onClick={() => updateProjectStatus(project.id, 'equipment_waiting')}
+                        onClick={() => openStatusDialog(project, 'equipment_waiting')}
                       >
                         Ожидать оборудование
                       </Button>
@@ -677,7 +687,7 @@ function ProjectsList({ selectedFirm, onViewProject, onManageServices, onManageR
                     {project.status === 'equipment_waiting' && (
                       <Button 
                         size="sm" 
-                        onClick={() => updateProjectStatus(project.id, 'equipment_arrived')}
+                        onClick={() => openStatusDialog(project, 'equipment_arrived')}
                       >
                         Оборудование поступило
                       </Button>
@@ -686,7 +696,7 @@ function ProjectsList({ selectedFirm, onViewProject, onManageServices, onManageR
                     {project.status === 'equipment_arrived' && (
                       <Button 
                         size="sm" 
-                        onClick={() => updateProjectStatus(project.id, 'work_scheduled')}
+                        onClick={() => openStatusDialog(project, 'work_scheduled')}
                       >
                         Запланировать работы
                       </Button>
@@ -695,7 +705,7 @@ function ProjectsList({ selectedFirm, onViewProject, onManageServices, onManageR
                     {project.status === 'work_scheduled' && (
                       <Button 
                         size="sm" 
-                        onClick={() => updateProjectStatus(project.id, 'work_in_progress')}
+                        onClick={() => openStatusDialog(project, 'work_in_progress')}
                       >
                         Начать работы
                       </Button>
@@ -704,7 +714,7 @@ function ProjectsList({ selectedFirm, onViewProject, onManageServices, onManageR
                     {project.status === 'work_in_progress' && (
                       <Button 
                         size="sm" 
-                        onClick={() => updateProjectStatus(project.id, 'work_completed')}
+                        onClick={() => openStatusDialog(project, 'work_completed')}
                       >
                         Завершить работы
                       </Button>
@@ -763,6 +773,15 @@ function ProjectsList({ selectedFirm, onViewProject, onManageServices, onManageR
           )}
         </div>
       )}
+
+      {/* Диалог обновления статуса */}
+      <StatusUpdateDialog
+        open={statusDialogOpen}
+        onOpenChange={setStatusDialogOpen}
+        project={selectedProject}
+        targetStatus={targetStatus}
+        firmId={selectedFirm}
+      />
     </div>
   );
 }

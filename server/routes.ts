@@ -1118,11 +1118,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.patch('/api/projects/:id/status', isAuthenticated, async (req: any, res) => {
     try {
       const id = parseInt(req.params.id);
-      const { status } = z.object({
-        status: z.enum(['planning', 'in_progress', 'done', 'invoiced', 'paid']),
+      const validatedData = z.object({
+        status: z.enum(['planning', 'equipment_waiting', 'equipment_arrived', 'work_scheduled', 'work_in_progress', 'work_completed', 'invoiced', 'paid']),
+        equipmentExpectedDate: z.string().optional(),
+        equipmentArrivedDate: z.string().optional(),
+        workStartDate: z.string().optional(),
+        workEndDate: z.string().optional(),
       }).parse(req.body);
 
-      const project = await storage.updateProject(id, { status });
+      const project = await storage.updateProject(id, validatedData);
+      
+      // Добавляем запись в историю проекта
+      const userId = req.user.claims.sub;
+      if (userId) {
+        await storage.createProjectHistoryEntry({
+          projectId: id,
+          userId,
+          changeType: 'status_change',
+          description: `Статус изменен на: ${validatedData.status}`,
+        });
+      }
+      
       res.json(project);
     } catch (error) {
       console.error("Error updating project status:", error);
