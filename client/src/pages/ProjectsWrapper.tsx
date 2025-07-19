@@ -219,6 +219,7 @@ function ProjectsList({ selectedFirm, onViewProject, onManageServices, onManageR
 
   const filteredProjects = (projects as Project[]).filter((project: Project) => {
     const matchesFilter = !filter || 
+      getInstallationPersonName(project).toLowerCase().includes(filter.toLowerCase()) ||
       getClientName(project.clientId).toLowerCase().includes(filter.toLowerCase()) ||
       project.teamNumber?.toLowerCase().includes(filter.toLowerCase());
     
@@ -269,6 +270,19 @@ function ProjectsList({ selectedFirm, onViewProject, onManageServices, onManageR
   const getClientName = (clientId: number) => {
     const client = (clients as Client[]).find((c: Client) => c.id === clientId);
     return client?.name || 'Неизвестный клиент';
+  };
+
+  const getInstallationPersonName = (project: Project) => {
+    if (project.installationPersonFirstName && project.installationPersonLastName) {
+      return `${project.installationPersonFirstName} ${project.installationPersonLastName}`;
+    }
+    if (project.installationPersonFirstName) {
+      return project.installationPersonFirstName;
+    }
+    if (project.installationPersonLastName) {
+      return project.installationPersonLastName;
+    }
+    return 'Не указан клиент установки';
   };
 
   const getCrewName = (crewId: number) => {
@@ -544,8 +558,12 @@ function ProjectsList({ selectedFirm, onViewProject, onManageServices, onManageR
               <CardHeader className="pb-3">
                 <div className="flex justify-between items-start">
                   <div>
-                    <CardTitle className="text-lg">{getClientName(project.clientId)}</CardTitle>
+                    <CardTitle className="text-lg">{getInstallationPersonName(project)}</CardTitle>
                     <div className="flex items-center space-x-4 text-sm text-gray-500 mt-1">
+                      <span className="flex items-center">
+                        <Building2 className="h-4 w-4 mr-1" />
+                        {getClientName(project.clientId)}
+                      </span>
                       <span className="flex items-center">
                         <Users className="h-4 w-4 mr-1" />
                         {getCrewName(project.crewId || 0)}
