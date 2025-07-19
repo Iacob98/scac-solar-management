@@ -24,15 +24,17 @@ export function Sidebar() {
   return (
     <aside className="w-60 bg-white shadow-lg flex flex-col border-r">
       <div className="p-6 border-b">
-        <div className="flex items-center space-x-3">
-          <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
-            <span className="material-icons text-white text-lg">wb_sunny</span>
+        <Link href="/">
+          <div className="flex items-center space-x-3 cursor-pointer hover:opacity-80 transition-opacity">
+            <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
+              <span className="material-icons text-white text-lg">wb_sunny</span>
+            </div>
+            <div>
+              <h1 className="text-lg font-semibold text-gray-900">SCAC</h1>
+              <p className="text-xs text-gray-500">Solar Management</p>
+            </div>
           </div>
-          <div>
-            <h1 className="text-lg font-semibold text-gray-900">SCAC</h1>
-            <p className="text-xs text-gray-500">Solar Management</p>
-          </div>
-        </div>
+        </Link>
       </div>
       
       <nav className="flex-1 p-4 space-y-2">
