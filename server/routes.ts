@@ -63,6 +63,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         { id: 'test_user_3', name: 'Anna Weber', email: 'anna.weber@solar.de', role: 'leiter' },
         { id: 'test_user_4', name: 'Klaus Richter', email: 'klaus.richter@greenenergy.de', role: 'leiter' },
         { id: 'test_user_5', name: 'Petra Wagner', email: 'petra.wagner@solarpower.de', role: 'leiter' },
+        { id: 'test_user_new_firm', name: 'Test Manager', email: 'manager@testsolar.de', role: 'leiter' },
       ];
       res.json(testUsers);
     } catch (error) {
