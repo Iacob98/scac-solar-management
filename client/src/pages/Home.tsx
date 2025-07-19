@@ -38,16 +38,31 @@ export default function Home() {
 
   const { data: projects = [] } = useQuery<Project[]>({
     queryKey: ['/api/projects', selectedFirmId],
+    queryFn: async () => {
+      const response = await fetch(`/api/projects?firmId=${selectedFirmId}`);
+      if (!response.ok) throw new Error('Failed to fetch projects');
+      return response.json();
+    },
     enabled: !!selectedFirmId,
   });
 
   const { data: clients = [] } = useQuery<Client[]>({
     queryKey: ['/api/clients', selectedFirmId],
+    queryFn: async () => {
+      const response = await fetch(`/api/clients?firmId=${selectedFirmId}`);
+      if (!response.ok) throw new Error('Failed to fetch clients');
+      return response.json();
+    },
     enabled: !!selectedFirmId,
   });
 
   const { data: crews = [] } = useQuery<Crew[]>({
     queryKey: ['/api/crews', selectedFirmId],
+    queryFn: async () => {
+      const response = await fetch(`/api/crews?firmId=${selectedFirmId}`);
+      if (!response.ok) throw new Error('Failed to fetch crews');
+      return response.json();
+    },
     enabled: !!selectedFirmId,
   });
 
