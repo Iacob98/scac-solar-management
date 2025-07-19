@@ -340,7 +340,7 @@ export default function ProjectDetail({ projectId, selectedFirm, onBack }: Proje
                   <Button 
                     variant="ghost" 
                     size="sm"
-                    onClick={() => {/* TODO: Открыть модальное окно полной истории */}}
+                    onClick={() => setActiveTab('history')}
                     className="text-green-600 hover:bg-green-50 text-xs px-2 py-1"
                   >
                     Показать все
