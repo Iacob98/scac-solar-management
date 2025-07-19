@@ -29,6 +29,11 @@ const editCrewSchema = z.object({
 
 // Компонент формы редактирования
 function EditCrewForm({ crew, onUpdate }: { crew: Crew, onUpdate: any }) {
+  const [crewMembers, setCrewMembers] = useState<CrewMember[]>([]);
+  const [membersLoading, setMembersLoading] = useState(true);
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+
   const editForm = useForm<z.infer<typeof editCrewSchema>>({
     resolver: zodResolver(editCrewSchema),
     defaultValues: {
@@ -40,100 +45,273 @@ function EditCrewForm({ crew, onUpdate }: { crew: Crew, onUpdate: any }) {
     },
   });
 
+  // Загрузка участников бригады
+  useEffect(() => {
+    const fetchMembers = async () => {
+      try {
+        const response = await fetch(`/api/crew-members?crewId=${crew.id}`);
+        const members = await response.json();
+        setCrewMembers(members);
+      } catch (error) {
+        console.error('Error fetching crew members:', error);
+      } finally {
+        setMembersLoading(false);
+      }
+    };
+    fetchMembers();
+  }, [crew.id]);
+
   const onSubmit = (data: z.infer<typeof editCrewSchema>) => {
     onUpdate.mutate(data);
   };
 
+  // Мутация для обновления участника
+  const updateMemberMutation = useMutation({
+    mutationFn: async ({ memberId, data }: { memberId: number, data: Partial<CrewMember> }) => {
+      const response = await apiRequest(`/api/crew-members/${memberId}`, 'PUT', data);
+      return await response.json();
+    },
+    onSuccess: () => {
+      toast({ title: 'Участник обновлен', description: 'Данные участника успешно изменены' });
+      // Обновляем локальный список
+      const fetchMembers = async () => {
+        const response = await fetch(`/api/crew-members?crewId=${crew.id}`);
+        const members = await response.json();
+        setCrewMembers(members);
+      };
+      fetchMembers();
+    },
+    onError: (error: any) => {
+      toast({ title: 'Ошибка', description: error.message, variant: 'destructive' });
+    },
+  });
+
+  // Мутация для добавления участника
+  const addMemberMutation = useMutation({
+    mutationFn: async (data: Omit<CrewMember, 'id' | 'crewId'>) => {
+      const response = await apiRequest('/api/crew-members', 'POST', { ...data, crewId: crew.id });
+      return await response.json();
+    },
+    onSuccess: () => {
+      toast({ title: 'Участник добавлен', description: 'Новый участник добавлен в бригаду' });
+      // Обновляем локальный список
+      const fetchMembers = async () => {
+        const response = await fetch(`/api/crew-members?crewId=${crew.id}`);
+        const members = await response.json();
+        setCrewMembers(members);
+      };
+      fetchMembers();
+    },
+    onError: (error: any) => {
+      toast({ title: 'Ошибка', description: error.message, variant: 'destructive' });
+    },
+  });
+
+  // Мутация для удаления участника
+  const deleteMemberMutation = useMutation({
+    mutationFn: async (memberId: number) => {
+      const response = await apiRequest(`/api/crew-members/${memberId}`, 'DELETE');
+      return await response.json();
+    },
+    onSuccess: () => {
+      toast({ title: 'Участник удален', description: 'Участник удален из бригады' });
+      // Обновляем локальный список
+      const fetchMembers = async () => {
+        const response = await fetch(`/api/crew-members?crewId=${crew.id}`);
+        const members = await response.json();
+        setCrewMembers(members);
+      };
+      fetchMembers();
+    },
+    onError: (error: any) => {
+      toast({ title: 'Ошибка', description: error.message, variant: 'destructive' });
+    },
+  });
+
   return (
-    <Form {...editForm}>
-      <form onSubmit={editForm.handleSubmit(onSubmit)} className="space-y-4">
-        <FormField
-          control={editForm.control}
-          name="name"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Название бригады</FormLabel>
-              <FormControl>
-                <Input {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        
-        <FormField
-          control={editForm.control}
-          name="leaderName"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Руководитель</FormLabel>
-              <FormControl>
-                <Input {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        
-        <FormField
-          control={editForm.control}
-          name="phone"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Телефон</FormLabel>
-              <FormControl>
-                <Input {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        
-        <FormField
-          control={editForm.control}
-          name="address"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Адрес</FormLabel>
-              <FormControl>
-                <Input {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        
-        <FormField
-          control={editForm.control}
-          name="status"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Статус</FormLabel>
-              <Select onValueChange={field.onChange} defaultValue={field.value}>
+    <div>
+      <Form {...editForm}>
+        <form onSubmit={editForm.handleSubmit(onSubmit)} className="space-y-4">
+          <FormField
+            control={editForm.control}
+            name="name"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Название бригады</FormLabel>
                 <FormControl>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
+                  <Input {...field} />
                 </FormControl>
-                <SelectContent>
-                  <SelectItem value="active">Активна</SelectItem>
-                  <SelectItem value="vacation">В отпуске</SelectItem>
-                  <SelectItem value="equipment_issue">Проблемы с техникой</SelectItem>
-                  <SelectItem value="unavailable">Недоступна</SelectItem>
-                </SelectContent>
-              </Select>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        
-        <div className="flex space-x-2">
-          <Button type="submit" disabled={onUpdate.isPending} className="flex-1">
-            {onUpdate.isPending ? 'Сохранение...' : 'Сохранить'}
-          </Button>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          
+          <FormField
+            control={editForm.control}
+            name="leaderName"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Руководитель</FormLabel>
+                <FormControl>
+                  <Input {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          
+          <FormField
+            control={editForm.control}
+            name="phone"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Телефон</FormLabel>
+                <FormControl>
+                  <Input {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          
+          <FormField
+            control={editForm.control}
+            name="address"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Адрес</FormLabel>
+                <FormControl>
+                  <Input {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          
+          <FormField
+            control={editForm.control}
+            name="status"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Статус</FormLabel>
+                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    <SelectItem value="active">Активна</SelectItem>
+                    <SelectItem value="vacation">В отпуске</SelectItem>
+                    <SelectItem value="equipment_issue">Проблемы с техникой</SelectItem>
+                    <SelectItem value="unavailable">Недоступна</SelectItem>
+                  </SelectContent>
+                </Select>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          
+          <div className="flex space-x-2">
+            <Button type="submit" disabled={onUpdate.isPending} className="flex-1">
+              {onUpdate.isPending ? 'Сохранение...' : 'Сохранить'}
+            </Button>
+          </div>
+        </form>
+      </Form>
+      
+      <div className="mt-6 border-t pt-4">
+      <div className="flex justify-between items-center mb-4">
+        <h3 className="text-lg font-medium">Участники бригады</h3>
+        <Button 
+          size="sm" 
+          variant="outline"
+          onClick={() => {
+            const firstName = prompt('Имя участника:');
+            const lastName = prompt('Фамилия участника:');
+            const address = prompt('Адрес участника:');
+            const uniqueNumber = prompt('Уникальный номер:') || `WRK-${Date.now().toString().slice(-4)}`;
+            const phone = prompt('Телефон (необязательно):') || '';
+            
+            if (firstName && lastName && address) {
+              addMemberMutation.mutate({
+                firstName,
+                lastName,
+                address,
+                uniqueNumber,
+                phone,
+                role: 'worker'
+              });
+            }
+          }}
+        >
+          <Plus className="h-4 w-4 mr-1" />
+          Добавить
+        </Button>
+      </div>
+      
+      {membersLoading ? (
+        <div className="text-center py-4">
+          <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600 mx-auto"></div>
         </div>
-      </form>
-    </Form>
+      ) : (
+        <div className="space-y-2 max-h-64 overflow-y-auto">
+          {crewMembers.map((member) => (
+            <Card key={member.id} className="p-3">
+              <div className="flex justify-between items-start">
+                <div className="flex-1">
+                  <div className="font-medium">{member.firstName} {member.lastName}</div>
+                  <div className="text-sm text-gray-500 space-y-1">
+                    <div>Номер: {member.uniqueNumber}</div>
+                    <div>Роль: {member.role === 'leader' ? 'Руководитель' : member.role === 'specialist' ? 'Специалист' : 'Рабочий'}</div>
+                    {member.phone && <div>Телефон: {member.phone}</div>}
+                    <div>Адрес: {member.address}</div>
+                  </div>
+                </div>
+                <div className="flex space-x-1">
+                  <Button 
+                    size="sm" 
+                    variant="ghost"
+                    onClick={() => {
+                      const firstName = prompt('Новое имя:', member.firstName) || member.firstName;
+                      const lastName = prompt('Новая фамилия:', member.lastName) || member.lastName;
+                      const address = prompt('Новый адрес:', member.address) || member.address;
+                      const phone = prompt('Новый телефон:', member.phone || '') || member.phone;
+                      
+                      updateMemberMutation.mutate({
+                        memberId: member.id,
+                        data: { firstName, lastName, address, phone }
+                      });
+                    }}
+                  >
+                    <Edit className="h-3 w-3" />
+                  </Button>
+                  <Button 
+                    size="sm" 
+                    variant="ghost"
+                    className="text-red-600 hover:text-red-700"
+                    onClick={() => {
+                      if (confirm(`Удалить участника ${member.firstName} ${member.lastName}?`)) {
+                        deleteMemberMutation.mutate(member.id);
+                      }
+                    }}
+                  >
+                    <Trash2 className="h-3 w-3" />
+                  </Button>
+                </div>
+              </div>
+            </Card>
+          ))}
+          
+          {crewMembers.length === 0 && (
+            <div className="text-center py-4 text-gray-500">
+              В бригаде пока нет участников
+            </div>
+          )}
+        </div>
+      )}
+      </div>
+    </div>
   );
 }
 
@@ -638,7 +816,7 @@ export default function CrewsNew() {
 
         {/* Диалог редактирования бригады */}
         <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-          <DialogContent className="max-w-md">
+          <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>Редактировать бригаду</DialogTitle>
             </DialogHeader>
