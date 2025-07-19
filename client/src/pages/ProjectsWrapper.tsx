@@ -36,6 +36,7 @@ const projectFormSchema = insertProjectSchema.omit({ firmId: true, leiterId: tru
   installationPersonFirstName: z.string().min(1, 'Имя обязательно'),
   installationPersonLastName: z.string().min(1, 'Фамилия обязательна'),
   installationPersonAddress: z.string().min(1, 'Адрес обязателен'),
+  installationPersonPhone: z.string().min(1, 'Телефон обязателен'),
   installationPersonUniqueId: z.string().min(1, 'Уникальный ID обязателен'),
 });
 
@@ -378,6 +379,20 @@ function ProjectsList({ selectedFirm, onViewProject, onManageServices, onManageR
                         <FormLabel>Адрес установки</FormLabel>
                         <FormControl>
                           <Textarea placeholder="Полный адрес для установки солнечных панелей" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="installationPersonPhone"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Телефон клиента</FormLabel>
+                        <FormControl>
+                          <Input placeholder="+49 123 456789" {...field} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>

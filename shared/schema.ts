@@ -116,6 +116,7 @@ export const projects = pgTable("projects", {
   installationPersonFirstName: varchar("installation_person_first_name"),
   installationPersonLastName: varchar("installation_person_last_name"),
   installationPersonAddress: text("installation_person_address"),
+  installationPersonPhone: varchar("installation_person_phone"),
   installationPersonUniqueId: varchar("installation_person_unique_id"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),

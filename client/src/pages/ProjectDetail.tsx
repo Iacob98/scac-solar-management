@@ -238,6 +238,12 @@ export default function ProjectDetail({ projectId, selectedFirm, onBack }: Proje
                       <p className="text-sm text-gray-600">Имя и фамилия</p>
                       <p className="font-medium">{project.installationPersonFirstName} {project.installationPersonLastName}</p>
                     </div>
+                    {project.installationPersonPhone && (
+                      <div>
+                        <p className="text-sm text-gray-600">Телефон</p>
+                        <p className="font-medium">{project.installationPersonPhone}</p>
+                      </div>
+                    )}
                     {project.installationPersonAddress && (
                       <div>
                         <p className="text-sm text-gray-600">Адрес установки</p>
