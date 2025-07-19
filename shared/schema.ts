@@ -185,6 +185,21 @@ export const invoiceQueue = pgTable("invoice_queue", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
+// Project History table - для отслеживания всех изменений в проекте
+export const projectHistory = pgTable("project_history", {
+  id: serial("id").primaryKey(),
+  projectId: integer("project_id").notNull().references(() => projects.id),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  changeType: varchar("change_type", { 
+    enum: ['status_change', 'date_update', 'info_update', 'created', 'equipment_update', 'call_update', 'assignment_change'] 
+  }).notNull(),
+  fieldName: varchar("field_name"), // название поля которое изменилось
+  oldValue: text("old_value"),
+  newValue: text("new_value"),
+  description: text("description").notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
 // Relations
 export const usersRelations = relations(users, ({ many }) => ({
   userFirms: many(userFirms),
@@ -227,6 +242,7 @@ export const projectsRelations = relations(projects, ({ one, many }) => ({
   invoices: many(invoices),
   files: many(projectFiles),
   reports: many(projectReports),
+  history: many(projectHistory),
 }));
 
 export const servicesRelations = relations(services, ({ one }) => ({
@@ -243,6 +259,11 @@ export const projectFilesRelations = relations(projectFiles, ({ one }) => ({
 
 export const projectReportsRelations = relations(projectReports, ({ one }) => ({
   project: one(projects, { fields: [projectReports.projectId], references: [projects.id] }),
+}));
+
+export const projectHistoryRelations = relations(projectHistory, ({ one }) => ({
+  project: one(projects, { fields: [projectHistory.projectId], references: [projects.id] }),
+  user: one(users, { fields: [projectHistory.userId], references: [users.id] }),
 }));
 
 // Schema types
@@ -272,6 +293,13 @@ export const insertProjectSchema = createInsertSchema(projects).omit({
 });
 export type InsertProject = z.infer<typeof insertProjectSchema>;
 export type Project = typeof projects.$inferSelect;
+
+export const insertProjectHistorySchema = createInsertSchema(projectHistory).omit({ 
+  id: true, 
+  createdAt: true 
+});
+export type InsertProjectHistory = z.infer<typeof insertProjectHistorySchema>;
+export type ProjectHistory = typeof projectHistory.$inferSelect;
 
 export const insertServiceSchema = createInsertSchema(services).omit({ id: true, createdAt: true });
 export type InsertService = z.infer<typeof insertServiceSchema>;

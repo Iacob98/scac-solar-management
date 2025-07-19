@@ -9,6 +9,7 @@ import {
   invoices,
   projectFiles,
   projectReports,
+  projectHistory,
   userFirms,
   type User,
   type UpsertUser,
@@ -30,6 +31,8 @@ import {
   type InsertProjectFile,
   type ProjectReport,
   type InsertProjectReport,
+  type ProjectHistory,
+  type InsertProjectHistory,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, desc, sql } from "drizzle-orm";
@@ -113,6 +116,10 @@ export interface IStorage {
     monthlyRevenue: string;
     activeCrews: number;
   }>;
+
+  // Project History operations
+  createProjectHistoryEntry(entry: InsertProjectHistory): Promise<ProjectHistory>;
+  getProjectHistory(projectId: number): Promise<ProjectHistory[]>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -513,6 +520,37 @@ export class DatabaseStorage implements IStorage {
       monthlyRevenue: monthlyRevenueResult.total,
       activeCrews: activeCrewsResult.count,
     };
+  }
+
+  // Project History operations
+  async createProjectHistoryEntry(entry: InsertProjectHistory): Promise<ProjectHistory> {
+    const [historyEntry] = await db
+      .insert(projectHistory)
+      .values(entry)
+      .returning();
+    return historyEntry;
+  }
+
+  async getProjectHistory(projectId: number): Promise<ProjectHistory[]> {
+    return await db
+      .select({
+        id: projectHistory.id,
+        projectId: projectHistory.projectId,
+        userId: projectHistory.userId,
+        changeType: projectHistory.changeType,
+        fieldName: projectHistory.fieldName,
+        oldValue: projectHistory.oldValue,
+        newValue: projectHistory.newValue,
+        description: projectHistory.description,
+        createdAt: projectHistory.createdAt,
+        userFirstName: users.firstName,
+        userLastName: users.lastName,
+        userEmail: users.email,
+      })
+      .from(projectHistory)
+      .leftJoin(users, eq(projectHistory.userId, users.id))
+      .where(eq(projectHistory.projectId, projectId))
+      .orderBy(desc(projectHistory.createdAt));
   }
 }
 

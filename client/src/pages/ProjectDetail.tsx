@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { ArrowLeft, Edit, Settings, FileText, Users, CalendarIcon, Package, Plus, Receipt, MapPin, Clock, Euro, Calendar, Building2, PlayCircle, DollarSign, CheckCircle, AlertTriangle, Phone } from 'lucide-react';
+import { ArrowLeft, Edit, Settings, FileText, Users, CalendarIcon, Package, Plus, Receipt, MapPin, Clock, Euro, Calendar, Building2, PlayCircle, DollarSign, CheckCircle, AlertTriangle, Phone, History } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
 import { format } from 'date-fns';
@@ -14,6 +14,7 @@ import { type Project, type Service, type Client, type Crew } from '@shared/sche
 import { useToast } from '@/hooks/use-toast';
 import { apiRequest } from '@/lib/queryClient';
 import ServicesPage from './Services';
+import ProjectHistory from './ProjectHistory';
 
 interface ProjectDetailProps {
   projectId: number;
@@ -205,6 +206,16 @@ export default function ProjectDetail({ projectId, selectedFirm, onBack }: Proje
             </div>
             
             <div className="flex items-center space-x-3">
+              {/* Кнопка истории проекта */}
+              <Button 
+                variant="outline"
+                onClick={() => setActiveTab('history')}
+                className="hover:bg-blue-50"
+              >
+                <History className="h-4 w-4 mr-2" />
+                История проекта
+              </Button>
+              
               {/* Кнопки управления статусом */}
               {project.status === 'planning' && (
                 <Button 
@@ -454,10 +465,11 @@ export default function ProjectDetail({ projectId, selectedFirm, onBack }: Proje
         {/* Вкладки */}
         <div className="bg-white rounded-xl shadow-sm border p-6">
           <Tabs value={activeTab} onValueChange={setActiveTab}>
-            <TabsList className="grid w-full grid-cols-3 mb-6">
+            <TabsList className="grid w-full grid-cols-4 mb-6">
               <TabsTrigger value="services" className="text-sm">Услуги проекта</TabsTrigger>
               <TabsTrigger value="management" className="text-sm">Управление датами</TabsTrigger>
               <TabsTrigger value="files" className="text-sm">Файлы и отчеты</TabsTrigger>
+              <TabsTrigger value="history" className="text-sm">История изменений</TabsTrigger>
             </TabsList>
 
             <TabsContent value="services" className="space-y-4">
@@ -581,6 +593,13 @@ export default function ProjectDetail({ projectId, selectedFirm, onBack }: Proje
                 <h3 className="text-lg font-medium mb-2">Файлы и отчеты</h3>
                 <p>Функционал файлов будет добавлен позже</p>
               </div>
+            </TabsContent>
+
+            <TabsContent value="history" className="space-y-4">
+              <ProjectHistory 
+                projectId={project.id} 
+                onBack={() => setActiveTab('services')}
+              />
             </TabsContent>
           </Tabs>
         </div>

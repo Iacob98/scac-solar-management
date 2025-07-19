@@ -659,6 +659,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get project history
+  app.get('/api/projects/:id/history', isAuthenticated, async (req: any, res) => {
+    try {
+      const projectId = parseInt(req.params.id);
+      
+      if (isNaN(projectId)) {
+        return res.status(400).json({ message: "Invalid project ID" });
+      }
+      
+      const history = await storage.getProjectHistory(projectId);
+      res.json(history);
+    } catch (error) {
+      console.error("Error fetching project history:", error);
+      res.status(500).json({ message: "Failed to fetch project history" });
+    }
+  });
+
   app.get('/api/project/:id', isAuthenticated, async (req: any, res) => {
     try {
       const projectId = parseInt(req.params.id);
@@ -691,6 +708,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       console.log('Parsed project data:', projectData);
       const project = await storage.createProject(projectData);
+      
+      // Логируем создание проекта в истории
+      await storage.createProjectHistoryEntry({
+        projectId: project.id,
+        userId,
+        changeType: 'created',
+        fieldName: 'project',
+        oldValue: null,
+        newValue: 'created',
+        description: `Проект создан пользователем`,
+      });
+      
       console.log('Project created successfully:', project);
       res.json(project);
     } catch (error) {
@@ -715,7 +744,70 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const projectId = parseInt(req.params.id);
       const updateData = req.body;
+      const userId = req.user.claims.sub;
+      
+      // Получаем данные проекта до изменения для истории
+      const currentProject = await storage.getProjectById(projectId);
+      
+      // Обновляем проект
       const project = await storage.updateProject(projectId, updateData);
+      
+      // Логируем изменения в истории
+      for (const [key, newValue] of Object.entries(updateData)) {
+        const oldValue = currentProject ? currentProject[key as keyof typeof currentProject] : null;
+        
+        if (oldValue !== newValue) {
+          let description = '';
+          let changeType = 'info_update';
+          
+          if (key === 'status') {
+            changeType = 'status_change';
+            const statusLabels: any = {
+              'planning': 'Планирование',
+              'equipment_waiting': 'Ожидание оборудования',
+              'equipment_arrived': 'Оборудование поступило',
+              'work_scheduled': 'Работы запланированы',
+              'work_in_progress': 'Работы в процессе',
+              'work_completed': 'Работы завершены',
+              'invoiced': 'Выставлен счет',
+              'paid': 'Оплачено',
+              'done': 'Завершено'
+            };
+            description = `Статус изменен с "${statusLabels[oldValue] || oldValue}" на "${statusLabels[newValue] || newValue}"`;
+          } else if (key === 'equipmentExpectedDate' || key === 'equipmentArrivedDate') {
+            changeType = 'equipment_update';
+            description = key === 'equipmentExpectedDate' 
+              ? `Дата ожидания оборудования изменена на ${new Date(newValue).toLocaleDateString('ru-RU')}`
+              : `Дата поступления оборудования изменена на ${new Date(newValue).toLocaleDateString('ru-RU')}`;
+          } else if (key === 'workStartDate' || key === 'workEndDate') {
+            changeType = 'date_update';
+            description = key === 'workStartDate'
+              ? `Дата начала работ изменена на ${new Date(newValue).toLocaleDateString('ru-RU')}`
+              : `Дата окончания работ изменена на ${new Date(newValue).toLocaleDateString('ru-RU')}`;
+          } else if (key === 'needsCallForEquipmentDelay' || key === 'needsCallForCrewDelay' || key === 'needsCallForDateChange') {
+            changeType = 'call_update';
+            description = newValue 
+              ? `Требуется звонок клиенту`
+              : `Звонок клиенту больше не требуется`;
+          } else if (key === 'crewId') {
+            changeType = 'assignment_change';
+            description = `Команда изменена`;
+          } else {
+            description = `Поле "${key}" изменено`;
+          }
+          
+          await storage.createProjectHistoryEntry({
+            projectId,
+            userId,
+            changeType: changeType as any,
+            fieldName: key,
+            oldValue: oldValue ? String(oldValue) : null,
+            newValue: newValue ? String(newValue) : null,
+            description,
+          });
+        }
+      }
+      
       res.json(project);
     } catch (error) {
       console.error("Error updating project:", error);
