@@ -20,27 +20,50 @@ export function TopHeader() {
   });
 
   useEffect(() => {
-    // Auto-select first firm if available and none selected
-    if (firms.length > 0 && !selectedFirmId) {
-      const firstFirmId = firms[0].id;
-      setSelectedFirmId(firstFirmId);
-      localStorage.setItem('selectedFirmId', firstFirmId);
+    // Only auto-select first firm if there's no saved selection and localStorage is empty
+    const savedFirmId = localStorage.getItem('selectedFirmId');
+    console.log('Auto-select check:', { 
+      firmsCount: firms.length, 
+      selectedFirmId, 
+      savedFirmId, 
+      userRole: user?.role 
+    });
+    
+    if (firms.length > 0 && !selectedFirmId && !savedFirmId) {
+      // Only auto-select for admin users or if user has access to only one firm
+      if (user?.role === 'admin' || firms.length === 1) {
+        const firstFirmId = firms[0].id;
+        console.log('Auto-selecting first firm:', firstFirmId);
+        setSelectedFirmId(firstFirmId);
+        localStorage.setItem('selectedFirmId', firstFirmId);
+      }
     }
-  }, [firms, selectedFirmId]);
+  }, [firms, selectedFirmId, user]);
 
   useEffect(() => {
     // Load selected firm from localStorage on mount
     const savedFirmId = localStorage.getItem('selectedFirmId');
-    if (savedFirmId) {
+    if (savedFirmId && firms.some(firm => firm.id === savedFirmId)) {
+      // Only set if the saved firm still exists in user's available firms
       setSelectedFirmId(savedFirmId);
+    } else if (savedFirmId) {
+      // Clear invalid saved firm ID
+      localStorage.removeItem('selectedFirmId');
     }
-  }, []);
+  }, [firms]);
 
   const handleFirmChange = (firmId: string) => {
-    setSelectedFirmId(firmId);
-    localStorage.setItem('selectedFirmId', firmId);
-    // Trigger page refresh to update data
-    window.location.reload();
+    console.log('Firm change requested:', { from: selectedFirmId, to: firmId });
+    // Only change if it's actually different
+    if (firmId !== selectedFirmId) {
+      console.log('Changing firm from', selectedFirmId, 'to', firmId);
+      setSelectedFirmId(firmId);
+      localStorage.setItem('selectedFirmId', firmId);
+      // Trigger page refresh to update data
+      window.location.reload();
+    } else {
+      console.log('Firm change ignored - same as current');
+    }
   };
 
   return (
