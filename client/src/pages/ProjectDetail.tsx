@@ -206,16 +206,6 @@ export default function ProjectDetail({ projectId, selectedFirm, onBack }: Proje
             </div>
             
             <div className="flex items-center space-x-3">
-              {/* Кнопка истории проекта */}
-              <Button 
-                variant="outline"
-                onClick={() => setActiveTab('history')}
-                className="hover:bg-blue-50"
-              >
-                <History className="h-4 w-4 mr-2" />
-                История проекта
-              </Button>
-              
               {/* Кнопки управления статусом */}
               {project.status === 'planning' && (
                 <Button 
@@ -343,7 +333,7 @@ export default function ProjectDetail({ projectId, selectedFirm, onBack }: Proje
                   <Button 
                     variant="ghost" 
                     size="sm"
-                    onClick={() => setActiveTab('history')}
+                    onClick={() => {/* TODO: Открыть модальное окно полной истории */}}
                     className="text-green-600 hover:bg-green-50 text-xs px-2 py-1"
                   >
                     Показать все
@@ -433,11 +423,10 @@ export default function ProjectDetail({ projectId, selectedFirm, onBack }: Proje
         {/* Вкладки */}
         <div className="bg-white rounded-xl shadow-sm border p-6">
           <Tabs value={activeTab} onValueChange={setActiveTab}>
-            <TabsList className="grid w-full grid-cols-4 mb-6">
+            <TabsList className="grid w-full grid-cols-3 mb-6">
               <TabsTrigger value="services" className="text-sm">Услуги проекта</TabsTrigger>
               <TabsTrigger value="management" className="text-sm">Управление датами</TabsTrigger>
               <TabsTrigger value="files" className="text-sm">Файлы и отчеты</TabsTrigger>
-              <TabsTrigger value="history" className="text-sm">Полная история</TabsTrigger>
             </TabsList>
 
             <TabsContent value="services" className="space-y-4">
@@ -556,13 +545,7 @@ export default function ProjectDetail({ projectId, selectedFirm, onBack }: Proje
               </div>
             </TabsContent>
 
-            <TabsContent value="history" className="space-y-4">
-              <ProjectHistory 
-                projectId={project.id} 
-                onBack={() => setActiveTab('management')}
-                embedded={false}
-              />
-            </TabsContent>
+
 
             <TabsContent value="files" className="space-y-4">
               <div className="text-center py-8 text-gray-500">
