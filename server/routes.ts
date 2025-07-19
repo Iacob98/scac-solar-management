@@ -539,8 +539,52 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Firm ID is required" });
       }
       
-      const crews = await storage.getCrewsByFirmId(firmId);
-      res.json(crews);
+      const userId = req.user.claims.sub;
+      const user = await storage.getUser(userId);
+      
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      
+      const allCrews = await storage.getCrewsByFirmId(firmId);
+      
+      // Filter crews based on user access rights
+      let accessibleCrews: any[] = [];
+      
+      if (user.role === 'admin') {
+        // Admins see all crews
+        accessibleCrews = allCrews;
+      } else {
+        // Non-admin users see only crews assigned to their projects or shared projects
+        const userProjects = await storage.getProjectsByFirmId(firmId);
+        const accessibleProjectIds = new Set<number>();
+        
+        // Get projects user has access to
+        for (const project of userProjects) {
+          if (project.leiterId === userId) {
+            accessibleProjectIds.add(project.id);
+          } else {
+            const shares = await storage.getProjectShares(project.id);
+            const hasAccess = shares.some(share => share.sharedWith === userId);
+            if (hasAccess) {
+              accessibleProjectIds.add(project.id);
+            }
+          }
+        }
+        
+        // Get crew IDs from accessible projects
+        const accessibleCrewIds = new Set<number>();
+        for (const project of userProjects) {
+          if (accessibleProjectIds.has(project.id) && project.crewId) {
+            accessibleCrewIds.add(project.crewId);
+          }
+        }
+        
+        // Filter crews
+        accessibleCrews = allCrews.filter(crew => accessibleCrewIds.has(crew.id));
+      }
+      
+      res.json(accessibleCrews);
     } catch (error) {
       console.error("Error fetching crews:", error);
       res.status(500).json({ message: "Failed to fetch crews" });
@@ -551,8 +595,52 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { id } = req.params;
       console.log('Fetching crew with ID:', id);
+      
+      const userId = req.user.claims.sub;
+      const user = await storage.getUser(userId);
+      
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      
       const crew = await storage.getCrewById(Number(id));
       console.log('Crew from database:', crew);
+      
+      if (!crew) {
+        return res.status(404).json({ message: "Crew not found" });
+      }
+      
+      // Check access permissions
+      let hasAccess = false;
+      
+      if (user.role === 'admin') {
+        hasAccess = true;
+      } else {
+        // Check if crew is used in any projects user has access to
+        const firmProjects = await storage.getProjectsByFirmId(crew.firmId);
+        
+        for (const project of firmProjects) {
+          if (project.crewId === crew.id) {
+            // Check if user has access to this project
+            if (project.leiterId === userId) {
+              hasAccess = true;
+              break;
+            } else {
+              const shares = await storage.getProjectShares(project.id);
+              const projectHasAccess = shares.some(share => share.sharedWith === userId);
+              if (projectHasAccess) {
+                hasAccess = true;
+                break;
+              }
+            }
+          }
+        }
+      }
+      
+      if (!hasAccess) {
+        return res.status(403).json({ message: "Access denied to this crew" });
+      }
+      
       res.json(crew);
     } catch (error) {
       console.error("Error fetching crew:", error);
