@@ -465,11 +465,10 @@ export default function ProjectDetail({ projectId, selectedFirm, onBack }: Proje
         {/* Вкладки */}
         <div className="bg-white rounded-xl shadow-sm border p-6">
           <Tabs value={activeTab} onValueChange={setActiveTab}>
-            <TabsList className="grid w-full grid-cols-4 mb-6">
+            <TabsList className="grid w-full grid-cols-3 mb-6">
               <TabsTrigger value="services" className="text-sm">Услуги проекта</TabsTrigger>
-              <TabsTrigger value="management" className="text-sm">Управление датами</TabsTrigger>
+              <TabsTrigger value="management" className="text-sm">Управление проектом</TabsTrigger>
               <TabsTrigger value="files" className="text-sm">Файлы и отчеты</TabsTrigger>
-              <TabsTrigger value="history" className="text-sm">История изменений</TabsTrigger>
             </TabsList>
 
             <TabsContent value="services" className="space-y-4">
@@ -481,7 +480,8 @@ export default function ProjectDetail({ projectId, selectedFirm, onBack }: Proje
               />
             </TabsContent>
 
-            <TabsContent value="management" className="space-y-4">
+            <TabsContent value="management" className="space-y-6">
+              {/* Управление датами */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {/* Управление датами оборудования */}
                 <Card className="border-l-4 border-l-blue-500">
@@ -585,6 +585,23 @@ export default function ProjectDetail({ projectId, selectedFirm, onBack }: Proje
                   </CardContent>
                 </Card>
               </div>
+
+              {/* История изменений */}
+              <Card className="border-l-4 border-l-purple-500">
+                <CardHeader>
+                  <CardTitle className="flex items-center text-lg">
+                    <History className="h-5 w-5 mr-2 text-purple-600" />
+                    История изменений
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <ProjectHistory 
+                    projectId={project.id} 
+                    onBack={() => {}}
+                    embedded={true}
+                  />
+                </CardContent>
+              </Card>
             </TabsContent>
 
             <TabsContent value="files" className="space-y-4">
@@ -595,12 +612,7 @@ export default function ProjectDetail({ projectId, selectedFirm, onBack }: Proje
               </div>
             </TabsContent>
 
-            <TabsContent value="history" className="space-y-4">
-              <ProjectHistory 
-                projectId={project.id} 
-                onBack={() => setActiveTab('services')}
-              />
-            </TabsContent>
+
           </Tabs>
         </div>
       </div>

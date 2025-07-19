@@ -24,6 +24,7 @@ interface ProjectHistoryEntry {
 interface ProjectHistoryProps {
   projectId: number;
   onBack: () => void;
+  embedded?: boolean;
 }
 
 const changeTypeIcons = {
@@ -56,7 +57,7 @@ const changeTypeLabels = {
   'assignment_change': 'Назначение команды',
 };
 
-export default function ProjectHistory({ projectId, onBack }: ProjectHistoryProps) {
+export default function ProjectHistory({ projectId, onBack, embedded = false }: ProjectHistoryProps) {
   const { data: history = [], isLoading, error } = useQuery({
     queryKey: ['/api/projects', projectId, 'history'],
     queryFn: async () => {
@@ -84,6 +85,69 @@ export default function ProjectHistory({ projectId, onBack }: ProjectHistoryProp
           <h3 className="text-lg font-medium text-gray-900 mb-2">Ошибка загрузки</h3>
           <p className="text-gray-500">Не удалось загрузить историю проекта</p>
         </div>
+      </div>
+    );
+  }
+
+  if (embedded) {
+    return (
+      <div className="space-y-4 max-h-96 overflow-y-auto">
+        {history.length === 0 ? (
+          <div className="text-center py-8 text-gray-500">
+            <Clock className="h-8 w-8 mx-auto text-gray-400 mb-3" />
+            <p className="text-sm">История изменений пуста</p>
+          </div>
+        ) : (
+          history.map((entry, index) => {
+            const IconComponent = changeTypeIcons[entry.changeType] || FileText;
+            const isFirst = index === 0;
+            
+            return (
+              <div key={entry.id} className="relative">
+                {/* Timeline line */}
+                {!isFirst && (
+                  <div className="absolute left-4 -top-4 bottom-0 w-0.5 bg-gray-200"></div>
+                )}
+                
+                <div className="flex items-start space-x-3 p-3 bg-gray-50 rounded-lg">
+                  {/* Icon */}
+                  <div className={`p-1.5 rounded-full ${changeTypeColors[entry.changeType]} flex-shrink-0`}>
+                    <IconComponent className="h-3 w-3" />
+                  </div>
+                  
+                  {/* Content */}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between mb-1">
+                      <Badge variant="secondary" className="text-xs">
+                        {changeTypeLabels[entry.changeType]}
+                      </Badge>
+                      <div className="text-xs text-gray-500">
+                        {format(new Date(entry.createdAt), 'dd.MM HH:mm', { locale: ru })}
+                      </div>
+                    </div>
+                    
+                    <p className="text-sm text-gray-900 mb-1">{entry.description}</p>
+                    
+                    <div className="text-xs text-gray-500">
+                      {entry.userFirstName && entry.userLastName 
+                        ? `${entry.userFirstName} ${entry.userLastName}`
+                        : entry.userEmail || 'Система'}
+                    </div>
+                    
+                    {/* Show old/new values if available */}
+                    {entry.oldValue && entry.newValue && entry.oldValue !== entry.newValue && (
+                      <div className="flex items-center space-x-2 text-xs mt-2 bg-white p-2 rounded">
+                        <span className="text-red-600">{entry.oldValue}</span>
+                        <span className="text-gray-400">→</span>
+                        <span className="text-green-600">{entry.newValue}</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            );
+          })
+        )}
       </div>
     );
   }
