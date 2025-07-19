@@ -143,9 +143,13 @@ export default function ServicesPage({ selectedFirm, projectId }: ServicesPagePr
   const handleProductSelect = (productId: string) => {
     const product = (products as any[]).find(p => p.id.toString() === productId);
     if (product) {
-      form.setValue('productKey', product.name);
-      form.setValue('description', product.description || product.name);
+      // Устанавливаем название как код товара
+      form.setValue('productKey', product.name || '');
+      // Устанавливаем описание отдельно
+      form.setValue('description', product.description || product.name || '');
+      // Устанавливаем цену
       form.setValue('price', product.price?.toString() || '0');
+      // Помечаем как товар из каталога
       form.setValue('isCustom', false);
     }
   };
@@ -242,15 +246,19 @@ export default function ServicesPage({ selectedFirm, projectId }: ServicesPagePr
                       <SelectTrigger>
                         <SelectValue placeholder="Выберите товар из каталога" />
                       </SelectTrigger>
-                      <SelectContent>
+                      <SelectContent className="max-w-lg">
                         {(products as any[]).map((product: any) => (
                           <SelectItem key={product.id} value={product.id.toString()}>
-                            <div className="flex justify-between items-start w-full">
-                              <div className="flex-1 min-w-0">
-                                <div className="font-medium text-sm truncate">{product.name}</div>
-                                <div className="text-xs text-gray-500 truncate">{product.description}</div>
+                            <div className="flex flex-col w-full min-w-0 space-y-1">
+                              <div className="flex justify-between items-center">
+                                <span className="font-medium text-sm">{product.name}</span>
+                                <span className="text-sm font-medium text-blue-600">€{parseFloat(product.price || 0).toFixed(2)}</span>
                               </div>
-                              <div className="text-sm font-medium text-blue-600 ml-2">€{product.price}</div>
+                              {product.description && (
+                                <div className="text-xs text-gray-500 break-words">
+                                  {product.description}
+                                </div>
+                              )}
                             </div>
                           </SelectItem>
                         ))}
