@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
@@ -52,24 +53,28 @@ export function ProjectShareButton({ projectId, firmId }: ProjectShareButtonProp
   // Получить список пользователей фирмы
   const { data: users = [], isLoading: usersLoading } = useQuery({
     queryKey: ['/api/firms', firmId, 'users'],
-    queryFn: () => apiRequest(`/api/firms/${firmId}/users`),
+    queryFn: async () => {
+      const response = await apiRequest(`/api/firms/${firmId}/users`);
+      return await response.json();
+    },
     enabled: open,
   });
 
   // Получить список текущих поделенных доступов
   const { data: shares = [], isLoading: sharesLoading } = useQuery({
     queryKey: ['/api/projects', projectId, 'shares'],
-    queryFn: () => apiRequest(`/api/projects/${projectId}/shares`),
+    queryFn: async () => {
+      const response = await apiRequest(`/api/projects/${projectId}/shares`);
+      return await response.json();
+    },
     enabled: open,
   });
 
   // Мутация для предоставления доступа
   const shareProjectMutation = useMutation({
     mutationFn: async (data: { sharedWith: string; permission: 'view' | 'edit' }) => {
-      return apiRequest(`/api/projects/${projectId}/share`, {
-        method: 'POST',
-        body: JSON.stringify(data),
-      });
+      const response = await apiRequest(`/api/projects/${projectId}/share`, 'POST', data);
+      return await response.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/projects', projectId, 'shares'] });
@@ -93,9 +98,8 @@ export function ProjectShareButton({ projectId, firmId }: ProjectShareButtonProp
   // Мутация для удаления доступа
   const removeShareMutation = useMutation({
     mutationFn: async (userId: string) => {
-      return apiRequest(`/api/projects/${projectId}/shares/${userId}`, {
-        method: 'DELETE',
-      });
+      const response = await apiRequest(`/api/projects/${projectId}/shares/${userId}`, 'DELETE');
+      return await response.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/projects', projectId, 'shares'] });
@@ -115,7 +119,7 @@ export function ProjectShareButton({ projectId, firmId }: ProjectShareButtonProp
   });
 
   const handleShare = () => {
-    if (!selectedUser) {
+    if (!selectedUser || selectedUser === 'loading' || selectedUser === 'no-users') {
       toast({
         title: 'Ошибка',
         description: 'Выберите пользователя для предоставления доступа',
@@ -152,6 +156,9 @@ export function ProjectShareButton({ projectId, firmId }: ProjectShareButtonProp
       <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
           <DialogTitle>Совместный доступ к проекту</DialogTitle>
+          <DialogDescription>
+            Предоставьте другим сотрудникам доступ к просмотру или редактированию этого проекта
+          </DialogDescription>
         </DialogHeader>
         <div className="space-y-6">
           {/* Форма добавления нового доступа */}
@@ -164,11 +171,11 @@ export function ProjectShareButton({ projectId, firmId }: ProjectShareButtonProp
                 </SelectTrigger>
                 <SelectContent>
                   {usersLoading ? (
-                    <SelectItem value="" disabled>
+                    <SelectItem value="loading" disabled>
                       Загрузка...
                     </SelectItem>
                   ) : availableUsers.length === 0 ? (
-                    <SelectItem value="" disabled>
+                    <SelectItem value="no-users" disabled>
                       Нет доступных пользователей
                     </SelectItem>
                   ) : (
