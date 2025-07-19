@@ -142,6 +142,7 @@ export default function Crews() {
   };
 
   const openEditDialog = (crew: any) => {
+    console.log('Opening edit dialog for crew:', crew);
     setEditingCrew(crew);
     form.reset({
       name: crew.name,
@@ -155,7 +156,12 @@ export default function Crews() {
   const closeDialog = () => {
     setIsDialogOpen(false);
     setEditingCrew(null);
-    form.reset();
+    form.reset({
+      name: '',
+      leaderName: '',
+      phone: '',
+      status: 'active',
+    });
   };
 
   const handleDeleteCrew = (crewId: number) => {
@@ -202,9 +208,18 @@ export default function Crews() {
                 Показать архивированные
               </Label>
             </div>
-            <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+            <Dialog open={isDialogOpen} onOpenChange={(open) => {
+              setIsDialogOpen(open);
+              if (!open) {
+                setEditingCrew(null);
+                form.reset();
+              }
+            }}>
               <DialogTrigger asChild>
-                <Button className="bg-primary hover:bg-primary-dark text-white">
+                <Button className="bg-primary hover:bg-primary-dark text-white" onClick={() => {
+                  setEditingCrew(null);
+                  form.reset();
+                }}>
                   <Plus className="w-4 h-4 mr-2" />
                   Добавить новую бригаду
                 </Button>
