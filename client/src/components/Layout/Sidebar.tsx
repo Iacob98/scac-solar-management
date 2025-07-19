@@ -11,7 +11,7 @@ export function Sidebar() {
     { path: '/projects', label: t('projects'), icon: 'dashboard' },
     { path: '/clients', label: t('clients'), icon: 'people' },
     { path: '/crews', label: t('crews'), icon: 'groups' },
-    { path: '/invoices', label: t('invoices'), icon: 'receipt' },
+    ...(user?.role === 'admin' ? [{ path: '/invoices', label: t('invoices'), icon: 'receipt' }] : []),
   ];
 
   const adminItems = [

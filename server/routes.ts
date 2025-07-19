@@ -1158,6 +1158,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get('/api/invoices/:firmId', isAuthenticated, async (req: any, res) => {
     try {
       const { firmId } = req.params;
+      const userId = req.user.claims.sub;
+      const user = await storage.getUser(userId);
+      
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      
+      // Only admins can view invoices
+      if (user.role !== 'admin') {
+        return res.status(403).json({ message: "Access denied. Only administrators can view invoices." });
+      }
+      
       const invoices = await storage.getInvoicesByFirmId(firmId);
       res.json(invoices);
     } catch (error) {
@@ -1170,6 +1182,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get('/api/stats/:firmId', isAuthenticated, async (req: any, res) => {
     try {
       const { firmId } = req.params;
+      const userId = req.user.claims.sub;
+      const user = await storage.getUser(userId);
+      
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      
+      // Only admins can view full statistics
+      if (user.role !== 'admin') {
+        return res.status(403).json({ message: "Access denied. Only administrators can view statistics." });
+      }
+      
       const stats = await storage.getProjectStats(firmId);
       res.json(stats);
     } catch (error) {

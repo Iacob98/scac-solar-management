@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useI18n } from '@/hooks/useI18n';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/hooks/useAuth';
 import { apiRequest } from '@/lib/queryClient';
 import type { Invoice, Project } from '@shared/schema';
 import { MainLayout } from '@/components/Layout/MainLayout';
@@ -11,6 +12,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { 
   Receipt, 
   FileText, 
@@ -18,12 +20,14 @@ import {
   Euro, 
   CheckCircle,
   Clock,
-  AlertCircle
+  AlertCircle,
+  Shield
 } from 'lucide-react';
 
 export default function Invoices() {
   const { t, formatCurrency, formatDate } = useI18n();
   const { toast } = useToast();
+  const { user } = useAuth();
   const queryClient = useQueryClient();
   const [selectedFirmId, setSelectedFirmId] = useState<string>('');
   const [filters, setFilters] = useState({
@@ -39,14 +43,43 @@ export default function Invoices() {
     }
   }, []);
 
-  const { data: invoices = [], isLoading } = useQuery<Invoice[]>({
+  const { data: invoices = [], isLoading, error } = useQuery<Invoice[]>({
     queryKey: ['/api/invoices', selectedFirmId],
     queryFn: async () => {
       const response = await apiRequest(`/api/invoices/${selectedFirmId}`, 'GET');
       return response.json();
     },
-    enabled: !!selectedFirmId,
+    enabled: !!selectedFirmId && user?.role === 'admin',
+    retry: false,
   });
+
+  // Show access denied message for non-admin users
+  if (user && user.role !== 'admin') {
+    return (
+      <MainLayout>
+        <div className="max-w-4xl mx-auto p-6">
+          <Card>
+            <CardHeader className="text-center">
+              <div className="mx-auto w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mb-4">
+                <Shield className="w-8 h-8 text-red-600" />
+              </div>
+              <CardTitle className="text-xl font-semibold text-gray-900">
+                Доступ запрещен
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="text-center">
+              <p className="text-gray-600 mb-4">
+                Только администраторы могут просматривать счета.
+              </p>
+              <p className="text-sm text-gray-500">
+                Обратитесь к администратору для получения доступа.
+              </p>
+            </CardContent>
+          </Card>
+        </div>
+      </MainLayout>
+    );
+  }
 
   const { data: projects = [] } = useQuery<Project[]>({
     queryKey: ['/api/projects', selectedFirmId],
