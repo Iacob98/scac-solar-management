@@ -142,8 +142,10 @@ export default function Crews() {
   };
 
   const openEditDialog = (crew: any) => {
-    console.log('Opening edit dialog for crew:', crew);
-    console.log('Current dialog state:', isDialogOpen);
+    console.log('🚀 Opening edit dialog for crew:', crew);
+    console.log('📊 Current dialog state:', isDialogOpen);
+    console.log('📋 Current editing crew:', editingCrew);
+    
     setEditingCrew(crew);
     
     const formData = {
@@ -153,13 +155,10 @@ export default function Crews() {
       status: crew.status || 'active',
     };
     
-    console.log('Setting form data:', formData);
+    console.log('📝 Setting form data:', formData);
     form.reset(formData);
-    
-    setTimeout(() => {
-      setIsDialogOpen(true);
-      console.log('Dialog opened');
-    }, 100);
+    setIsDialogOpen(true);
+    console.log('✅ Dialog should be opened now');
   };
 
   const closeDialog = () => {
@@ -217,22 +216,32 @@ export default function Crews() {
                 Показать архивированные
               </Label>
             </div>
+            <Button className="bg-primary hover:bg-primary-dark text-white" onClick={() => {
+              setEditingCrew(null);
+              form.reset({
+                name: '',
+                leaderName: '',
+                phone: '',
+                status: 'active',
+              });
+              setIsDialogOpen(true);
+            }}>
+              <Plus className="w-4 h-4 mr-2" />
+              Добавить новую бригаду
+            </Button>
+            
             <Dialog open={isDialogOpen} onOpenChange={(open) => {
               setIsDialogOpen(open);
               if (!open) {
                 setEditingCrew(null);
-                form.reset();
+                form.reset({
+                  name: '',
+                  leaderName: '',
+                  phone: '',
+                  status: 'active',
+                });
               }
             }}>
-              <DialogTrigger asChild>
-                <Button className="bg-primary hover:bg-primary-dark text-white" onClick={() => {
-                  setEditingCrew(null);
-                  form.reset();
-                }}>
-                  <Plus className="w-4 h-4 mr-2" />
-                  Добавить новую бригаду
-                </Button>
-              </DialogTrigger>
               <DialogContent className="max-w-md">
                 <DialogHeader>
                   <DialogTitle>
@@ -384,7 +393,8 @@ export default function Crews() {
                           onClick={(e) => {
                             e.preventDefault();
                             e.stopPropagation();
-                            console.log('Edit button clicked for crew:', crew);
+                            alert(`Edit button clicked for crew: ${crew.name}`);
+                            console.log('🔥 Edit button clicked for crew:', crew);
                             openEditDialog(crew);
                           }}
                         >
