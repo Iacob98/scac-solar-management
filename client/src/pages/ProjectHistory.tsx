@@ -112,31 +112,41 @@ export default function ProjectHistory({ projectId, onBack, embedded = false, li
                   <div className="absolute left-4 -top-4 bottom-0 w-0.5 bg-gray-200"></div>
                 )}
                 
-                <div className="flex items-start space-x-2 p-2 hover:bg-gray-50 rounded-md transition-colors">
+                <div className="flex items-start space-x-3 p-3 hover:bg-gray-50 rounded-lg transition-colors border-l-2 border-gray-100 hover:border-gray-200">
                   {/* Icon */}
-                  <div className={`p-1 rounded-full ${changeTypeColors[entry.changeType]} flex-shrink-0`}>
-                    <IconComponent className="h-2.5 w-2.5" />
+                  <div className={`p-2 rounded-full ${changeTypeColors[entry.changeType]} flex-shrink-0`}>
+                    <IconComponent className="h-3 w-3" />
                   </div>
                   
                   {/* Content */}
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center justify-between">
-                      <Badge variant="secondary" className="text-xs px-1.5 py-0.5">
+                    <div className="flex items-center justify-between mb-1">
+                      <Badge variant="secondary" className="text-xs px-2 py-0.5 font-medium">
                         {changeTypeLabels[entry.changeType]}
                       </Badge>
-                      <div className="text-xs text-gray-400">
+                      <div className="text-xs text-gray-500 font-mono">
                         {format(new Date(entry.createdAt), 'dd.MM HH:mm', { locale: ru })}
                       </div>
                     </div>
                     
-                    <p className="text-xs text-gray-700 mt-1 line-clamp-2">{entry.description}</p>
+                    <p className="text-sm text-gray-800 leading-relaxed">{entry.description}</p>
                     
                     {/* Show old/new values if available */}
                     {entry.oldValue && entry.newValue && entry.oldValue !== entry.newValue && (
-                      <div className="flex items-center space-x-1 text-xs mt-1">
-                        <span className="text-red-500 truncate max-w-[80px]">{entry.oldValue}</span>
-                        <span className="text-gray-300">→</span>
-                        <span className="text-green-500 truncate max-w-[80px]">{entry.newValue}</span>
+                      <div className="flex items-center space-x-2 text-xs mt-2 p-2 bg-gray-50 rounded border">
+                        <span className="text-red-600 font-medium truncate max-w-[100px]">{entry.oldValue}</span>
+                        <span className="text-gray-400">→</span>
+                        <span className="text-green-600 font-medium truncate max-w-[100px]">{entry.newValue}</span>
+                      </div>
+                    )}
+                    
+                    {/* User info */}
+                    {(entry.userFirstName || entry.userLastName) && (
+                      <div className="flex items-center space-x-1 text-xs text-gray-500 mt-2">
+                        <User className="h-3 w-3" />
+                        <span>
+                          {entry.userFirstName} {entry.userLastName}
+                        </span>
                       </div>
                     )}
                   </div>
