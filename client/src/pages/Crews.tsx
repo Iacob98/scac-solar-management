@@ -50,6 +50,10 @@ export default function Crews() {
 
   const { data: crews = [], isLoading } = useQuery<Crew[]>({
     queryKey: ['/api/crews', selectedFirmId],
+    queryFn: async () => {
+      const response = await apiRequest(`/api/crews?firmId=${selectedFirmId}`, 'GET');
+      return response.json();
+    },
     enabled: !!selectedFirmId,
   });
 

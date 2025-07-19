@@ -50,6 +50,10 @@ export default function Clients() {
 
   const { data: clients = [], isLoading } = useQuery<Client[]>({
     queryKey: ['/api/clients', selectedFirmId],
+    queryFn: async () => {
+      const response = await apiRequest(`/api/clients?firmId=${selectedFirmId}`, 'GET');
+      return response.json();
+    },
     enabled: !!selectedFirmId,
   });
 
