@@ -94,7 +94,7 @@ export default function ProjectHistory({ projectId, onBack, embedded = false, li
     const displayHistory = limit ? history.slice(0, limit) : history;
     
     return (
-      <div className="space-y-3">
+      <div className="space-y-2">
         {displayHistory.length === 0 ? (
           <div className="text-center py-6 text-gray-500">
             <Clock className="h-6 w-6 mx-auto text-gray-400 mb-2" />
@@ -107,12 +107,8 @@ export default function ProjectHistory({ projectId, onBack, embedded = false, li
             
             return (
               <div key={entry.id} className="relative">
-                {/* Timeline line */}
-                {!isFirst && (
-                  <div className="absolute left-4 -top-4 bottom-0 w-0.5 bg-gray-200"></div>
-                )}
                 
-                <div className="flex items-start space-x-3 p-3 hover:bg-gray-50 rounded-lg transition-colors border-l-2 border-gray-100 hover:border-gray-200">
+                <div className="flex items-start space-x-3 p-3 bg-white hover:bg-gray-50 rounded-lg transition-colors shadow-sm border border-gray-100">
                   {/* Icon */}
                   <div className={`p-2 rounded-full ${changeTypeColors[entry.changeType]} flex-shrink-0`}>
                     <IconComponent className="h-3 w-3" />
@@ -131,8 +127,9 @@ export default function ProjectHistory({ projectId, onBack, embedded = false, li
                     
                     <p className="text-sm text-gray-800 leading-relaxed">{entry.description}</p>
                     
-                    {/* Show old/new values if available */}
-                    {entry.oldValue && entry.newValue && entry.oldValue !== entry.newValue && (
+                    {/* Show old/new values if available - hide technical status codes */}
+                    {entry.oldValue && entry.newValue && entry.oldValue !== entry.newValue && 
+                     entry.changeType !== 'status_change' && (
                       <div className="flex items-center space-x-2 text-xs mt-2 p-2 bg-gray-50 rounded border">
                         <span className="text-red-600 font-medium truncate max-w-[100px]">{entry.oldValue}</span>
                         <span className="text-gray-400">→</span>
@@ -232,8 +229,9 @@ export default function ProjectHistory({ projectId, onBack, embedded = false, li
                           
                           <p className="text-gray-900 mb-2">{entry.description}</p>
                           
-                          {/* Show old/new values if available */}
-                          {entry.oldValue && entry.newValue && entry.oldValue !== entry.newValue && (
+                          {/* Show old/new values if available - hide technical status codes */}
+                          {entry.oldValue && entry.newValue && entry.oldValue !== entry.newValue && 
+                           entry.changeType !== 'status_change' && (
                             <div className="flex items-center space-x-4 text-sm bg-gray-50 p-3 rounded-lg">
                               <div className="flex-1">
                                 <span className="text-gray-500">Было:</span>
