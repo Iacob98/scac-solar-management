@@ -20,9 +20,9 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 
 const userSchema = z.object({
-  email: z.string().email('Ungültige E-Mail-Adresse'),
-  firstName: z.string().min(1, 'Vorname ist erforderlich'),
-  lastName: z.string().min(1, 'Nachname ist erforderlich'),
+  email: z.string().email('Неверный формат email'),
+  firstName: z.string().min(1, 'Имя обязательно'),
+  lastName: z.string().min(1, 'Фамилия обязательна'),
   role: z.enum(['admin', 'leiter']),
   firmIds: z.array(z.string()).optional(),
 });
@@ -52,10 +52,10 @@ export default function Users() {
       <MainLayout>
         <div className="p-6 text-center">
           <h1 className="text-2xl font-semibold text-gray-900 mb-4">
-            Zugriff verweigert
+            Доступ запрещен
           </h1>
           <p className="text-gray-600">
-            Sie haben keine Berechtigung, diese Seite zu besuchen.
+            У вас нет прав для просмотра этой страницы.
           </p>
         </div>
       </MainLayout>
@@ -77,8 +77,8 @@ export default function Users() {
     },
     onSuccess: () => {
       toast({
-        title: t('success'),
-        description: 'Benutzer erfolgreich erstellt',
+        title: 'Успешно',
+        description: 'Пользователь успешно создан',
       });
       queryClient.invalidateQueries({ queryKey: ['/api/users'] });
       setIsDialogOpen(false);
@@ -86,7 +86,7 @@ export default function Users() {
     },
     onError: (error) => {
       toast({
-        title: t('error'),
+        title: 'Ошибка',
         description: error.message,
         variant: 'destructive',
       });
@@ -134,30 +134,30 @@ export default function Users() {
       <div className="p-6">
         <div className="flex items-center justify-between mb-6">
           <div>
-            <h1 className="text-2xl font-semibold text-gray-900">{t('users')}</h1>
-            <p className="text-gray-600 mt-1">Verwalten Sie Benutzer und deren Zugriffsberechtigungen</p>
+            <h1 className="text-2xl font-semibold text-gray-900">Управление пользователями</h1>
+            <p className="text-gray-600 mt-1">Управляйте пользователями и их правами доступа</p>
           </div>
           <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
             <DialogTrigger asChild>
               <Button className="bg-primary hover:bg-primary-dark text-white">
                 <Plus className="w-4 h-4 mr-2" />
-                Neuen Benutzer hinzufügen
+                Добавить пользователя
               </Button>
             </DialogTrigger>
             <DialogContent className="max-w-2xl">
               <DialogHeader>
                 <DialogTitle>
-                  {editingUser ? 'Benutzer bearbeiten' : 'Neuen Benutzer hinzufügen'}
+                  {editingUser ? 'Редактировать пользователя' : 'Добавить нового пользователя'}
                 </DialogTitle>
               </DialogHeader>
               <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <Label htmlFor="firstName">Vorname</Label>
+                    <Label htmlFor="firstName">Имя</Label>
                     <Input
                       id="firstName"
                       {...form.register('firstName')}
-                      placeholder="Max"
+                      placeholder="Мария"
                     />
                     {form.formState.errors.firstName && (
                       <p className="text-red-500 text-sm mt-1">
@@ -167,11 +167,11 @@ export default function Users() {
                   </div>
 
                   <div>
-                    <Label htmlFor="lastName">Nachname</Label>
+                    <Label htmlFor="lastName">Фамилия</Label>
                     <Input
                       id="lastName"
                       {...form.register('lastName')}
-                      placeholder="Mustermann"
+                      placeholder="Иванова"
                     />
                     {form.formState.errors.lastName && (
                       <p className="text-red-500 text-sm mt-1">
@@ -187,7 +187,7 @@ export default function Users() {
                     id="email"
                     type="email"
                     {...form.register('email')}
-                    placeholder="max.mustermann@example.com"
+                    placeholder="maria.ivanova@example.com"
                   />
                   {form.formState.errors.email && (
                     <p className="text-red-500 text-sm mt-1">
@@ -197,17 +197,17 @@ export default function Users() {
                 </div>
 
                 <div>
-                  <Label htmlFor="role">Rolle</Label>
+                  <Label htmlFor="role">Роль</Label>
                   <Select
                     value={form.watch('role')}
                     onValueChange={(value) => form.setValue('role', value as 'admin' | 'leiter')}
                   >
                     <SelectTrigger>
-                      <SelectValue placeholder="Rolle auswählen" />
+                      <SelectValue placeholder="Выберите роль" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="admin">Administrator</SelectItem>
-                      <SelectItem value="leiter">Project Leiter</SelectItem>
+                      <SelectItem value="admin">Администратор</SelectItem>
+                      <SelectItem value="leiter">Руководитель проекта</SelectItem>
                     </SelectContent>
                   </Select>
                   {form.formState.errors.role && (
@@ -219,7 +219,7 @@ export default function Users() {
 
                 {form.watch('role') === 'leiter' && (
                   <div>
-                    <Label>Zugewiesene Firmen</Label>
+                    <Label>Назначенные фирмы</Label>
                     <div className="space-y-2 mt-2">
                       {firms.map((firm) => (
                         <div key={firm.id} className="flex items-center space-x-2">
@@ -253,7 +253,7 @@ export default function Users() {
                     disabled={createUserMutation.isPending}
                     className="flex-1"
                   >
-                    {createUserMutation.isPending ? t('loading') : t('save')}
+                    {createUserMutation.isPending ? 'Сохранение...' : 'Сохранить'}
                   </Button>
                   <Button
                     type="button"
@@ -261,7 +261,7 @@ export default function Users() {
                     onClick={closeDialog}
                     className="flex-1"
                   >
-                    {t('cancel')}
+                    Отмена
                   </Button>
                 </div>
               </form>
