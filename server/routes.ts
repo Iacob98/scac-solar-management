@@ -1165,6 +1165,115 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Project History routes  
+  app.get('/api/project-history/:projectId', isAuthenticated, async (req: any, res) => {
+    try {
+      const projectId = parseInt(req.params.projectId, 10);
+      if (isNaN(projectId)) {
+        return res.status(400).json({ error: "Неверный ID проекта" });
+      }
+      
+      const history = await storage.getProjectHistory(projectId);
+      res.json(history);
+    } catch (error) {
+      console.error("Ошибка получения истории проекта:", error);
+      res.status(500).json({ error: "Ошибка сервера" });
+    }
+  });
+
+  // Project Sharing routes
+  app.post('/api/projects/:projectId/share', isAuthenticated, async (req: any, res) => {
+    try {
+      const projectId = parseInt(req.params.projectId, 10);
+      if (isNaN(projectId)) {
+        return res.status(400).json({ error: "Неверный ID проекта" });
+      }
+
+      const userId = req.user.claims.sub;
+      if (!userId) {
+        return res.status(401).json({ error: "Пользователь не авторизован" });
+      }
+
+      const { sharedWith, permission = 'view' } = req.body;
+      if (!sharedWith) {
+        return res.status(400).json({ error: "Необходимо указать пользователя для предоставления доступа" });
+      }
+
+      const share = await storage.shareProject(projectId, userId, sharedWith, permission);
+      
+      // Добавить запись в историю проекта
+      await storage.createProjectHistoryEntry({
+        projectId,
+        userId,
+        changeType: 'info_update',
+        description: `Проект предоставлен в совместный доступ пользователю с правами ${permission === 'edit' ? 'редактирования' : 'просмотра'}`,
+      });
+
+      res.json(share);
+    } catch (error) {
+      console.error("Ошибка предоставления доступа к проекту:", error);
+      res.status(500).json({ error: "Ошибка сервера" });
+    }
+  });
+
+  app.get('/api/projects/:projectId/shares', isAuthenticated, async (req: any, res) => {
+    try {
+      const projectId = parseInt(req.params.projectId, 10);
+      if (isNaN(projectId)) {
+        return res.status(400).json({ error: "Неверный ID проекта" });
+      }
+
+      const shares = await storage.getProjectShares(projectId);
+      res.json(shares);
+    } catch (error) {
+      console.error("Ошибка получения списка предоставленного доступа:", error);
+      res.status(500).json({ error: "Ошибка сервера" });
+    }
+  });
+
+  app.delete('/api/projects/:projectId/shares/:userId', isAuthenticated, async (req: any, res) => {
+    try {
+      const projectId = parseInt(req.params.projectId, 10);
+      const { userId } = req.params;
+      
+      if (isNaN(projectId)) {
+        return res.status(400).json({ error: "Неверный ID проекта" });
+      }
+
+      const currentUserId = req.user.claims.sub;
+      if (!currentUserId) {
+        return res.status(401).json({ error: "Пользователь не авторизован" });
+      }
+
+      await storage.removeProjectShare(projectId, userId);
+      
+      // Добавить запись в историю проекта
+      await storage.createProjectHistoryEntry({
+        projectId,
+        userId: currentUserId,
+        changeType: 'info_update',
+        description: `Удален совместный доступ к проекту`,
+      });
+
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Ошибка удаления доступа к проекту:", error);
+      res.status(500).json({ error: "Ошибка сервера" });
+    }
+  });
+
+  app.get('/api/firms/:firmId/users', isAuthenticated, async (req: any, res) => {
+    try {
+      const { firmId } = req.params;
+      
+      const users = await storage.getFirmUsers(firmId);
+      res.json(users);
+    } catch (error) {
+      console.error("Ошибка получения пользователей фирмы:", error);
+      res.status(500).json({ error: "Ошибка сервера" });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }

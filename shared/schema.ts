@@ -11,6 +11,7 @@ import {
   decimal,
   integer,
   date,
+  unique,
 } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
 import { createInsertSchema } from "drizzle-zod";
@@ -191,13 +192,27 @@ export const projectHistory = pgTable("project_history", {
   projectId: integer("project_id").notNull().references(() => projects.id),
   userId: varchar("user_id").notNull().references(() => users.id),
   changeType: varchar("change_type", { 
-    enum: ['status_change', 'date_update', 'info_update', 'created', 'equipment_update', 'call_update', 'assignment_change'] 
+    enum: ['status_change', 'date_update', 'info_update', 'created', 'equipment_update', 'call_update', 'assignment_change', 'shared'] 
   }).notNull(),
   fieldName: varchar("field_name"), // название поля которое изменилось
   oldValue: text("old_value"),
   newValue: text("new_value"),
   description: text("description").notNull(),
   createdAt: timestamp("created_at").defaultNow(),
+});
+
+// Project Shares table - для совместного доступа к проектам
+export const projectShares = pgTable("project_shares", {
+  id: serial("id").primaryKey(),
+  projectId: integer("project_id").notNull().references(() => projects.id),
+  sharedBy: varchar("shared_by").notNull().references(() => users.id),
+  sharedWith: varchar("shared_with").notNull().references(() => users.id),
+  permission: varchar("permission", { enum: ['view', 'edit'] }).default('view'),
+  createdAt: timestamp("created_at").defaultNow(),
+}, (table) => {
+  return {
+    uniqueShare: unique().on(table.projectId, table.sharedWith),
+  };
 });
 
 // Relations
@@ -243,6 +258,7 @@ export const projectsRelations = relations(projects, ({ one, many }) => ({
   files: many(projectFiles),
   reports: many(projectReports),
   history: many(projectHistory),
+  shares: many(projectShares),
 }));
 
 export const servicesRelations = relations(services, ({ one }) => ({
@@ -264,6 +280,12 @@ export const projectReportsRelations = relations(projectReports, ({ one }) => ({
 export const projectHistoryRelations = relations(projectHistory, ({ one }) => ({
   project: one(projects, { fields: [projectHistory.projectId], references: [projects.id] }),
   user: one(users, { fields: [projectHistory.userId], references: [users.id] }),
+}));
+
+export const projectSharesRelations = relations(projectShares, ({ one }) => ({
+  project: one(projects, { fields: [projectShares.projectId], references: [projects.id] }),
+  sharedByUser: one(users, { fields: [projectShares.sharedBy], references: [users.id] }),
+  sharedWithUser: one(users, { fields: [projectShares.sharedWith], references: [users.id] }),
 }));
 
 // Schema types
@@ -320,3 +342,10 @@ export const insertProjectReportSchema = createInsertSchema(projectReports).omit
 });
 export type InsertProjectReport = z.infer<typeof insertProjectReportSchema>;
 export type ProjectReport = typeof projectReports.$inferSelect;
+
+export const insertProjectShareSchema = createInsertSchema(projectShares).omit({ 
+  id: true, 
+  createdAt: true 
+});
+export type InsertProjectShare = z.infer<typeof insertProjectShareSchema>;
+export type ProjectShare = typeof projectShares.$inferSelect;

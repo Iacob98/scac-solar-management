@@ -10,6 +10,7 @@ import {
   projectFiles,
   projectReports,
   projectHistory,
+  projectShares,
   userFirms,
   type User,
   type UpsertUser,
@@ -33,6 +34,8 @@ import {
   type InsertProjectReport,
   type ProjectHistory,
   type InsertProjectHistory,
+  type ProjectShare,
+  type InsertProjectShare,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, desc, sql } from "drizzle-orm";
@@ -120,6 +123,11 @@ export interface IStorage {
   // Project History operations
   createProjectHistoryEntry(entry: InsertProjectHistory): Promise<ProjectHistory>;
   getProjectHistory(projectId: number): Promise<ProjectHistory[]>;
+  shareProject(projectId: number, sharedBy: string, sharedWith: string, permission?: 'view' | 'edit'): Promise<ProjectShare>;
+  getProjectShares(projectId: number): Promise<ProjectShare[]>;
+  getUserSharedProjects(userId: string): Promise<number[]>;
+  removeProjectShare(projectId: number, sharedWith: string): Promise<void>;
+  getFirmUsers(firmId: string): Promise<User[]>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -551,6 +559,63 @@ export class DatabaseStorage implements IStorage {
       .leftJoin(users, eq(projectHistory.userId, users.id))
       .where(eq(projectHistory.projectId, projectId))
       .orderBy(desc(projectHistory.createdAt));
+  }
+
+  // Project Sharing operations
+  async shareProject(projectId: number, sharedBy: string, sharedWith: string, permission: 'view' | 'edit' = 'view'): Promise<ProjectShare> {
+    const [share] = await db
+      .insert(projectShares)
+      .values({
+        projectId,
+        sharedBy,
+        sharedWith,
+        permission,
+      })
+      .returning();
+    return share;
+  }
+
+  async getProjectShares(projectId: number): Promise<ProjectShare[]> {
+    return await db
+      .select()
+      .from(projectShares)
+      .where(eq(projectShares.projectId, projectId));
+  }
+
+  async getUserSharedProjects(userId: string): Promise<number[]> {
+    const shares = await db
+      .select({ projectId: projectShares.projectId })
+      .from(projectShares)
+      .where(eq(projectShares.sharedWith, userId));
+    return shares.map(share => share.projectId);
+  }
+
+  async removeProjectShare(projectId: number, sharedWith: string): Promise<void> {
+    await db
+      .delete(projectShares)
+      .where(
+        and(
+          eq(projectShares.projectId, projectId),
+          eq(projectShares.sharedWith, sharedWith)
+        )
+      );
+  }
+
+  async getFirmUsers(firmId: string): Promise<User[]> {
+    return await db
+      .select({
+        id: users.id,
+        email: users.email,
+        firstName: users.firstName,
+        lastName: users.lastName,
+        profileImageUrl: users.profileImageUrl,
+        role: users.role,
+        createdAt: users.createdAt,
+        updatedAt: users.updatedAt,
+      })
+      .from(users)
+      .innerJoin(userFirms, eq(users.id, userFirms.userId))
+      .where(eq(userFirms.firmId, firmId));
   }
 }
 

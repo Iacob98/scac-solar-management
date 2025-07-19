@@ -15,6 +15,7 @@ import { useToast } from '@/hooks/use-toast';
 import { apiRequest } from '@/lib/queryClient';
 import ServicesPage from './Services';
 import ProjectHistory from './ProjectHistory';
+import { ProjectShareButton } from '@/components/ProjectShareButton';
 
 interface ProjectDetailProps {
   projectId: number;
@@ -206,6 +207,9 @@ export default function ProjectDetail({ projectId, selectedFirm, onBack }: Proje
             </div>
             
             <div className="flex items-center space-x-3">
+              {/* Кнопка "Поделиться" */}
+              <ProjectShareButton projectId={project.id} firmId={project.firmId} />
+              
               {/* Кнопки управления статусом */}
               {project.status === 'planning' && (
                 <Button 
