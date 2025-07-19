@@ -470,7 +470,7 @@ export class DatabaseStorage implements IStorage {
       .where(
         and(
           eq(projects.firmId, firmId),
-          eq(projects.status, "in_progress")
+          eq(projects.status, "work_in_progress" as any)
         )
       );
 

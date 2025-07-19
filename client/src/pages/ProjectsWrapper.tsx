@@ -41,19 +41,25 @@ const projectFormSchema = insertProjectSchema.omit({ firmId: true, leiterId: tru
 });
 
 const statusLabels = {
-  planning: 'Планируется',
-  in_progress: 'В работе',
-  done: 'Завершен',
+  planning: 'Планирование',
+  equipment_waiting: 'Ожидание оборудования',
+  equipment_arrived: 'Оборудование поступило',
+  work_scheduled: 'Работы запланированы',
+  work_in_progress: 'Работы в процессе',
+  work_completed: 'Работы завершены',
   invoiced: 'Счет выставлен',
   paid: 'Оплачен'
 };
 
 const statusColors = {
   planning: 'bg-gray-100 text-gray-800',
-  in_progress: 'bg-blue-100 text-blue-800',
-  done: 'bg-green-100 text-green-800',
-  invoiced: 'bg-yellow-100 text-yellow-800',
-  paid: 'bg-purple-100 text-purple-800'
+  equipment_waiting: 'bg-orange-100 text-orange-800',
+  equipment_arrived: 'bg-blue-100 text-blue-800',
+  work_scheduled: 'bg-cyan-100 text-cyan-800',
+  work_in_progress: 'bg-yellow-100 text-yellow-800',
+  work_completed: 'bg-green-100 text-green-800',
+  invoiced: 'bg-purple-100 text-purple-800',
+  paid: 'bg-emerald-100 text-emerald-800'
 };
 
 function ProjectsList({ selectedFirm, onViewProject, onManageServices, onManageReports }: { selectedFirm: string; onViewProject: (id: number) => void; onManageServices: (id: number) => void; onManageReports: (id: number) => void }) {

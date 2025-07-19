@@ -105,13 +105,22 @@ export const projects = pgTable("projects", {
   crewId: integer("crew_id").references(() => crews.id),
   startDate: date("start_date"),
   endDate: date("end_date"),
-  status: varchar("status", { enum: ["planning", "in_progress", "done", "invoiced", "paid"] })
+  status: varchar("status", { enum: ["planning", "equipment_waiting", "equipment_arrived", "work_scheduled", "work_in_progress", "work_completed", "invoiced", "paid"] })
     .notNull()
     .default("planning"),
   teamNumber: varchar("team_number"),
   notes: text("notes"),
   invoiceNumber: varchar("invoice_number"),
   invoiceUrl: varchar("invoice_url"),
+  // Управление датами и оборудованием
+  equipmentExpectedDate: date("equipment_expected_date"),
+  equipmentArrivedDate: date("equipment_arrived_date"),
+  workStartDate: date("work_start_date"),
+  workEndDate: date("work_end_date"),
+  // Флаги для уведомлений
+  needsCallForEquipmentDelay: boolean("needs_call_equipment_delay").default(false),
+  needsCallForCrewDelay: boolean("needs_call_crew_delay").default(false),
+  needsCallForDateChange: boolean("needs_call_date_change").default(false),
   // Информация о человеке, у которого делается установка
   installationPersonFirstName: varchar("installation_person_first_name"),
   installationPersonLastName: varchar("installation_person_last_name"),

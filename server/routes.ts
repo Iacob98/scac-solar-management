@@ -695,6 +695,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.patch('/api/projects/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      const projectId = parseInt(req.params.id);
+      const updateData = req.body;
+      const project = await storage.updateProject(projectId, updateData);
+      res.json(project);
+    } catch (error) {
+      console.error("Error updating project:", error);
+      res.status(500).json({ message: "Failed to update project" });
+    }
+  });
+
   // Service routes
   app.get('/api/services', isAuthenticated, async (req: any, res) => {
     try {

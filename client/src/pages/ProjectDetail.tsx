@@ -5,7 +5,9 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { ArrowLeft, Edit, Settings, FileText, Users, CalendarIcon, Package, Plus, Receipt, MapPin, Clock, Euro } from 'lucide-react';
+import { ArrowLeft, Edit, Settings, FileText, Users, CalendarIcon, Package, Plus, Receipt, MapPin, Clock, Euro, Calendar } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { Switch } from '@/components/ui/switch';
 import { format } from 'date-fns';
 import { ru } from 'date-fns/locale';
 import { type Project, type Service, type Client, type Crew } from '@shared/schema';
@@ -20,19 +22,25 @@ interface ProjectDetailProps {
 }
 
 const statusLabels = {
-  'planning': 'Планирование',
-  'in_progress': 'В процессе',
-  'done': 'Выполнено', 
-  'invoiced': 'Счет выставлен',
-  'paid': 'Оплачено'
+  planning: 'Планирование',
+  equipment_waiting: 'Ожидание оборудования',
+  equipment_arrived: 'Оборудование поступило',
+  work_scheduled: 'Работы запланированы',
+  work_in_progress: 'Работы в процессе',
+  work_completed: 'Работы завершены',
+  invoiced: 'Счет выставлен',
+  paid: 'Оплачен'
 };
 
 const statusColors = {
-  'planning': 'bg-blue-100 text-blue-800',
-  'in_progress': 'bg-yellow-100 text-yellow-800',
-  'done': 'bg-green-100 text-green-800',
-  'invoiced': 'bg-purple-100 text-purple-800',
-  'paid': 'bg-emerald-100 text-emerald-800'
+  planning: 'bg-gray-100 text-gray-800',
+  equipment_waiting: 'bg-orange-100 text-orange-800',
+  equipment_arrived: 'bg-blue-100 text-blue-800',
+  work_scheduled: 'bg-cyan-100 text-cyan-800',
+  work_in_progress: 'bg-yellow-100 text-yellow-800',
+  work_completed: 'bg-green-100 text-green-800',
+  invoiced: 'bg-purple-100 text-purple-800',
+  paid: 'bg-emerald-100 text-emerald-800'
 };
 
 export default function ProjectDetail({ projectId, selectedFirm, onBack }: ProjectDetailProps) {
@@ -120,6 +128,21 @@ export default function ProjectDetail({ projectId, selectedFirm, onBack }: Proje
       toast({
         title: 'Ошибка',
         description: error.message || 'Не удалось отметить счет как оплаченный',
+        variant: 'destructive'
+      });
+    },
+  });
+
+  const updateProjectMutation = useMutation({
+    mutationFn: (data: any) => apiRequest(`/api/projects/${projectId}`, 'PATCH', data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/projects', projectId] });
+      toast({ title: 'Проект обновлен' });
+    },
+    onError: (error: any) => {
+      toast({
+        title: 'Ошибка',
+        description: error.message || 'Не удалось обновить проект',
         variant: 'destructive'
       });
     },
@@ -371,6 +394,125 @@ export default function ProjectDetail({ projectId, selectedFirm, onBack }: Proje
                 ) : (
                   <p className="text-gray-500">Бригада не назначена</p>
                 )}
+              </CardContent>
+            </Card>
+
+            {/* Управление проектом */}
+            <Card className="md:col-span-2">
+              <CardHeader>
+                <CardTitle className="flex items-center">
+                  <Calendar className="h-5 w-5 mr-2" />
+                  Управление проектом
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                  {/* Ожидаемая дата оборудования */}
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Ожидаемое прибытие оборудования</label>
+                    <Input
+                      type="date"
+                      value={project.equipmentExpectedDate || ''}
+                      onChange={(e) => {
+                        updateProjectMutation.mutate({
+                          projectId: project.id,
+                          equipmentExpectedDate: e.target.value || null
+                        });
+                      }}
+                    />
+                  </div>
+
+                  {/* Фактическая дата прибытия оборудования */}
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Оборудование поступило</label>
+                    <Input
+                      type="date"
+                      value={project.equipmentArrivedDate || ''}
+                      onChange={(e) => {
+                        updateProjectMutation.mutate({
+                          projectId: project.id,
+                          equipmentArrivedDate: e.target.value || null,
+                          status: e.target.value ? 'equipment_arrived' : project.status
+                        });
+                      }}
+                    />
+                  </div>
+
+                  {/* Дата начала работ */}
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Начало работ</label>
+                    <Input
+                      type="date"
+                      value={project.workStartDate || ''}
+                      onChange={(e) => {
+                        updateProjectMutation.mutate({
+                          projectId: project.id,
+                          workStartDate: e.target.value || null,
+                          status: e.target.value ? 'work_in_progress' : project.status
+                        });
+                      }}
+                    />
+                  </div>
+
+                  {/* Дата завершения работ */}
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Завершение работ</label>
+                    <Input
+                      type="date"
+                      value={project.workEndDate || ''}
+                      onChange={(e) => {
+                        updateProjectMutation.mutate({
+                          projectId: project.id,
+                          workEndDate: e.target.value || null,
+                          status: e.target.value ? 'work_completed' : project.status
+                        });
+                      }}
+                    />
+                  </div>
+                </div>
+
+                {/* Флаги для звонков */}
+                <div className="border-t pt-4">
+                  <h4 className="font-medium mb-3">Уведомления</h4>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="flex items-center space-x-2">
+                      <Switch
+                        checked={project.needsCallForEquipmentDelay || false}
+                        onCheckedChange={(checked) => {
+                          updateProjectMutation.mutate({
+                            projectId: project.id,
+                            needsCallForEquipmentDelay: checked
+                          });
+                        }}
+                      />
+                      <label className="text-sm">Задержка оборудования</label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <Switch
+                        checked={project.needsCallForCrewDelay || false}
+                        onCheckedChange={(checked) => {
+                          updateProjectMutation.mutate({
+                            projectId: project.id,
+                            needsCallForCrewDelay: checked
+                          });
+                        }}
+                      />
+                      <label className="text-sm">Задержка бригады</label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <Switch
+                        checked={project.needsCallForDateChange || false}
+                        onCheckedChange={(checked) => {
+                          updateProjectMutation.mutate({
+                            projectId: project.id,
+                            needsCallForDateChange: checked
+                          });
+                        }}
+                      />
+                      <label className="text-sm">Перенос даты</label>
+                    </div>
+                  </div>
+                </div>
               </CardContent>
             </Card>
 
