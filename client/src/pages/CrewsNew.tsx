@@ -31,8 +31,32 @@ const editCrewSchema = z.object({
 function EditCrewForm({ crew, onUpdate }: { crew: Crew, onUpdate: any }) {
   const [crewMembers, setCrewMembers] = useState<CrewMember[]>([]);
   const [membersLoading, setMembersLoading] = useState(true);
+  const [showAddMemberForm, setShowAddMemberForm] = useState(false);
+  const [editingMember, setEditingMember] = useState<CrewMember | null>(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
+
+  // Форма для добавления/редактирования участника
+  const memberSchema = z.object({
+    firstName: z.string().min(1, 'Имя обязательно'),
+    lastName: z.string().min(1, 'Фамилия обязательна'),
+    address: z.string().min(1, 'Адрес обязателен'),
+    uniqueNumber: z.string().min(1, 'Уникальный номер обязателен'),
+    phone: z.string().optional(),
+    role: z.enum(['leader', 'worker', 'specialist']).default('worker'),
+  });
+
+  const memberForm = useForm<z.infer<typeof memberSchema>>({
+    resolver: zodResolver(memberSchema),
+    defaultValues: {
+      firstName: '',
+      lastName: '',
+      address: '',
+      uniqueNumber: `WRK-${Date.now().toString().slice(-4)}`,
+      phone: '',
+      role: 'worker',
+    },
+  });
 
   const editForm = useForm<z.infer<typeof editCrewSchema>>({
     resolver: zodResolver(editCrewSchema),
@@ -67,40 +91,51 @@ function EditCrewForm({ crew, onUpdate }: { crew: Crew, onUpdate: any }) {
 
   // Мутация для обновления участника
   const updateMemberMutation = useMutation({
-    mutationFn: async ({ memberId, data }: { memberId: number, data: Partial<CrewMember> }) => {
+    mutationFn: async ({ memberId, data }: { memberId: number, data: z.infer<typeof memberSchema> }) => {
       const response = await apiRequest(`/api/crew-members/${memberId}`, 'PUT', data);
       return await response.json();
     },
     onSuccess: () => {
       toast({ title: 'Участник обновлен', description: 'Данные участника успешно изменены' });
-      // Обновляем локальный список
-      const fetchMembers = async () => {
-        const response = await fetch(`/api/crew-members?crewId=${crew.id}`);
-        const members = await response.json();
-        setCrewMembers(members);
-      };
-      fetchMembers();
+      memberForm.reset();
+      setEditingMember(null);
+      setShowAddMemberForm(false);
+      refreshMembers();
     },
     onError: (error: any) => {
       toast({ title: 'Ошибка', description: error.message, variant: 'destructive' });
     },
   });
 
+  // Функция для обновления списка участников
+  const refreshMembers = async () => {
+    try {
+      const response = await fetch(`/api/crew-members?crewId=${crew.id}`);
+      const members = await response.json();
+      setCrewMembers(members);
+    } catch (error) {
+      console.error('Error refreshing members:', error);
+    }
+  };
+
   // Мутация для добавления участника
   const addMemberMutation = useMutation({
-    mutationFn: async (data: Omit<CrewMember, 'id' | 'crewId'>) => {
+    mutationFn: async (data: z.infer<typeof memberSchema>) => {
       const response = await apiRequest('/api/crew-members', 'POST', { ...data, crewId: crew.id });
       return await response.json();
     },
     onSuccess: () => {
       toast({ title: 'Участник добавлен', description: 'Новый участник добавлен в бригаду' });
-      // Обновляем локальный список
-      const fetchMembers = async () => {
-        const response = await fetch(`/api/crew-members?crewId=${crew.id}`);
-        const members = await response.json();
-        setCrewMembers(members);
-      };
-      fetchMembers();
+      memberForm.reset({
+        firstName: '',
+        lastName: '',
+        address: '',
+        uniqueNumber: `WRK-${Date.now().toString().slice(-4)}`,
+        phone: '',
+        role: 'worker',
+      });
+      setShowAddMemberForm(false);
+      refreshMembers();
     },
     onError: (error: any) => {
       toast({ title: 'Ошибка', description: error.message, variant: 'destructive' });
@@ -115,13 +150,7 @@ function EditCrewForm({ crew, onUpdate }: { crew: Crew, onUpdate: any }) {
     },
     onSuccess: () => {
       toast({ title: 'Участник удален', description: 'Участник удален из бригады' });
-      // Обновляем локальный список
-      const fetchMembers = async () => {
-        const response = await fetch(`/api/crew-members?crewId=${crew.id}`);
-        const members = await response.json();
-        setCrewMembers(members);
-      };
-      fetchMembers();
+      refreshMembers();
     },
     onError: (error: any) => {
       toast({ title: 'Ошибка', description: error.message, variant: 'destructive' });
@@ -221,34 +250,163 @@ function EditCrewForm({ crew, onUpdate }: { crew: Crew, onUpdate: any }) {
       </Form>
       
       <div className="mt-6 border-t pt-4">
-      <div className="flex justify-between items-center mb-4">
-        <h3 className="text-lg font-medium">Участники бригады</h3>
-        <Button 
-          size="sm" 
-          variant="outline"
-          onClick={() => {
-            const firstName = prompt('Имя участника:');
-            const lastName = prompt('Фамилия участника:');
-            const address = prompt('Адрес участника:');
-            const uniqueNumber = prompt('Уникальный номер:') || `WRK-${Date.now().toString().slice(-4)}`;
-            const phone = prompt('Телефон (необязательно):') || '';
-            
-            if (firstName && lastName && address) {
-              addMemberMutation.mutate({
-                firstName,
-                lastName,
-                address,
-                uniqueNumber,
-                phone,
-                role: 'worker'
+        <div className="flex justify-between items-center mb-4">
+          <h3 className="text-lg font-medium">Участники бригады</h3>
+          <Button 
+            size="sm" 
+            variant="outline"
+            onClick={() => {
+              memberForm.reset({
+                firstName: '',
+                lastName: '',
+                address: '',
+                uniqueNumber: `WRK-${Date.now().toString().slice(-4)}`,
+                phone: '',
+                role: 'worker',
               });
-            }
-          }}
-        >
-          <Plus className="h-4 w-4 mr-1" />
-          Добавить
-        </Button>
-      </div>
+              setEditingMember(null);
+              setShowAddMemberForm(true);
+            }}
+          >
+            <Plus className="h-4 w-4 mr-1" />
+            Добавить
+          </Button>
+        </div>
+
+        {/* Форма добавления/редактирования участника */}
+        {showAddMemberForm && (
+          <Card className="mb-4 p-4">
+            <Form {...memberForm}>
+              <form onSubmit={memberForm.handleSubmit((data) => {
+                if (editingMember) {
+                  updateMemberMutation.mutate({ memberId: editingMember.id, data });
+                } else {
+                  addMemberMutation.mutate(data);
+                }
+              })} className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <FormField
+                    control={memberForm.control}
+                    name="firstName"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Имя</FormLabel>
+                        <FormControl>
+                          <Input placeholder="Имя" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={memberForm.control}
+                    name="lastName"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Фамилия</FormLabel>
+                        <FormControl>
+                          <Input placeholder="Фамилия" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+                
+                <FormField
+                  control={memberForm.control}
+                  name="uniqueNumber"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Уникальный номер</FormLabel>
+                      <FormControl>
+                        <Input placeholder="WRK-0001" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField
+                  control={memberForm.control}
+                  name="phone"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Телефон</FormLabel>
+                      <FormControl>
+                        <Input placeholder="+49 xxx xxx xxxx" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField
+                  control={memberForm.control}
+                  name="role"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Роль</FormLabel>
+                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="leader">Руководитель</SelectItem>
+                          <SelectItem value="worker">Рабочий</SelectItem>
+                          <SelectItem value="specialist">Специалист</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField
+                  control={memberForm.control}
+                  name="address"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Адрес</FormLabel>
+                      <FormControl>
+                        <Input placeholder="Адрес участника" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <div className="flex space-x-2">
+                  <Button 
+                    type="submit" 
+                    disabled={addMemberMutation.isPending || updateMemberMutation.isPending}
+                    className="flex-1"
+                  >
+                    {addMemberMutation.isPending || updateMemberMutation.isPending 
+                      ? 'Сохранение...' 
+                      : editingMember 
+                        ? 'Обновить' 
+                        : 'Добавить'
+                    }
+                  </Button>
+                  <Button 
+                    type="button" 
+                    variant="outline" 
+                    onClick={() => {
+                      setShowAddMemberForm(false);
+                      setEditingMember(null);
+                      memberForm.reset();
+                    }}
+                  >
+                    Отмена
+                  </Button>
+                </div>
+              </form>
+            </Form>
+          </Card>
+        )}
       
       {membersLoading ? (
         <div className="text-center py-4">
@@ -273,15 +431,16 @@ function EditCrewForm({ crew, onUpdate }: { crew: Crew, onUpdate: any }) {
                     size="sm" 
                     variant="ghost"
                     onClick={() => {
-                      const firstName = prompt('Новое имя:', member.firstName) || member.firstName;
-                      const lastName = prompt('Новая фамилия:', member.lastName) || member.lastName;
-                      const address = prompt('Новый адрес:', member.address) || member.address;
-                      const phone = prompt('Новый телефон:', member.phone || '') || member.phone;
-                      
-                      updateMemberMutation.mutate({
-                        memberId: member.id,
-                        data: { firstName, lastName, address, phone }
+                      setEditingMember(member);
+                      memberForm.reset({
+                        firstName: member.firstName,
+                        lastName: member.lastName,
+                        address: member.address,
+                        uniqueNumber: member.uniqueNumber,
+                        phone: member.phone || '',
+                        role: member.role,
                       });
+                      setShowAddMemberForm(true);
                     }}
                   >
                     <Edit className="h-3 w-3" />
