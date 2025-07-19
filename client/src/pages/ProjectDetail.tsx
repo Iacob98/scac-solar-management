@@ -12,6 +12,7 @@ import { format } from 'date-fns';
 import { ru } from 'date-fns/locale';
 import { type Project, type Service, type Client, type Crew } from '@shared/schema';
 import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/hooks/useAuth';
 import { apiRequest } from '@/lib/queryClient';
 import ServicesPage from './Services';
 import ProjectHistory from './ProjectHistory';
@@ -49,6 +50,7 @@ export default function ProjectDetail({ projectId, selectedFirm, onBack }: Proje
   const [activeTab, setActiveTab] = useState('services');
   const [showAllHistory, setShowAllHistory] = useState(false);
   const { toast } = useToast();
+  const { user } = useAuth();
   const queryClient = useQueryClient();
 
   const { data: project, isLoading: projectLoading, error: projectError } = useQuery({
@@ -270,7 +272,7 @@ export default function ProjectDetail({ projectId, selectedFirm, onBack }: Proje
                 </Button>
               )}
               
-              {project.invoiceNumber && project.status === 'invoiced' && (
+              {project.invoiceNumber && project.status === 'invoiced' && user?.role === 'admin' && (
                 <Button 
                   onClick={() => markPaidMutation.mutate(project.invoiceNumber!)}
                   disabled={markPaidMutation.isPending}
