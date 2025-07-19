@@ -98,7 +98,7 @@ The system uses PostgreSQL with the following main entities:
 
 The application follows a monolithic architecture with clear separation between client and server code, utilizing modern tooling for optimal developer experience and production performance.
 
-## Recent Changes (January 2025)
+## Recent Changes (July 2025)
 
 ### Language and UI Updates
 - Removed language switching functionality, set to Russian only
@@ -139,3 +139,12 @@ The application follows a monolithic architecture with clear separation between 
 - Resolved React Query type annotations
 - Fixed nullable field handling throughout the application
 - Ensured proper data flow from database to frontend
+
+### Development Testing System (July 2025)
+- Implemented comprehensive test authentication system for development
+- Created TestLogin.tsx component for easy user switching during development
+- Added test login API endpoints supporting session-based authentication
+- Modified authentication middleware to support both Replit Auth and test sessions
+- Added test users: Thomas Mueller, Maria Schneider, Anna Weber, Klaus Richter, Petra Wagner
+- Enabled easy testing of role-based access control and project sharing features
+- Configured secure cookie handling for development environment

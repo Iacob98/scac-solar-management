@@ -38,7 +38,7 @@ export function getSession() {
     saveUninitialized: false,
     cookie: {
       httpOnly: true,
-      secure: true,
+      secure: process.env.NODE_ENV === 'production',
       maxAge: sessionTtl,
     },
   });
@@ -116,6 +116,20 @@ export async function setupAuth(app: Express) {
   });
 
   app.get("/api/logout", (req, res) => {
+    const session = req.session as any;
+    
+    // Handle test login logout
+    if (session?.userId) {
+      session.destroy((err: any) => {
+        if (err) {
+          console.error('Error destroying session:', err);
+        }
+        res.redirect('/');
+      });
+      return;
+    }
+
+    // Original Replit Auth logout
     req.logout(() => {
       res.redirect(
         client.buildEndSessionUrl(config, {
@@ -129,8 +143,16 @@ export async function setupAuth(app: Express) {
 
 export const isAuthenticated: RequestHandler = async (req, res, next) => {
   const user = req.user as any;
+  const session = req.session as any;
 
-  if (!req.isAuthenticated() || !user.expires_at) {
+  // Check for test login session first
+  if (session?.user && session?.userId) {
+    req.user = session.user;
+    return next();
+  }
+
+  // Original Replit Auth check
+  if (!req.isAuthenticated() || !user?.expires_at) {
     return res.status(401).json({ message: "Unauthorized" });
   }
 

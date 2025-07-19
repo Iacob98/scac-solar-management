@@ -44,7 +44,10 @@ export default function TestLogin({ onLoginSuccess }: TestLoginProps) {
         title: 'Вход выполнен',
         description: 'Добро пожаловать в систему!',
       });
-      onLoginSuccess();
+      // Небольшая задержка для обновления кэша
+      setTimeout(() => {
+        onLoginSuccess();
+      }, 500);
     },
     onError: (error: any) => {
       toast({

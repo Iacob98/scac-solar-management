@@ -41,6 +41,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
             name: `${user.firstName} ${user.lastName}`.trim(),
           }
         };
+        
+        // Force session save
+        req.session.save();
       }
 
       res.json({ success: true, user });
