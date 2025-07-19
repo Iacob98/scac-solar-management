@@ -240,8 +240,8 @@ export default function ServicesPage({ selectedFirm, projectId }: ServicesPagePr
                 />
 
                 {!form.watch('isCustom') && (
-                  <div>
-                    <label className="block text-sm font-medium mb-2">Выберите из каталога</label>
+                  <FormItem>
+                    <FormLabel>Выберите товар из каталога</FormLabel>
                     <Select onValueChange={handleProductSelect} value="">
                       <SelectTrigger>
                         <SelectValue placeholder="Выберите товар из каталога" />
@@ -257,26 +257,27 @@ export default function ServicesPage({ selectedFirm, projectId }: ServicesPagePr
                         ))}
                       </SelectContent>
                     </Select>
-                  </div>
+                  </FormItem>
                 )}
 
-                <FormField
-                  control={form.control}
-                  name="productKey"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Название товара</FormLabel>
-                      <FormControl>
-                        <Input 
-                          placeholder="Введите название товара" 
-                          {...field} 
-                          disabled={!form.watch('isCustom')}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+                {form.watch('isCustom') && (
+                  <FormField
+                    control={form.control}
+                    name="productKey"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Название товара</FormLabel>
+                        <FormControl>
+                          <Input 
+                            placeholder="Введите название товара" 
+                            {...field}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                )}
 
                 <FormField
                   control={form.control}
