@@ -51,6 +51,9 @@ export default function ProjectDetail({ projectId, selectedFirm, onBack }: Proje
   const { data: project, isLoading: projectLoading } = useQuery({
     queryKey: ['/api/projects', projectId],
     queryFn: () => apiRequest(`/api/projects/${projectId}`, 'GET'),
+    onSuccess: (data) => {
+      console.log('Project data loaded:', data);
+    },
   });
 
   const { data: services } = useQuery({
@@ -138,12 +141,14 @@ export default function ProjectDetail({ projectId, selectedFirm, onBack }: Proje
   }
 
   if (!project) {
+    console.log('Project not found, loading state:', projectLoading);
     return (
       <div className="flex items-center justify-center h-96">
         <div className="text-center">
           <FileText className="h-12 w-12 mx-auto text-gray-400 mb-4" />
           <h3 className="text-lg font-medium text-gray-900 mb-2">Проект не найден</h3>
-          <p className="text-gray-500">Проект с указанным ID не существует</p>
+          <p className="text-gray-500">Проект с указанным ID не существует или загружается</p>
+          <p className="text-xs text-gray-400 mt-2">ID: {projectId}, Loading: {projectLoading ? 'да' : 'нет'}</p>
         </div>
       </div>
     );
@@ -272,7 +277,7 @@ export default function ProjectDetail({ projectId, selectedFirm, onBack }: Proje
                     <p className="text-sm text-gray-500">Телефон для установки</p>
                     <p className="font-medium text-gray-900 flex items-center">
                       <Phone className="h-4 w-4 mr-2 text-green-600" />
-                      {project.installationPhone || 'Не указан'}
+                      {project.installationPersonPhone || 'Не указан'}
                     </p>
                   </div>
                   <div className="space-y-2">
