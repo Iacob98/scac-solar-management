@@ -41,28 +41,17 @@ function ProtectedRoute({ component: Component, ...props }: any) {
 }
 
 function Router() {
-  const { isAuthenticated, isLoading, refetch } = useAuth();
-
   return (
     <Switch>
-      {isLoading || !isAuthenticated ? (
-        <>
-          <Route path="/" component={() => <TestLogin onLoginSuccess={() => refetch()} />} />
-          <Route path="*" component={() => <TestLogin onLoginSuccess={() => refetch()} />} />
-        </>
-      ) : (
-        <>
-          <Route path="/" component={Home} />
-          <Route path="/projects" component={() => <ProtectedRoute component={Projects} />} />
-          <Route path="/clients" component={() => <ProtectedRoute component={Clients} />} />
-          <Route path="/crews" component={() => <ProtectedRoute component={CrewsNew} />} />
-          <Route path="/invoices" component={() => <ProtectedRoute component={Invoices} />} />
-          <Route path="/settings" component={() => <ProtectedRoute component={Settings} />} />
-          <Route path="/admin/firms" component={() => <ProtectedRoute component={FirmsManagement} />} />
-          <Route path="/admin/users" component={() => <ProtectedRoute component={Users} />} />
-          <Route component={NotFound} />
-        </>
-      )}
+      <Route path="/" component={() => <ProtectedRoute component={Home} />} />
+      <Route path="/projects" component={() => <ProtectedRoute component={Projects} />} />
+      <Route path="/clients" component={() => <ProtectedRoute component={Clients} />} />
+      <Route path="/crews" component={() => <ProtectedRoute component={CrewsNew} />} />
+      <Route path="/invoices" component={() => <ProtectedRoute component={Invoices} />} />
+      <Route path="/settings" component={() => <ProtectedRoute component={Settings} />} />
+      <Route path="/admin/firms" component={() => <ProtectedRoute component={FirmsManagement} />} />
+      <Route path="/admin/users" component={() => <ProtectedRoute component={Users} />} />
+      <Route component={NotFound} />
     </Switch>
   );
 }
