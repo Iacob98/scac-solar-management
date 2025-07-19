@@ -488,7 +488,11 @@ export default function CrewsNew() {
                       Участники
                     </Button>
                     <div className="flex space-x-2">
-                      <Button variant="outline" size="sm" onClick={() => setEditingCrew(crew)}>
+                      <Button variant="outline" size="sm" onClick={() => {
+                        console.log('🚀 Edit button clicked for crew:', crew);
+                        setEditingCrew(crew);
+                        alert(`Редактирование бригады: ${crew.name}`);
+                      }}>
                         <Edit className="h-4 w-4 mr-2" />
                         Редактировать
                       </Button>
