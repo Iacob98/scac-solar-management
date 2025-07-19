@@ -17,6 +17,7 @@ import { apiRequest } from '@/lib/queryClient';
 import ServicesPage from './Services';
 import ProjectHistory from './ProjectHistory';
 import { ProjectShareButton } from '@/components/ProjectShareButton';
+import { ProjectStatusManager } from '@/components/Projects/ProjectStatusManager';
 
 interface ProjectDetailProps {
   projectId: number;
@@ -104,8 +105,9 @@ export default function ProjectDetail({ projectId, selectedFirm, onBack }: Proje
   const updateProjectStatusMutation = useMutation({
     mutationFn: (data: any) => apiRequest(`/api/projects/${projectId}`, 'PATCH', data),
     onSuccess: () => {
-      // Обновляем все связанные кеши
-      queryClient.invalidateQueries({ queryKey: ['/api/projects'] }); // Главный список проектов
+      // Обновляем все связанные кеши с правильными ключами
+      queryClient.invalidateQueries({ queryKey: ['/api/projects'] }); // Базовый список проектов
+      queryClient.invalidateQueries({ queryKey: ['/api/projects', selectedFirm] }); // Список проектов по фирме
       queryClient.invalidateQueries({ queryKey: ['/api/projects', projectId] }); // Детали проекта
       queryClient.invalidateQueries({ queryKey: ['/api/projects', projectId, 'history'] }); // История проекта
       toast({ title: 'Статус проекта обновлен' });
@@ -121,8 +123,16 @@ export default function ProjectDetail({ projectId, selectedFirm, onBack }: Proje
 
 
 
+  // Улучшенная функция для обновления дат с автоматической сменой статуса
   const updateProjectDates = (updates: Partial<Project>) => {
-    updateProjectStatusMutation.mutate(updates);
+    const updatesWithAutoStatus = { ...updates };
+    
+    // Автоматически меняем статус на "оборудование прибыло" если указали дату прибытия
+    if (updates.equipmentArrivedDate && project.status === 'equipment_waiting') {
+      updatesWithAutoStatus.status = 'equipment_arrived';
+    }
+    
+    updateProjectStatusMutation.mutate(updatesWithAutoStatus);
   };
 
   if (projectLoading) {
@@ -261,7 +271,10 @@ export default function ProjectDetail({ projectId, selectedFirm, onBack }: Proje
           
           {/* Правая колонка - боковая панель */}
           <div className="space-y-6">
-            {/* Статус и быстрые действия */}
+            {/* Управление статусом проекта */}
+            <ProjectStatusManager project={project} selectedFirm={selectedFirm} />
+
+            {/* Временные рамки */}
             <Card className="border-l-4 border-l-purple-500 shadow-sm">
               <CardHeader className="pb-3">
                 <CardTitle className="flex items-center text-lg">

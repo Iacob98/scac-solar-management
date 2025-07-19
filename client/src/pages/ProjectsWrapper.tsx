@@ -32,6 +32,7 @@ type ViewMode = 'list' | 'detail' | 'services' | 'reports';
 
 const projectFormSchema = insertProjectSchema.omit({ firmId: true, leiterId: true }).extend({
   startDate: z.string().min(1, 'Дата начала обязательна'),
+  equipmentExpectedDate: z.string().min(1, 'Ожидаемая дата поставки обязательна'),
   clientId: z.number().min(1, 'Выберите клиента'),
   crewId: z.number().min(1, 'Выберите бригаду'),
   installationPersonFirstName: z.string().min(1, 'Имя обязательно'),
@@ -109,6 +110,7 @@ function ProjectsList({ selectedFirm, onViewProject, onManageServices, onManageR
       clientId: undefined,
       crewId: undefined,
       startDate: '',
+      equipmentExpectedDate: '',
       status: 'planning' as const,
       installationPersonFirstName: '',
       installationPersonLastName: '',
@@ -387,19 +389,35 @@ function ProjectsList({ selectedFirm, onViewProject, onManageServices, onManageR
                   />
                 </div>
 
-                <FormField
-                  control={form.control}
-                  name="startDate"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Дата начала</FormLabel>
-                      <FormControl>
-                        <Input type="date" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+                <div className="grid grid-cols-2 gap-4">
+                  <FormField
+                    control={form.control}
+                    name="startDate"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Дата начала проекта</FormLabel>
+                        <FormControl>
+                          <Input type="date" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="equipmentExpectedDate"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Ожидаемая дата поставки оборудования</FormLabel>
+                        <FormControl>
+                          <Input type="date" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
 
                 <div className="space-y-4">
                   <h3 className="text-lg font-semibold">Информация о клиенте установки</h3>
