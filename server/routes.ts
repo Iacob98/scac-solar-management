@@ -681,8 +681,42 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Firm ID is required" });
       }
       
-      const projects = await storage.getProjectsByFirmId(firmId);
-      res.json(projects);
+      const userId = req.user.claims.sub;
+      const user = await storage.getUser(userId);
+      
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      
+      // Get all projects for the firm
+      const allProjects = await storage.getProjectsByFirmId(firmId);
+      
+      // Filter projects based on user access rights
+      let accessibleProjects: any[] = [];
+      
+      if (user.role === 'admin') {
+        // Admins see all projects
+        accessibleProjects = allProjects;
+      } else {
+        // Non-admin users see only their own projects and shared projects
+        for (const project of allProjects) {
+          // Check if user is the project leader
+          if (project.leiterId === userId) {
+            accessibleProjects.push(project);
+            continue;
+          }
+          
+          // Check if project is shared with the user
+          const shares = await storage.getProjectShares(project.id);
+          const hasAccess = shares.some(share => share.sharedWith === userId);
+          
+          if (hasAccess) {
+            accessibleProjects.push(project);
+          }
+        }
+      }
+      
+      res.json(accessibleProjects);
     } catch (error) {
       console.error("Error fetching projects:", error);
       res.status(500).json({ message: "Failed to fetch projects" });
@@ -698,11 +732,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Invalid project ID" });
       }
       
+      const userId = req.user.claims.sub;
+      const user = await storage.getUser(userId);
+      
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      
       const project = await storage.getProjectById(projectId);
       console.log('Project from database:', project);
       
       if (!project) {
         return res.status(404).json({ message: "Project not found" });
+      }
+      
+      // Check access permissions
+      let hasAccess = false;
+      
+      if (user.role === 'admin') {
+        hasAccess = true;
+      } else if (project.leiterId === userId) {
+        hasAccess = true;
+      } else {
+        // Check if project is shared with the user
+        const shares = await storage.getProjectShares(projectId);
+        hasAccess = shares.some(share => share.sharedWith === userId);
+      }
+      
+      if (!hasAccess) {
+        return res.status(403).json({ message: "Access denied to this project" });
       }
       
       res.json(project);
