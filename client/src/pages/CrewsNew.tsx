@@ -257,26 +257,7 @@ export default function CrewsNew() {
     },
   });
 
-  const toggleArchiveMutation = useMutation({
-    mutationFn: async ({ crewId, archived }: { crewId: number; archived: boolean }) => {
-      const response = await apiRequest(`/api/crews/${crewId}`, 'PATCH', { archived });
-      return await response.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/crews', selectedFirmId] });
-      toast({
-        title: 'Статус бригады обновлен',
-        description: 'Изменения сохранены',
-      });
-    },
-    onError: (error: any) => {
-      toast({
-        title: 'Ошибка',
-        description: error.message || 'Не удалось обновить статус бригады',
-        variant: 'destructive',
-      });
-    },
-  });
+
 
   const addMember = () => {
     const currentMembers = form.getValues('members');
@@ -607,16 +588,17 @@ export default function CrewsNew() {
                       </div>
                     </div>
                     <div className="flex items-center space-x-2">
-                      <Badge variant={crew.archived ? "secondary" : "default"}>
-                        {crew.archived ? "Архив" : "Активная"}
+                      <Badge variant={
+                        crew.status === 'active' ? 'default' :
+                        crew.status === 'vacation' ? 'secondary' :
+                        crew.status === 'equipment_issue' ? 'destructive' :
+                        'outline'
+                      }>
+                        {crew.status === 'active' ? 'Активна' :
+                         crew.status === 'vacation' ? 'В отпуске' :
+                         crew.status === 'equipment_issue' ? 'Проблемы с техникой' :
+                         'Недоступна'}
                       </Badge>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => toggleArchiveMutation.mutate({ crewId: crew.id, archived: !crew.archived })}
-                      >
-                        <Archive className="h-4 w-4" />
-                      </Button>
                     </div>
                   </div>
                 </CardHeader>
