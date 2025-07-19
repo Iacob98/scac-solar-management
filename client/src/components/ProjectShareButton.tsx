@@ -78,7 +78,7 @@ export function ProjectShareButton({ projectId, firmId }: ProjectShareButtonProp
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/projects', projectId, 'shares'] });
-      queryClient.invalidateQueries({ queryKey: ['/api/project-history', projectId] });
+      queryClient.invalidateQueries({ queryKey: ['/api/projects', projectId, 'history'] });
       setSelectedUser('');
       setSelectedPermission('view');
       toast({
@@ -103,7 +103,7 @@ export function ProjectShareButton({ projectId, firmId }: ProjectShareButtonProp
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/projects', projectId, 'shares'] });
-      queryClient.invalidateQueries({ queryKey: ['/api/project-history', projectId] });
+      queryClient.invalidateQueries({ queryKey: ['/api/projects', projectId, 'history'] });
       toast({
         title: 'Доступ отозван',
         description: 'Совместный доступ к проекту был удален',

@@ -68,6 +68,7 @@ export default function ProjectHistory({ projectId, onBack, embedded = false, li
       }
       return response.json() as ProjectHistoryEntry[];
     },
+    refetchInterval: 5000, // Автообновление каждые 5 секунд
   });
 
   if (isLoading) {

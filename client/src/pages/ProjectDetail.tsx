@@ -100,6 +100,7 @@ export default function ProjectDetail({ projectId, selectedFirm, onBack }: Proje
     mutationFn: (data: any) => apiRequest(`/api/projects/${projectId}`, 'PATCH', data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/projects', projectId] });
+      queryClient.invalidateQueries({ queryKey: ['/api/projects', projectId, 'history'] });
       toast({ title: 'Статус проекта обновлен' });
     },
     onError: (error: any) => {
@@ -115,6 +116,7 @@ export default function ProjectDetail({ projectId, selectedFirm, onBack }: Proje
     mutationFn: (projectId: number) => apiRequest('/api/invoice/create', 'POST', { projectId }),
     onSuccess: (data: any) => {
       queryClient.invalidateQueries({ queryKey: ['/api/projects', projectId] });
+      queryClient.invalidateQueries({ queryKey: ['/api/projects', projectId, 'history'] });
       toast({ 
         title: 'Счет создан успешно',
         description: `Счет №${data.invoiceNumber} создан в Invoice Ninja`
@@ -133,6 +135,7 @@ export default function ProjectDetail({ projectId, selectedFirm, onBack }: Proje
     mutationFn: (invoiceNumber: string) => apiRequest('/api/invoice/mark-paid', 'PATCH', { invoiceNumber }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/projects', projectId] });
+      queryClient.invalidateQueries({ queryKey: ['/api/projects', projectId, 'history'] });
       toast({ title: 'Счет отмечен как оплаченный' });
     },
     onError: (error: any) => {

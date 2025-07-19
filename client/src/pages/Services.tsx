@@ -84,6 +84,7 @@ export default function ServicesPage({ selectedFirm, projectId }: ServicesPagePr
     }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/services', projectId] });
+      queryClient.invalidateQueries({ queryKey: ['/api/projects', projectId, 'history'] });
       toast({ title: 'Услуга добавлена успешно' });
       setIsCreateDialogOpen(false);
       setSelectedProductId('');
@@ -106,6 +107,7 @@ export default function ServicesPage({ selectedFirm, projectId }: ServicesPagePr
     }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/services', projectId] });
+      queryClient.invalidateQueries({ queryKey: ['/api/projects', projectId, 'history'] });
       toast({ title: 'Услуга обновлена успешно' });
       setEditingService(null);
       form.reset();
@@ -123,6 +125,7 @@ export default function ServicesPage({ selectedFirm, projectId }: ServicesPagePr
     mutationFn: (serviceId: number) => apiRequest(`/api/services/${serviceId}`, 'DELETE'),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/services', projectId] });
+      queryClient.invalidateQueries({ queryKey: ['/api/projects', projectId, 'history'] });
       toast({ title: 'Услуга удалена успешно' });
     },
     onError: (error: any) => {
