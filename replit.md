@@ -129,6 +129,8 @@ The application follows a monolithic architecture with clear separation between 
 - Added comprehensive firm creation form with Invoice Ninja integration
 - Implemented role-based access control for firm management
 - Added API endpoint for retrieving individual project information
+- Implemented automatic firm data population using Invoice Ninja API
+- Added test connection functionality to validate API credentials and auto-fill company data
 
 ### Data Integration Fixes
 - Fixed all TypeScript compilation errors

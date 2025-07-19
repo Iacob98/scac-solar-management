@@ -192,6 +192,45 @@ export class InvoiceNinjaService {
     };
   }
 
+  async getCompanyInfo(): Promise<{
+    name: string;
+    address: string;
+    taxId: string;
+    logoUrl?: string;
+  }> {
+    try {
+      const response = await axios.get(
+        `${this.baseUrl}/api/v1/companies`,
+        { headers: this.getHeaders() }
+      );
+
+      const company = response.data.data[0]?.settings || {};
+
+      return {
+        name: company.name || company.company_name || '',
+        address: this.formatAddress(company),
+        taxId: company.vat_number || company.id_number || '',
+        logoUrl: company.company_logo ? `${this.baseUrl}${company.company_logo}` : undefined,
+      };
+    } catch (error: any) {
+      console.error('Error fetching company info from Invoice Ninja:', error.response?.data || error.message);
+      throw new Error(`Failed to fetch company info: ${error.response?.data?.message || error.message}`);
+    }
+  }
+
+  private formatAddress(company: any): string {
+    const parts = [
+      company.address1,
+      company.address2,
+      company.city,
+      company.state,
+      company.postal_code,
+      company.country?.name || company.country,
+    ].filter(Boolean);
+    
+    return parts.join(', ');
+  }
+
   async getProducts(): Promise<InvoiceNinjaProduct[]> {
     try {
       const url = `${this.baseUrl}/api/v1/products`;

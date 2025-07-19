@@ -322,6 +322,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.post('/api/firms/test-connection', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const user = await storage.getUser(userId);
+      
+      if (!user || user.role !== 'admin') {
+        return res.status(403).json({ message: "Access denied" });
+      }
+
+      const { invoiceNinjaUrl, token } = req.body;
+      
+      if (!invoiceNinjaUrl || !token) {
+        return res.status(400).json({ message: "URL and API token are required" });
+      }
+
+      const ninjaService = new InvoiceNinjaService(invoiceNinjaUrl, token);
+      const companyInfo = await ninjaService.getCompanyInfo();
+      
+      res.json({
+        success: true,
+        companyInfo,
+      });
+    } catch (error: any) {
+      console.error("Error testing Invoice Ninja connection:", error);
+      res.status(400).json({ 
+        success: false,
+        message: error.message || "Failed to connect to Invoice Ninja" 
+      });
+    }
+  });
+
   app.post('/api/firms', isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;

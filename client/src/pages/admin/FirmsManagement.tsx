@@ -51,6 +51,7 @@ type CreateFirmInput = z.infer<typeof createFirmSchema>;
 export default function FirmsManagement() {
   const { toast } = useToast();
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+  const [isTestingConnection, setIsTestingConnection] = useState(false);
 
   const { data: firms = [], isLoading } = useQuery<Firm[]>({
     queryKey: ['/api/firms'],
@@ -92,6 +93,54 @@ export default function FirmsManagement() {
   const handleCloseDialog = () => {
     setIsCreateDialogOpen(false);
     form.reset();
+  };
+
+  const testConnection = async () => {
+    const invoiceNinjaUrl = form.getValues('invoiceNinjaUrl');
+    const token = form.getValues('token');
+
+    if (!invoiceNinjaUrl || !token) {
+      toast({
+        title: 'Ошибка',
+        description: 'Введите URL и API ключ перед тестированием',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    setIsTestingConnection(true);
+    
+    try {
+      const response = await apiRequest('/api/firms/test-connection', 'POST', {
+        invoiceNinjaUrl,
+        token,
+      });
+      
+      const data = await response.json();
+      
+      if (data.success && data.companyInfo) {
+        // Автоматически заполняем форму
+        form.setValue('name', data.companyInfo.name);
+        form.setValue('address', data.companyInfo.address);
+        form.setValue('taxId', data.companyInfo.taxId);
+        if (data.companyInfo.logoUrl) {
+          form.setValue('logoUrl', data.companyInfo.logoUrl);
+        }
+        
+        toast({
+          title: 'Подключение успешно!',
+          description: 'Данные компании загружены автоматически',
+        });
+      }
+    } catch (error: any) {
+      toast({
+        title: 'Ошибка подключения',
+        description: error.message || 'Не удалось подключиться к Invoice Ninja',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsTestingConnection(false);
+    }
   };
 
   if (isLoading) {
@@ -175,6 +224,34 @@ export default function FirmsManagement() {
                     </FormItem>
                   )}
                 />
+
+                <div className="flex justify-center py-4">
+                  <Button 
+                    type="button"
+                    variant="outline"
+                    onClick={testConnection}
+                    disabled={isTestingConnection}
+                    className="w-full"
+                  >
+                    {isTestingConnection ? (
+                      <>
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-current mr-2"></div>
+                        Тестирование подключения...
+                      </>
+                    ) : (
+                      <>
+                        <Building className="h-4 w-4 mr-2" />
+                        Тест подключения и загрузка данных
+                      </>
+                    )}
+                  </Button>
+                </div>
+
+                <div className="border-t pt-4">
+                  <p className="text-sm text-gray-600 mb-4">
+                    Остальные поля будут заполнены автоматически после успешного подключения
+                  </p>
+                </div>
 
                 <FormField
                   control={form.control}
