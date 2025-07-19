@@ -12,7 +12,11 @@ import type { Firm } from '@shared/schema';
 export function TopHeader() {
   const { t } = useI18n();
   const { user } = useAuth();
-  const [selectedFirmId, setSelectedFirmId] = useState<string>('');
+  const [selectedFirmId, setSelectedFirmId] = useState<string>(() => {
+    // Initialize with saved value immediately to prevent flashing
+    return localStorage.getItem('selectedFirmId') || '';
+  });
+  const [hasInitialized, setHasInitialized] = useState(false);
 
   const { data: firms = [] } = useQuery<Firm[]>({
     queryKey: ['/api/firms'],
@@ -20,37 +24,38 @@ export function TopHeader() {
   });
 
   useEffect(() => {
-    // Only auto-select first firm if there's no saved selection and localStorage is empty
-    const savedFirmId = localStorage.getItem('selectedFirmId');
-    console.log('Auto-select check:', { 
-      firmsCount: firms.length, 
-      selectedFirmId, 
-      savedFirmId, 
-      userRole: user?.role 
-    });
-    
-    if (firms.length > 0 && !selectedFirmId && !savedFirmId) {
-      // Only auto-select for admin users or if user has access to only one firm
-      if (user?.role === 'admin' || firms.length === 1) {
+    // Initialize firm selection once firms are loaded
+    if (firms.length > 0 && !hasInitialized) {
+      const savedFirmId = localStorage.getItem('selectedFirmId');
+      console.log('Initializing firm selection:', { savedFirmId, firms: firms.map(f => f.id) });
+      
+      if (savedFirmId && firms.some(firm => firm.id === savedFirmId)) {
+        // Restore saved valid firm
+        console.log('Restoring saved firm:', savedFirmId);
+        setSelectedFirmId(savedFirmId);
+      } else if (savedFirmId && !firms.some(firm => firm.id === savedFirmId)) {
+        // Clear invalid saved firm ID and auto-select
+        console.log('Clearing invalid saved firm ID:', savedFirmId);
+        localStorage.removeItem('selectedFirmId');
+        if (user?.role === 'admin' || firms.length === 1) {
+          const firstFirmId = firms[0].id;
+          console.log('Auto-selecting first firm after clearing invalid:', firstFirmId);
+          setSelectedFirmId(firstFirmId);
+          localStorage.setItem('selectedFirmId', firstFirmId);
+        } else {
+          setSelectedFirmId('');
+        }
+      } else if (!savedFirmId && (user?.role === 'admin' || firms.length === 1)) {
+        // Auto-select for new users
         const firstFirmId = firms[0].id;
-        console.log('Auto-selecting first firm:', firstFirmId);
+        console.log('Auto-selecting first firm for new user:', firstFirmId);
         setSelectedFirmId(firstFirmId);
         localStorage.setItem('selectedFirmId', firstFirmId);
       }
+      
+      setHasInitialized(true);
     }
-  }, [firms, selectedFirmId, user]);
-
-  useEffect(() => {
-    // Load selected firm from localStorage on mount
-    const savedFirmId = localStorage.getItem('selectedFirmId');
-    if (savedFirmId && firms.some(firm => firm.id === savedFirmId)) {
-      // Only set if the saved firm still exists in user's available firms
-      setSelectedFirmId(savedFirmId);
-    } else if (savedFirmId) {
-      // Clear invalid saved firm ID
-      localStorage.removeItem('selectedFirmId');
-    }
-  }, [firms]);
+  }, [firms, hasInitialized, user]);
 
   const handleFirmChange = (firmId: string) => {
     console.log('Firm change requested:', { from: selectedFirmId, to: firmId });
