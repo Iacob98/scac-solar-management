@@ -100,10 +100,10 @@ export default function Users() {
   const openEditDialog = (user: any) => {
     setEditingUser(user);
     form.reset({
-      email: user.email,
-      firstName: user.firstName,
-      lastName: user.lastName,
-      role: user.role,
+      email: user.email || '',
+      firstName: user.firstName || '',
+      lastName: user.lastName || '',
+      role: user.role || 'leiter',
       firmIds: user.firmIds || [],
     });
     setIsDialogOpen(true);
@@ -119,12 +119,12 @@ export default function Users() {
     return role === 'admin' ? (
       <Badge variant="destructive">
         <Shield className="w-3 h-3 mr-1" />
-        Administrator
+        Администратор
       </Badge>
     ) : (
       <Badge variant="secondary">
         <UserIcon className="w-3 h-3 mr-1" />
-        Project Leiter
+        Руководитель проекта
       </Badge>
     );
   };
@@ -273,7 +273,7 @@ export default function Users() {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
           <Card>
             <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-medium text-gray-600">Gesamt Benutzer</CardTitle>
+              <CardTitle className="text-sm font-medium text-gray-600">Всего пользователей</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-semibold text-gray-900">
@@ -284,7 +284,7 @@ export default function Users() {
           
           <Card>
             <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-medium text-gray-600">Administratoren</CardTitle>
+              <CardTitle className="text-sm font-medium text-gray-600">Администраторы</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-semibold text-gray-900">
@@ -295,7 +295,7 @@ export default function Users() {
 
           <Card>
             <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-medium text-gray-600">Project Leiter</CardTitle>
+              <CardTitle className="text-sm font-medium text-gray-600">Руководители проектов</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-semibold text-gray-900">
@@ -319,12 +319,12 @@ export default function Users() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Name</TableHead>
-                  <TableHead>E-Mail</TableHead>
-                  <TableHead>Rolle</TableHead>
-                  <TableHead>Zugewiesene Firmen</TableHead>
-                  <TableHead>Erstellt</TableHead>
-                  <TableHead>{t('actions')}</TableHead>
+                  <TableHead>Имя</TableHead>
+                  <TableHead>Email</TableHead>
+                  <TableHead>Роль</TableHead>
+                  <TableHead>Назначенные фирмы</TableHead>
+                  <TableHead>Создан</TableHead>
+                  <TableHead>Действия</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -333,12 +333,12 @@ export default function Users() {
                     <TableCell>
                       <div className="flex items-center space-x-3">
                         <img
-                          src={user.profileImageUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(`${user.firstName} ${user.lastName}`)}&background=1976d2&color=fff`}
-                          alt={`${user.firstName} ${user.lastName}`}
+                          src={user.profileImageUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(`${user.firstName || ''} ${user.lastName || ''}`)}&background=1976d2&color=fff`}
+                          alt={`${user.firstName || ''} ${user.lastName || ''}`}
                           className="w-8 h-8 rounded-full object-cover"
                         />
                         <div>
-                          <p className="font-medium">{user.firstName} {user.lastName}</p>
+                          <p className="font-medium">{user.firstName || 'N/A'} {user.lastName || 'N/A'}</p>
                           <p className="text-sm text-gray-500">ID: {user.id}</p>
                         </div>
                       </div>
@@ -356,7 +356,7 @@ export default function Users() {
                       <div className="flex items-center space-x-2">
                         <Building className="w-4 h-4 text-gray-400" />
                         <span className="text-sm">
-                          {user.role === 'admin' ? 'Alle Firmen' : `${user.firmIds?.length || 0} Firmen`}
+                          {user.role === 'admin' ? 'Все фирмы' : `${user.firmIds?.length || 0} фирм`}
                         </span>
                       </div>
                     </TableCell>
@@ -364,7 +364,7 @@ export default function Users() {
                       <div className="flex items-center space-x-2">
                         <Calendar className="w-4 h-4 text-gray-400" />
                         <span className="text-sm">
-                          {new Date(user.createdAt).toLocaleDateString('de-DE')}
+                          {new Date(user.createdAt).toLocaleDateString('ru-RU')}
                         </span>
                       </div>
                     </TableCell>
