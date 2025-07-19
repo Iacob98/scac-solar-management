@@ -242,23 +242,16 @@ export default function ServicesPage({ selectedFirm, projectId }: ServicesPagePr
                 {!form.watch('isCustom') && (
                   <div>
                     <label className="block text-sm font-medium mb-2">Выберите из каталога</label>
-                    <Select onValueChange={handleProductSelect}>
+                    <Select onValueChange={handleProductSelect} value="">
                       <SelectTrigger>
                         <SelectValue placeholder="Выберите товар из каталога" />
                       </SelectTrigger>
-                      <SelectContent className="max-w-lg">
+                      <SelectContent className="max-w-md">
                         {(products as any[]).map((product: any) => (
                           <SelectItem key={product.id} value={product.id.toString()}>
-                            <div className="flex flex-col w-full min-w-0 space-y-1">
-                              <div className="flex justify-between items-center">
-                                <span className="font-medium text-sm">{product.name}</span>
-                                <span className="text-sm font-medium text-blue-600">€{parseFloat(product.price || 0).toFixed(2)}</span>
-                              </div>
-                              {product.description && (
-                                <div className="text-xs text-gray-500 break-words">
-                                  {product.description}
-                                </div>
-                              )}
+                            <div className="flex justify-between items-center w-full">
+                              <span className="font-medium text-sm truncate pr-2">{product.name}</span>
+                              <span className="text-sm font-medium text-blue-600 flex-shrink-0">€{parseFloat(product.price || 0).toFixed(2)}</span>
                             </div>
                           </SelectItem>
                         ))}
@@ -272,10 +265,10 @@ export default function ServicesPage({ selectedFirm, projectId }: ServicesPagePr
                   name="productKey"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Код товара</FormLabel>
+                      <FormLabel>Название товара</FormLabel>
                       <FormControl>
                         <Input 
-                          placeholder="Введите код товара" 
+                          placeholder="Введите название товара" 
                           {...field} 
                           disabled={!form.watch('isCustom')}
                         />
