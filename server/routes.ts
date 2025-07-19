@@ -371,7 +371,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Client routes
+  // Client routes - sync with Invoice Ninja
   app.get('/api/clients', isAuthenticated, async (req: any, res) => {
     try {
       const firmId = req.query.firmId as string;
@@ -379,6 +379,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Firm ID is required" });
       }
       
+      // Get firm info to access Invoice Ninja
+      const firm = await storage.getFirmById(firmId);
+      if (!firm) {
+        return res.status(404).json({ message: 'Firm not found' });
+      }
+
+      try {
+        // Get clients from Invoice Ninja
+        const invoiceNinja = new InvoiceNinjaService(firm.invoiceNinjaUrl, firm.token);
+        const ninjaClients = await invoiceNinja.getClients();
+        
+        // Sync with local database
+        for (const ninjaClient of ninjaClients) {
+          const existingClient = await storage.getClientByNinjaId(firmId, ninjaClient.id);
+          if (!existingClient) {
+            // Create new client in local database
+            await storage.createClient({
+              firmId,
+              ninjaClientId: ninjaClient.id,
+              name: ninjaClient.name,
+              email: ninjaClient.email || null,
+              phone: ninjaClient.phone || null,
+              address: ninjaClient.address1 ? `${ninjaClient.address1}, ${ninjaClient.city || ''}, ${ninjaClient.postal_code || ''}`.trim() : null,
+            });
+          }
+        }
+      } catch (ninjaError) {
+        console.warn("Warning: Could not sync with Invoice Ninja, using local clients only:", ninjaError);
+      }
+      
+      // Return all local clients for this firm
       const clients = await storage.getClientsByFirmId(firmId);
       res.json(clients);
     } catch (error) {
@@ -401,8 +432,44 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post('/api/clients', isAuthenticated, async (req: any, res) => {
     try {
       const clientData = insertClientSchema.parse(req.body);
-      const client = await storage.createClient(clientData);
-      res.json(client);
+      
+      // Get firm info to access Invoice Ninja
+      const firm = await storage.getFirmById(clientData.firmId);
+      if (!firm) {
+        return res.status(404).json({ message: 'Firm not found' });
+      }
+
+      try {
+        // Create client in Invoice Ninja first
+        const invoiceNinja = new InvoiceNinjaService(firm.invoiceNinjaUrl, firm.token);
+        
+        // Parse address for Invoice Ninja
+        const addressParts = clientData.address ? clientData.address.split(',').map(part => part.trim()) : [];
+        const ninjaClientData = {
+          name: clientData.name,
+          email: clientData.email || '',
+          phone: clientData.phone || '',
+          address1: addressParts[0] || '',
+          city: addressParts[1] || '',
+          postal_code: addressParts[2] || '',
+          country_id: '276', // Germany
+        };
+
+        const ninjaClient = await invoiceNinja.createClient(ninjaClientData);
+        
+        // Create client in local database with Invoice Ninja ID
+        const client = await storage.createClient({
+          ...clientData,
+          ninjaClientId: ninjaClient.id,
+        });
+        
+        res.json(client);
+      } catch (ninjaError) {
+        console.warn("Warning: Could not create client in Invoice Ninja, creating locally only:", ninjaError);
+        // Fallback: create only in local database
+        const client = await storage.createClient(clientData);
+        res.json(client);
+      }
     } catch (error) {
       console.error("Error creating client:", error);
       res.status(500).json({ message: "Failed to create client" });

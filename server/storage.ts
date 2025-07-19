@@ -48,6 +48,7 @@ export interface IStorage {
   
   // Firm operations
   getFirms(): Promise<Firm[]>;
+  getFirmById(id: string): Promise<Firm | undefined>;
   getFirmsByUserId(userId: string): Promise<Firm[]>;
   createFirm(firm: InsertFirm): Promise<Firm>;
   assignUserToFirm(userId: string, firmId: string): Promise<void>;
@@ -55,6 +56,7 @@ export interface IStorage {
   // Client operations
   getClientsByFirmId(firmId: string): Promise<Client[]>;
   getClientById(id: number): Promise<Client | undefined>;
+  getClientByNinjaId(firmId: string, ninjaClientId: string): Promise<Client | undefined>;
   createClient(client: InsertClient): Promise<Client>;
   updateClient(id: number, client: Partial<InsertClient>): Promise<Client>;
   
@@ -166,6 +168,11 @@ export class DatabaseStorage implements IStorage {
     return await db.select().from(firms).orderBy(desc(firms.createdAt));
   }
 
+  async getFirmById(id: string): Promise<Firm | undefined> {
+    const [firm] = await db.select().from(firms).where(eq(firms.id, id));
+    return firm;
+  }
+
   async getFirmsByUserId(userId: string): Promise<Firm[]> {
     return await db
       .select({
@@ -211,6 +218,14 @@ export class DatabaseStorage implements IStorage {
       .select()
       .from(clients)
       .where(eq(clients.id, id));
+    return client;
+  }
+
+  async getClientByNinjaId(firmId: string, ninjaClientId: string): Promise<Client | undefined> {
+    const [client] = await db
+      .select()
+      .from(clients)
+      .where(and(eq(clients.firmId, firmId), eq(clients.ninjaClientId, ninjaClientId)));
     return client;
   }
 
@@ -390,13 +405,7 @@ export class DatabaseStorage implements IStorage {
     return updated;
   }
 
-  async getFirmById(firmId: string): Promise<Firm | undefined> {
-    const [firm] = await db
-      .select()
-      .from(firms)
-      .where(eq(firms.id, firmId));
-    return firm;
-  }
+
 
   // File operations
   async getFilesByProjectId(projectId: number): Promise<ProjectFile[]> {

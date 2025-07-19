@@ -17,8 +17,8 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 
 const clientSchema = z.object({
-  name: z.string().min(1, 'Name ist erforderlich'),
-  email: z.string().email('Ungültige E-Mail-Adresse').optional().or(z.literal('')),
+  name: z.string().min(1, 'Название обязательно'),
+  email: z.string().email('Неверный адрес электронной почты').optional().or(z.literal('')),
   phone: z.string().optional(),
   address: z.string().optional(),
 });
@@ -67,17 +67,17 @@ export default function Clients() {
     },
     onSuccess: () => {
       toast({
-        title: t('success'),
-        description: 'Kunde erfolgreich erstellt',
+        title: 'Успех',
+        description: 'Клиент успешно создан и синхронизирован с Invoice Ninja',
       });
       queryClient.invalidateQueries({ queryKey: ['/api/clients'] });
       setIsDialogOpen(false);
       form.reset();
     },
-    onError: (error) => {
+    onError: (error: any) => {
       toast({
-        title: t('error'),
-        description: error.message,
+        title: 'Ошибка',
+        description: error.message || 'Ошибка при создании клиента',
         variant: 'destructive',
       });
     },
@@ -109,10 +109,10 @@ export default function Clients() {
       <MainLayout>
         <div className="p-6 text-center">
           <h1 className="text-2xl font-semibold text-gray-900 mb-4">
-            {t('clients')}
+            Клиенты
           </h1>
           <p className="text-gray-600">
-            Bitte wählen Sie eine Firma aus dem Header aus, um Kunden zu verwalten.
+            Пожалуйста, выберите фирму в заголовке для управления клиентами.
           </p>
         </div>
       </MainLayout>
@@ -124,8 +124,8 @@ export default function Clients() {
       <div className="p-6">
         <div className="flex items-center justify-between mb-6">
           <div>
-            <h1 className="text-2xl font-semibold text-gray-900">{t('clients')}</h1>
-            <p className="text-gray-600 mt-1">Управление клиентами и контактной информацией</p>
+            <h1 className="text-2xl font-semibold text-gray-900">Клиенты</h1>
+            <p className="text-gray-600 mt-1">Синхронизированы с Invoice Ninja</p>
           </div>
           <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
             <DialogTrigger asChild>
@@ -142,7 +142,7 @@ export default function Clients() {
               </DialogHeader>
               <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
                 <div>
-                  <Label htmlFor="name">{t('name')}</Label>
+                  <Label htmlFor="name">Название</Label>
                   <Input
                     id="name"
                     {...form.register('name')}
@@ -156,7 +156,7 @@ export default function Clients() {
                 </div>
 
                 <div>
-                  <Label htmlFor="email">{t('email')}</Label>
+                  <Label htmlFor="email">Email</Label>
                   <Input
                     id="email"
                     type="email"
@@ -171,7 +171,7 @@ export default function Clients() {
                 </div>
 
                 <div>
-                  <Label htmlFor="phone">{t('phone')}</Label>
+                  <Label htmlFor="phone">Телефон</Label>
                   <Input
                     id="phone"
                     {...form.register('phone')}
@@ -180,7 +180,7 @@ export default function Clients() {
                 </div>
 
                 <div>
-                  <Label htmlFor="address">{t('address')}</Label>
+                  <Label htmlFor="address">Адрес</Label>
                   <Textarea
                     id="address"
                     {...form.register('address')}
@@ -194,7 +194,7 @@ export default function Clients() {
                     disabled={createClientMutation.isPending}
                     className="flex-1"
                   >
-                    {createClientMutation.isPending ? t('loading') : t('save')}
+                    {createClientMutation.isPending ? 'Сохранение...' : 'Сохранить'}
                   </Button>
                   <Button
                     type="button"
@@ -202,7 +202,7 @@ export default function Clients() {
                     onClick={closeDialog}
                     className="flex-1"
                   >
-                    {t('cancel')}
+                    Отмена
                   </Button>
                 </div>
               </form>
@@ -223,11 +223,12 @@ export default function Clients() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>{t('name')}</TableHead>
-                  <TableHead>{t('email')}</TableHead>
-                  <TableHead>{t('phone')}</TableHead>
-                  <TableHead>{t('address')}</TableHead>
-                  <TableHead>{t('actions')}</TableHead>
+                  <TableHead>Название</TableHead>
+                  <TableHead>Email</TableHead>
+                  <TableHead>Телефон</TableHead>
+                  <TableHead>Адрес</TableHead>
+                  <TableHead>Статус синхронизации</TableHead>
+                  <TableHead>Действия</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -264,6 +265,19 @@ export default function Clients() {
                         </div>
                       ) : (
                         <span className="text-gray-400">-</span>
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      {client.ninjaClientId ? (
+                        <div className="flex items-center space-x-2">
+                          <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                          <span className="text-sm text-green-600">Синхронизирован</span>
+                        </div>
+                      ) : (
+                        <div className="flex items-center space-x-2">
+                          <div className="w-2 h-2 bg-yellow-500 rounded-full"></div>
+                          <span className="text-sm text-yellow-600">Только локально</span>
+                        </div>
                       )}
                     </TableCell>
                     <TableCell>
