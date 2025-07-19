@@ -88,13 +88,23 @@ export function StatusUpdateDialog({
   // Всегда создаем schema и форму, даже если данные не готовы
   const config = statusConfig[targetStatus] || { title: 'Обновить статус', description: 'Изменить статус проекта', fields: [] };
   
-  const schema = z.object({
-    status: z.string(),
-    equipmentExpectedDate: z.string().optional(),
-    equipmentArrivedDate: z.string().optional(), 
-    workStartDate: z.string().optional(),
-    workEndDate: z.string().optional(),
-  });
+  // Динамически создаем schema на основе полей конфигурации
+  const schemaFields: any = { status: z.string() };
+  
+  if (config.fields.includes('equipmentExpectedDate')) {
+    schemaFields.equipmentExpectedDate = z.string().min(1, 'Дата обязательна');
+  }
+  if (config.fields.includes('equipmentArrivedDate')) {
+    schemaFields.equipmentArrivedDate = z.string().min(1, 'Дата обязательна');
+  }
+  if (config.fields.includes('workStartDate')) {
+    schemaFields.workStartDate = z.string().min(1, 'Дата обязательна');
+  }
+  if (config.fields.includes('workEndDate')) {
+    schemaFields.workEndDate = z.string().min(1, 'Дата обязательна');
+  }
+  
+  const schema = z.object(schemaFields);
 
   const form = useForm({
     resolver: zodResolver(schema),

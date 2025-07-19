@@ -1118,13 +1118,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.patch('/api/projects/:id/status', isAuthenticated, async (req: any, res) => {
     try {
       const id = parseInt(req.params.id);
-      const validatedData = z.object({
+      const rawData = z.object({
         status: z.enum(['planning', 'equipment_waiting', 'equipment_arrived', 'work_scheduled', 'work_in_progress', 'work_completed', 'invoiced', 'paid']),
         equipmentExpectedDate: z.string().optional(),
         equipmentArrivedDate: z.string().optional(),
         workStartDate: z.string().optional(),
         workEndDate: z.string().optional(),
       }).parse(req.body);
+
+      // Обрабатываем даты - пустые строки заменяем на null
+      const validatedData = {
+        status: rawData.status,
+        equipmentExpectedDate: rawData.equipmentExpectedDate && rawData.equipmentExpectedDate.trim() !== '' ? rawData.equipmentExpectedDate : null,
+        equipmentArrivedDate: rawData.equipmentArrivedDate && rawData.equipmentArrivedDate.trim() !== '' ? rawData.equipmentArrivedDate : null,
+        workStartDate: rawData.workStartDate && rawData.workStartDate.trim() !== '' ? rawData.workStartDate : null,
+        workEndDate: rawData.workEndDate && rawData.workEndDate.trim() !== '' ? rawData.workEndDate : null,
+      };
 
       const project = await storage.updateProject(id, validatedData);
       
