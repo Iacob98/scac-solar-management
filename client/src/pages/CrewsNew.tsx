@@ -18,6 +18,125 @@ import { useAuth } from '@/hooks/useAuth';
 import { MainLayout } from '@/components/Layout/MainLayout';
 import { apiRequest } from '@/lib/queryClient';
 
+// Схема для простого редактирования бригады
+const editCrewSchema = z.object({
+  name: z.string().min(1, 'Название обязательно'),
+  leaderName: z.string().min(1, 'Руководитель обязателен'),
+  phone: z.string().optional(),
+  address: z.string().optional(),
+  status: z.enum(['active', 'vacation', 'equipment_issue', 'unavailable']).default('active'),
+});
+
+// Компонент формы редактирования
+function EditCrewForm({ crew, onUpdate }: { crew: Crew, onUpdate: any }) {
+  const editForm = useForm<z.infer<typeof editCrewSchema>>({
+    resolver: zodResolver(editCrewSchema),
+    defaultValues: {
+      name: crew.name,
+      leaderName: crew.leaderName,
+      phone: crew.phone || '',
+      address: crew.address || '',
+      status: crew.status || 'active',
+    },
+  });
+
+  const onSubmit = (data: z.infer<typeof editCrewSchema>) => {
+    onUpdate.mutate(data);
+  };
+
+  return (
+    <Form {...editForm}>
+      <form onSubmit={editForm.handleSubmit(onSubmit)} className="space-y-4">
+        <FormField
+          control={editForm.control}
+          name="name"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Название бригады</FormLabel>
+              <FormControl>
+                <Input {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        
+        <FormField
+          control={editForm.control}
+          name="leaderName"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Руководитель</FormLabel>
+              <FormControl>
+                <Input {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        
+        <FormField
+          control={editForm.control}
+          name="phone"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Телефон</FormLabel>
+              <FormControl>
+                <Input {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        
+        <FormField
+          control={editForm.control}
+          name="address"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Адрес</FormLabel>
+              <FormControl>
+                <Input {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        
+        <FormField
+          control={editForm.control}
+          name="status"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Статус</FormLabel>
+              <Select onValueChange={field.onChange} defaultValue={field.value}>
+                <FormControl>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                </FormControl>
+                <SelectContent>
+                  <SelectItem value="active">Активна</SelectItem>
+                  <SelectItem value="vacation">В отпуске</SelectItem>
+                  <SelectItem value="equipment_issue">Проблемы с техникой</SelectItem>
+                  <SelectItem value="unavailable">Недоступна</SelectItem>
+                </SelectContent>
+              </Select>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        
+        <div className="flex space-x-2">
+          <Button type="submit" disabled={onUpdate.isPending} className="flex-1">
+            {onUpdate.isPending ? 'Сохранение...' : 'Сохранить'}
+          </Button>
+        </div>
+      </form>
+    </Form>
+  );
+}
+
 const extendedCrewSchema = insertCrewSchema.extend({
   members: z.array(z.object({
     firstName: z.string().min(1, 'Имя обязательно'),
@@ -38,6 +157,7 @@ export default function CrewsNew() {
   const [selectedFirmId, setSelectedFirmId] = useState<string>('');
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [editingCrew, setEditingCrew] = useState<Crew | null>(null);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [viewingMembers, setViewingMembers] = useState<number | null>(null);
 
   useEffect(() => {
@@ -109,6 +229,29 @@ export default function CrewsNew() {
       toast({
         title: 'Ошибка создания бригады',
         description: error.message || 'Не удалось создать бригаду',
+        variant: 'destructive',
+      });
+    },
+  });
+
+  const updateCrewMutation = useMutation({
+    mutationFn: async (data: { name: string; leaderName: string; phone?: string; address?: string; status?: string }) => {
+      const response = await apiRequest(`/api/crews/${editingCrew?.id}`, 'PUT', data);
+      return await response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/crews', selectedFirmId] });
+      setIsEditDialogOpen(false);
+      setEditingCrew(null);
+      toast({
+        title: 'Бригада обновлена',
+        description: 'Изменения успешно сохранены',
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: 'Ошибка обновления',
+        description: error.message || 'Не удалось обновить бригаду',
         variant: 'destructive',
       });
     },
@@ -489,9 +632,8 @@ export default function CrewsNew() {
                     </Button>
                     <div className="flex space-x-2">
                       <Button variant="outline" size="sm" onClick={() => {
-                        console.log('🚀 Edit button clicked for crew:', crew);
                         setEditingCrew(crew);
-                        alert(`Редактирование бригады: ${crew.name}`);
+                        setIsEditDialogOpen(true);
                       }}>
                         <Edit className="h-4 w-4 mr-2" />
                         Редактировать
@@ -511,6 +653,16 @@ export default function CrewsNew() {
             )}
           </div>
         )}
+
+        {/* Диалог редактирования бригады */}
+        <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle>Редактировать бригаду</DialogTitle>
+            </DialogHeader>
+            {editingCrew && <EditCrewForm crew={editingCrew} onUpdate={updateCrewMutation} />}
+          </DialogContent>
+        </Dialog>
 
         {/* Модальное окно участников */}
         <Dialog open={!!viewingMembers} onOpenChange={() => setViewingMembers(null)}>
