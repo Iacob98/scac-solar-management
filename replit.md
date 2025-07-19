@@ -131,6 +131,8 @@ The application follows a monolithic architecture with clear separation between 
 - Added API endpoint for retrieving individual project information
 - Implemented automatic firm data population using Invoice Ninja API
 - Added test connection functionality to validate API credentials and auto-fill company data
+- Removed legacy Firms.tsx page and consolidated to use only FirmsManagement.tsx
+- Updated routing to use /admin/firms path for the modern firm management interface
 
 ### Data Integration Fixes
 - Fixed all TypeScript compilation errors

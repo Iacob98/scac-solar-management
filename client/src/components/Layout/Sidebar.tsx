@@ -15,8 +15,7 @@ export function Sidebar() {
   ];
 
   const adminItems = [
-    { path: '/admin/firms', label: t('firms'), icon: 'business' },
-    { path: '/admin/firms-management', label: 'Управление фирмами', icon: 'domain_add' },
+    { path: '/admin/firms', label: 'Управление фирмами', icon: 'domain_add' },
     { path: '/admin/users', label: t('users'), icon: 'admin_panel_settings' },
   ];
 
