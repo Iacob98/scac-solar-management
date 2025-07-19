@@ -100,7 +100,9 @@ export default function Invoices() {
         title: 'Успешно',
         description: 'Счет отмечен как оплаченный',
       });
+      // Обновляем кэш счетов и проектов для пересчета статистики
       queryClient.invalidateQueries({ queryKey: ['/api/invoices', selectedFirmId] });
+      queryClient.invalidateQueries({ queryKey: ['/api/projects', selectedFirmId] });
     },
     onError: (error) => {
       toast({
