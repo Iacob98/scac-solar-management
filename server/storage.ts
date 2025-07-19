@@ -258,6 +258,10 @@ export class DatabaseStorage implements IStorage {
     await db.update(crews).set({ archived: true }).where(eq(crews.id, id));
   }
 
+  async deleteCrew(id: number): Promise<void> {
+    await db.delete(crews).where(eq(crews.id, id));
+  }
+
   // Crew Member operations
   async getCrewMembersByCrewId(crewId: number): Promise<CrewMember[]> {
     return await db

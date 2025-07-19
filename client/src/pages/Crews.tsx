@@ -12,15 +12,17 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
-import { Plus, Edit, Phone, Users, Archive } from 'lucide-react';
+import { Plus, Edit, Phone, Users, Trash2 } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 
 const crewSchema = z.object({
-  name: z.string().min(1, 'Name ist erforderlich'),
-  leaderName: z.string().min(1, 'Brigadeführer ist erforderlich'),
+  name: z.string().min(1, 'Название обязательно'),
+  leaderName: z.string().min(1, 'Руководитель бригады обязателен'),
   phone: z.string().optional(),
+  status: z.enum(['active', 'vacation', 'equipment_issue', 'unavailable']).default('active'),
 });
 
 export default function Crews() {
@@ -38,6 +40,7 @@ export default function Crews() {
       name: '',
       leaderName: '',
       phone: '',
+      status: 'active',
     },
   });
 
@@ -62,42 +65,68 @@ export default function Crews() {
       const response = await apiRequest('POST', '/api/crews', {
         ...data,
         firmId: selectedFirmId,
+        uniqueNumber: `CREW-${Date.now()}`, // Generate unique number
       });
       return response.json();
     },
     onSuccess: () => {
       toast({
-        title: t('success'),
-        description: 'Brigade erfolgreich erstellt',
+        title: 'Успех',
+        description: editingCrew ? 'Бригада успешно обновлена' : 'Бригада успешно создана',
       });
       queryClient.invalidateQueries({ queryKey: ['/api/crews'] });
       setIsDialogOpen(false);
+      setEditingCrew(null);
       form.reset();
     },
     onError: (error) => {
       toast({
-        title: t('error'),
+        title: 'Ошибка',
         description: error.message,
         variant: 'destructive',
       });
     },
   });
 
-  const archiveCrewMutation = useMutation({
+  const updateCrewMutation = useMutation({
+    mutationFn: async (data: z.infer<typeof crewSchema>) => {
+      const response = await apiRequest('PUT', `/api/crews/${editingCrew.id}`, data);
+      return response.json();
+    },
+    onSuccess: () => {
+      toast({
+        title: 'Успех',
+        description: 'Бригада успешно обновлена',
+      });
+      queryClient.invalidateQueries({ queryKey: ['/api/crews'] });
+      setIsDialogOpen(false);
+      setEditingCrew(null);
+      form.reset();
+    },
+    onError: (error) => {
+      toast({
+        title: 'Ошибка',
+        description: error.message,
+        variant: 'destructive',
+      });
+    },
+  });
+
+  const deleteCrewMutation = useMutation({
     mutationFn: async (crewId: number) => {
       const response = await apiRequest('DELETE', `/api/crews/${crewId}`);
       return response.json();
     },
     onSuccess: () => {
       toast({
-        title: t('success'),
-        description: 'Brigade erfolgreich archiviert',
+        title: 'Успех',
+        description: 'Бригада успешно удалена',
       });
       queryClient.invalidateQueries({ queryKey: ['/api/crews'] });
     },
     onError: (error) => {
       toast({
-        title: t('error'),
+        title: 'Ошибка',
         description: error.message,
         variant: 'destructive',
       });
@@ -105,7 +134,11 @@ export default function Crews() {
   });
 
   const onSubmit = (data: z.infer<typeof crewSchema>) => {
-    createCrewMutation.mutate(data);
+    if (editingCrew) {
+      updateCrewMutation.mutate(data);
+    } else {
+      createCrewMutation.mutate(data);
+    }
   };
 
   const openEditDialog = (crew: any) => {
@@ -114,6 +147,7 @@ export default function Crews() {
       name: crew.name,
       leaderName: crew.leaderName,
       phone: crew.phone || '',
+      status: crew.status || 'active',
     });
     setIsDialogOpen(true);
   };
@@ -124,9 +158,9 @@ export default function Crews() {
     form.reset();
   };
 
-  const handleArchiveCrew = (crewId: number) => {
-    if (confirm('Sind Sie sicher, dass Sie diese Brigade archivieren möchten?')) {
-      archiveCrewMutation.mutate(crewId);
+  const handleDeleteCrew = (crewId: number) => {
+    if (confirm('Вы уверены, что хотите удалить эту бригаду? Это действие нельзя отменить.')) {
+      deleteCrewMutation.mutate(crewId);
     }
   };
 
@@ -219,13 +253,28 @@ export default function Crews() {
                     />
                   </div>
 
+                  <div>
+                    <Label htmlFor="status">Статус бригады</Label>
+                    <Select value={form.watch('status')} onValueChange={(value) => form.setValue('status', value as any)}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Выберите статус" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="active">Активна</SelectItem>
+                        <SelectItem value="vacation">В отпуске</SelectItem>
+                        <SelectItem value="equipment_issue">Проблемы с оборудованием</SelectItem>
+                        <SelectItem value="unavailable">Недоступна</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
                   <div className="flex space-x-2">
                     <Button
                       type="submit"
-                      disabled={createCrewMutation.isPending}
+                      disabled={createCrewMutation.isPending || updateCrewMutation.isPending}
                       className="flex-1"
                     >
-                      {createCrewMutation.isPending ? t('loading') : t('save')}
+                      {(createCrewMutation.isPending || updateCrewMutation.isPending) ? 'Сохранение...' : (editingCrew ? 'Обновить' : 'Создать')}
                     </Button>
                     <Button
                       type="button"
@@ -286,8 +335,16 @@ export default function Crews() {
                       )}
                     </TableCell>
                     <TableCell>
-                      <Badge variant={crew.archived ? 'secondary' : 'default'}>
-                        {crew.archived ? 'Archiviert' : 'Aktiv'}
+                      <Badge variant={
+                        crew.status === 'active' ? 'default' :
+                        crew.status === 'vacation' ? 'secondary' :
+                        crew.status === 'equipment_issue' ? 'destructive' :
+                        'outline'
+                      }>
+                        {crew.status === 'active' ? 'Активна' :
+                         crew.status === 'vacation' ? 'В отпуске' :
+                         crew.status === 'equipment_issue' ? 'Проблемы с техникой' :
+                         'Недоступна'}
                       </Badge>
                     </TableCell>
                     <TableCell>
@@ -304,16 +361,15 @@ export default function Crews() {
                         >
                           <Edit className="w-4 h-4" />
                         </Button>
-                        {!crew.archived && (
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleArchiveCrew(crew.id)}
-                            disabled={archiveCrewMutation.isPending}
-                          >
-                            <Archive className="w-4 h-4" />
-                          </Button>
-                        )}
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleDeleteCrew(crew.id)}
+                          disabled={deleteCrewMutation.isPending}
+                          className="text-red-600 hover:text-red-700"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
                       </div>
                     </TableCell>
                   </TableRow>

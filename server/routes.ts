@@ -464,6 +464,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.put('/api/crews/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      const crewId = parseInt(req.params.id);
+      const updateData = req.body;
+      const crew = await storage.updateCrew(crewId, updateData);
+      res.json(crew);
+    } catch (error) {
+      console.error("Error updating crew:", error);
+      res.status(500).json({ message: "Failed to update crew" });
+    }
+  });
+
   app.patch('/api/crews/:id', isAuthenticated, async (req: any, res) => {
     try {
       const crewId = parseInt(req.params.id);
@@ -479,11 +491,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.delete('/api/crews/:id', isAuthenticated, async (req: any, res) => {
     try {
       const crewId = parseInt(req.params.id);
-      await storage.archiveCrew(crewId);
-      res.json({ message: "Crew archived successfully" });
+      await storage.deleteCrew(crewId);
+      res.json({ message: "Crew deleted successfully" });
     } catch (error) {
-      console.error("Error archiving crew:", error);
-      res.status(500).json({ message: "Failed to archive crew" });
+      console.error("Error deleting crew:", error);
+      res.status(500).json({ message: "Failed to delete crew" });
     }
   });
 

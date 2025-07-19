@@ -78,6 +78,7 @@ export const crews = pgTable("crews", {
   leaderName: varchar("leader_name").notNull(),
   phone: varchar("phone"),
   address: text("address"),
+  status: varchar("status", { enum: ["active", "vacation", "equipment_issue", "unavailable"] }).notNull().default("active"),
   archived: boolean("archived").default(false),
   createdAt: timestamp("created_at").defaultNow(),
 });
