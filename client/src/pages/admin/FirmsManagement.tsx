@@ -34,6 +34,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Plus, Building, ExternalLink, Edit } from 'lucide-react';
 import type { Firm } from '@shared/schema';
+import { MainLayout } from '@/components/Layout/MainLayout';
 
 // Schema for creating a new firm
 const createFirmSchema = z.object({
@@ -102,14 +103,15 @@ export default function FirmsManagement() {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-2xl font-bold">Управление фирмами</h1>
-          <p className="text-gray-600">Добавление и управление фирмами в системе</p>
-        </div>
+    <MainLayout>
+      <div className="p-6 space-y-6">
+        <div className="flex justify-between items-center">
+          <div>
+            <h1 className="text-2xl font-bold">Управление фирмами</h1>
+            <p className="text-gray-600">Добавление и управление фирмами в системе</p>
+          </div>
 
-        <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
+          <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
           <DialogTrigger asChild>
             <Button>
               <Plus className="h-4 w-4 mr-2" />
@@ -240,35 +242,37 @@ export default function FirmsManagement() {
             </Form>
           </DialogContent>
         </Dialog>
-      </div>
+        </div>
 
-      <div className="grid gap-6">
+        <div className="grid gap-6">
         {firms.map((firm) => (
-          <Card key={firm.id}>
-            <CardHeader>
+          <Card key={firm.id} className="hover:shadow-lg transition-shadow duration-200">
+            <CardHeader className="pb-4">
               <div className="flex justify-between items-start">
-                <div className="flex items-center space-x-3">
+                <div className="flex items-center space-x-4">
                   {firm.logoUrl ? (
                     <img 
                       src={firm.logoUrl} 
                       alt={`${firm.name} logo`}
-                      className="w-12 h-12 rounded-lg object-cover"
+                      className="w-14 h-14 rounded-lg object-cover border border-gray-200"
                     />
                   ) : (
-                    <div className="w-12 h-12 bg-gray-100 rounded-lg flex items-center justify-center">
-                      <Building className="h-6 w-6 text-gray-400" />
+                    <div className="w-14 h-14 bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg flex items-center justify-center border border-blue-200">
+                      <Building className="h-7 w-7 text-blue-600" />
                     </div>
                   )}
                   <div>
-                    <CardTitle className="text-xl">{firm.name}</CardTitle>
-                    <CardDescription>
-                      {firm.taxId && (
+                    <CardTitle className="text-xl text-gray-900">{firm.name}</CardTitle>
+                    <CardDescription className="text-gray-600 mt-1">
+                      {firm.taxId ? (
                         <span>Налоговый номер: {firm.taxId}</span>
+                      ) : (
+                        <span>Налоговый номер не указан</span>
                       )}
                     </CardDescription>
                   </div>
                 </div>
-                <Badge variant="secondary">
+                <Badge variant="secondary" className="bg-green-100 text-green-800 border-green-200">
                   Активна
                 </Badge>
               </div>
@@ -320,7 +324,8 @@ export default function FirmsManagement() {
             <p className="text-gray-500 mb-4">Добавьте первую фирму в систему</p>
           </div>
         )}
+        </div>
       </div>
-    </div>
+    </MainLayout>
   );
 }
