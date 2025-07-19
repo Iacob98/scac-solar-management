@@ -124,8 +124,10 @@ export function StatusUpdateDialog({
     },
     onSuccess: () => {
       toast({ description: 'Статус проекта обновлен' });
-      queryClient.invalidateQueries({ queryKey: ['/api/projects', firmId] });
-      queryClient.invalidateQueries({ queryKey: [`/api/projects/${project?.id}`] });
+      // Обновляем все связанные кеши
+      queryClient.invalidateQueries({ queryKey: ['/api/projects'] }); // Список проектов
+      queryClient.invalidateQueries({ queryKey: ['/api/projects', project?.id] }); // Детали проекта
+      queryClient.invalidateQueries({ queryKey: ['/api/projects', project?.id, 'history'] }); // История проекта
       onOpenChange(false);
       form.reset();
       setSelectedDate(undefined);

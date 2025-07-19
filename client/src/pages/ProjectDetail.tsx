@@ -134,8 +134,10 @@ export default function ProjectDetail({ projectId, selectedFirm, onBack }: Proje
   const updateProjectStatusMutation = useMutation({
     mutationFn: (data: any) => apiRequest(`/api/projects/${projectId}`, 'PATCH', data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/projects', projectId] });
-      queryClient.invalidateQueries({ queryKey: ['/api/projects', projectId, 'history'] });
+      // Обновляем все связанные кеши
+      queryClient.invalidateQueries({ queryKey: ['/api/projects'] }); // Главный список проектов
+      queryClient.invalidateQueries({ queryKey: ['/api/projects', projectId] }); // Детали проекта
+      queryClient.invalidateQueries({ queryKey: ['/api/projects', projectId, 'history'] }); // История проекта
       toast({ title: 'Статус проекта обновлен' });
     },
     onError: (error: any) => {
@@ -151,8 +153,9 @@ export default function ProjectDetail({ projectId, selectedFirm, onBack }: Proje
     mutationFn: (projectId: number) => apiRequest('/api/invoice/create', 'POST', { projectId }),
     onSuccess: (data: any) => {
       // Обновляем все связанные кэши после создания счета
-      queryClient.invalidateQueries({ queryKey: ['/api/projects', projectId] });
-      queryClient.invalidateQueries({ queryKey: ['/api/projects', projectId, 'history'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/projects'] }); // Главный список проектов
+      queryClient.invalidateQueries({ queryKey: ['/api/projects', projectId] }); // Детали проекта
+      queryClient.invalidateQueries({ queryKey: ['/api/projects', projectId, 'history'] }); // История проекта
       queryClient.invalidateQueries({ queryKey: ['/api/invoices', selectedFirm] });
       queryClient.invalidateQueries({ queryKey: ['/api/invoices'] });
       toast({ 
