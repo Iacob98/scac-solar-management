@@ -569,6 +569,54 @@ function ProjectsList({ selectedFirm, onViewProject, onManageServices, onManageR
                   <p className="text-gray-600 mb-4">{project.notes}</p>
                 )}
                 
+                {/* Показываем индикаторы приоритета */}
+                {(() => {
+                  const now = new Date();
+                  let priorityIndicator = null;
+                  
+                  if (project.status === 'equipment_waiting' && project.equipmentExpectedDate) {
+                    const equipmentDate = new Date(project.equipmentExpectedDate);
+                    const diffDays = Math.ceil((equipmentDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+                    if (diffDays <= 3) {
+                      priorityIndicator = (
+                        <div className="mb-3 p-2 bg-red-50 border border-red-200 rounded-md">
+                          <p className="text-sm text-red-700 font-medium">
+                            ⚠️ Оборудование ожидается: {format(equipmentDate, 'dd.MM.yyyy', { locale: ru })}
+                            {diffDays <= 0 ? ' (просрочено)' : ` (${diffDays} дн.)`}
+                          </p>
+                        </div>
+                      );
+                    }
+                  }
+                  
+                  if (project.status === 'work_scheduled' && project.workStartDate) {
+                    const workDate = new Date(project.workStartDate);
+                    const diffDays = Math.ceil((workDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+                    if (diffDays <= 1) {
+                      priorityIndicator = (
+                        <div className="mb-3 p-2 bg-yellow-50 border border-yellow-200 rounded-md">
+                          <p className="text-sm text-yellow-700 font-medium">
+                            🚧 Работы начинаются: {format(workDate, 'dd.MM.yyyy', { locale: ru })}
+                            {diffDays <= 0 ? ' (сегодня/просрочено)' : ' (завтра)'}
+                          </p>
+                        </div>
+                      );
+                    }
+                  }
+                  
+                  if (project.needsCallForEquipmentDelay || project.needsCallForCrewDelay || project.needsCallForDateChange) {
+                    priorityIndicator = (
+                      <div className="mb-3 p-2 bg-orange-50 border border-orange-200 rounded-md">
+                        <p className="text-sm text-orange-700 font-medium">
+                          📞 Требуется звонок клиенту
+                        </p>
+                      </div>
+                    );
+                  }
+                  
+                  return priorityIndicator;
+                })()}
+                
                 <div className="flex justify-between items-center">
                   <div className="flex flex-wrap gap-2">
                     <Button 
@@ -598,25 +646,53 @@ function ProjectsList({ selectedFirm, onViewProject, onManageServices, onManageR
                       Фото отчеты
                     </Button>
                     
+                    {/* Кнопки управления статусом */}
                     {project.status === 'planning' && (
                       <Button 
                         size="sm" 
-                        onClick={() => updateProjectStatus(project.id, 'in_progress')}
+                        onClick={() => updateProjectStatus(project.id, 'equipment_waiting')}
                       >
-                        Начать работу
+                        Ожидать оборудование
                       </Button>
                     )}
                     
-                    {project.status === 'in_progress' && (
+                    {project.status === 'equipment_waiting' && (
                       <Button 
                         size="sm" 
-                        onClick={() => updateProjectStatus(project.id, 'done')}
+                        onClick={() => updateProjectStatus(project.id, 'equipment_arrived')}
                       >
-                        Завершить
+                        Оборудование поступило
                       </Button>
                     )}
                     
-                    {project.status === 'done' && (
+                    {project.status === 'equipment_arrived' && (
+                      <Button 
+                        size="sm" 
+                        onClick={() => updateProjectStatus(project.id, 'work_scheduled')}
+                      >
+                        Запланировать работы
+                      </Button>
+                    )}
+                    
+                    {project.status === 'work_scheduled' && (
+                      <Button 
+                        size="sm" 
+                        onClick={() => updateProjectStatus(project.id, 'work_in_progress')}
+                      >
+                        Начать работы
+                      </Button>
+                    )}
+                    
+                    {project.status === 'work_in_progress' && (
+                      <Button 
+                        size="sm" 
+                        onClick={() => updateProjectStatus(project.id, 'work_completed')}
+                      >
+                        Завершить работы
+                      </Button>
+                    )}
+                    
+                    {project.status === 'work_completed' && (
                       <Button 
                         size="sm" 
                         onClick={() => createInvoiceMutation.mutate(project.id)}
