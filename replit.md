@@ -118,6 +118,18 @@ The application follows a monolithic architecture with clear separation between 
 - Added avatar management and form validation
 - Connected settings to user dropdown menu
 
+### Service Management and Business Rules
+- Implemented service modification restrictions after invoice creation
+- Added service locking when project status is 'invoiced' or 'paid'
+- Created warning messages and disabled UI elements for locked services
+- Added project status validation in services interface
+
+### Administrator Functions
+- Created FirmsManagement page for administrator-only firm creation
+- Added comprehensive firm creation form with Invoice Ninja integration
+- Implemented role-based access control for firm management
+- Added API endpoint for retrieving individual project information
+
 ### Data Integration Fixes
 - Fixed all TypeScript compilation errors
 - Resolved React Query type annotations
