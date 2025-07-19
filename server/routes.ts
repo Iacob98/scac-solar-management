@@ -254,23 +254,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
         invoiceNumber: z.string(),
       }).parse(req.body);
 
-      // Find invoice in our database - we need to get all invoices first
-      // and find the one matching the invoice number
+      // Find invoice in our database across all accessible firms
       let invoice;
-      if (user.role === 'admin') {
-        // Admin can see all invoices
-        const allInvoices = await storage.getInvoicesByFirmId(''); 
-        invoice = allInvoices.find(inv => inv.invoiceNumber === invoiceNumber);
-      } else {
-        // Non-admin users can only see invoices for their firms
-        const userFirms = await storage.getFirmsByUserId(userId);
-        for (const firm of userFirms) {
-          const firmInvoices = await storage.getInvoicesByFirmId(firm.id);
-          const foundInvoice = firmInvoices.find(inv => inv.invoiceNumber === invoiceNumber);
-          if (foundInvoice) {
-            invoice = foundInvoice;
-            break;
-          }
+      const userFirms = await storage.getFirmsByUserId(userId);
+      
+      for (const firm of userFirms) {
+        const firmInvoices = await storage.getInvoicesByFirmId(firm.id);
+        const foundInvoice = firmInvoices.find(inv => inv.invoiceNumber === invoiceNumber);
+        if (foundInvoice) {
+          invoice = foundInvoice;
+          break;
         }
       }
       
@@ -1288,35 +1281,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.patch('/api/invoice/mark-paid', isAuthenticated, async (req: any, res) => {
-    try {
-      const { invoiceNumber } = req.body;
-      const userId = req.user.claims.sub;
-      const user = await storage.getUser(userId);
-      
-      if (!user || user.role !== 'admin') {
-        return res.status(403).json({ message: "Only administrators can mark invoices as paid" });
-      }
 
-      // Find the invoice and update its status
-      const invoices = await storage.getInvoicesByFirmId(req.query.firmId as string);
-      const invoice = invoices.find(inv => inv.invoiceNumber === invoiceNumber);
-      
-      if (!invoice) {
-        return res.status(404).json({ message: "Invoice not found" });
-      }
-
-      await storage.updateInvoice(invoice.id, { isPaid: true });
-      
-      // Update project status
-      await storage.updateProject(invoice.projectId, { status: 'paid' });
-
-      res.json({ message: "Invoice marked as paid successfully" });
-    } catch (error) {
-      console.error("Error marking invoice as paid:", error);
-      res.status(500).json({ message: "Failed to mark invoice as paid" });
-    }
-  });
 
   // Invoice Ninja catalog routes
   app.get('/api/catalog/products', isAuthenticated, async (req: any, res) => {
