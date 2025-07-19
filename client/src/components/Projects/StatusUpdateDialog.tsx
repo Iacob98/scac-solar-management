@@ -36,7 +36,7 @@ interface StatusUpdateDialogProps {
   firmId: string;
 }
 
-const statusConfig = {
+const statusConfig: Record<string, { title: string; description: string; fields: string[] }> = {
   equipment_waiting: {
     title: 'Ожидание оборудования',
     description: 'Укажите ожидаемую дату прибытия оборудования',
@@ -74,19 +74,6 @@ const statusConfig = {
   },
 };
 
-// Schema для валидации форм
-const createStatusSchema = (fields: string[]) => {
-  const schemaFields: any = {
-    status: z.string(),
-  };
-  
-  fields.forEach(field => {
-    schemaFields[field] = z.string().min(1, 'Дата обязательна');
-  });
-  
-  return z.object(schemaFields);
-};
-
 export function StatusUpdateDialog({ 
   open, 
   onOpenChange, 
@@ -98,20 +85,21 @@ export function StatusUpdateDialog({
   const queryClient = useQueryClient();
   const [selectedDate, setSelectedDate] = useState<Date | undefined>();
   
-  // Ранний возврат если данные не готовы
-  if (!project || !targetStatus) {
-    return null;
-  }
+  // Всегда создаем schema и форму, даже если данные не готовы
+  const config = statusConfig[targetStatus] || { title: 'Обновить статус', description: 'Изменить статус проекта', fields: [] };
   
-  const config = statusConfig[targetStatus as keyof typeof statusConfig];
-  if (!config) return null;
-  
-  const schema = createStatusSchema(config.fields);
-  
+  const schema = z.object({
+    status: z.string(),
+    equipmentExpectedDate: z.string().optional(),
+    equipmentArrivedDate: z.string().optional(), 
+    workStartDate: z.string().optional(),
+    workEndDate: z.string().optional(),
+  });
+
   const form = useForm({
     resolver: zodResolver(schema),
     defaultValues: {
-      status: targetStatus,
+      status: targetStatus || 'planning',
       equipmentExpectedDate: '',
       equipmentArrivedDate: '',
       workStartDate: '',
@@ -121,13 +109,13 @@ export function StatusUpdateDialog({
 
   const updateStatusMutation = useMutation({
     mutationFn: async (data: any) => {
-      const response = await apiRequest(`/api/projects/${project.id}/status`, 'PATCH', data);
+      const response = await apiRequest(`/api/projects/${project?.id}/status`, 'PATCH', data);
       return response.json();
     },
     onSuccess: () => {
       toast({ description: 'Статус проекта обновлен' });
       queryClient.invalidateQueries({ queryKey: ['/api/projects', firmId] });
-      queryClient.invalidateQueries({ queryKey: [`/api/projects/${project.id}`] });
+      queryClient.invalidateQueries({ queryKey: [`/api/projects/${project?.id}`] });
       onOpenChange(false);
       form.reset();
       setSelectedDate(undefined);
@@ -141,6 +129,7 @@ export function StatusUpdateDialog({
   });
 
   const onSubmit = (data: any) => {
+    if (!project) return;
     updateStatusMutation.mutate(data);
   };
 
@@ -151,6 +140,11 @@ export function StatusUpdateDialog({
       setSelectedDate(date);
     }
   };
+
+  // Не рендерим если нет данных
+  if (!project || !targetStatus) {
+    return null;
+  }
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
