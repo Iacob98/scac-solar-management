@@ -100,9 +100,11 @@ export default function Invoices() {
         title: 'Успешно',
         description: 'Счет отмечен как оплаченный',
       });
-      // Обновляем кэш счетов и проектов для пересчета статистики
-      queryClient.invalidateQueries({ queryKey: ['/api/invoices', selectedFirmId] });
-      queryClient.invalidateQueries({ queryKey: ['/api/projects', selectedFirmId] });
+      // Принудительно обновляем кэш всех связанных данных
+      queryClient.invalidateQueries({ queryKey: ['/api/invoices'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/projects'] });
+      // Дополнительно рефетчим текущие данные
+      queryClient.refetchQueries({ queryKey: ['/api/invoices', selectedFirmId] });
     },
     onError: (error) => {
       toast({

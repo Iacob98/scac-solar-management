@@ -143,9 +143,10 @@ function ProjectsList({ selectedFirm, onViewProject, onManageServices }: Project
   const markPaidMutation = useMutation({
     mutationFn: (invoiceNumber: string) => apiRequest('/api/invoice/mark-paid', 'PATCH', { invoiceNumber }),
     onSuccess: () => {
-      // Обновляем кэш проектов и счетов для пересчета статистики
-      queryClient.invalidateQueries({ queryKey: ['/api/projects', selectedFirm] });
-      queryClient.invalidateQueries({ queryKey: ['/api/invoices', selectedFirm] });
+      // Принудительно обновляем все кэши для пересчета статистики
+      queryClient.invalidateQueries({ queryKey: ['/api/projects'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/invoices'] });
+      queryClient.refetchQueries({ queryKey: ['/api/invoices', selectedFirm] });
       toast({ title: 'Счет отмечен как оплаченный' });
     },
     onError: (error: any) => {
