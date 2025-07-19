@@ -118,8 +118,11 @@ export default function ProjectDetail({ projectId, selectedFirm, onBack }: Proje
   const createInvoiceMutation = useMutation({
     mutationFn: (projectId: number) => apiRequest('/api/invoice/create', 'POST', { projectId }),
     onSuccess: (data: any) => {
+      // Обновляем все связанные кэши после создания счета
       queryClient.invalidateQueries({ queryKey: ['/api/projects', projectId] });
       queryClient.invalidateQueries({ queryKey: ['/api/projects', projectId, 'history'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/invoices', selectedFirm] });
+      queryClient.invalidateQueries({ queryKey: ['/api/invoices'] });
       toast({ 
         title: 'Счет создан успешно',
         description: `Счет №${data.invoiceNumber} создан в Invoice Ninja`

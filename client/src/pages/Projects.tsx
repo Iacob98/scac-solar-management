@@ -27,19 +27,25 @@ const projectFormSchema = insertProjectSchema.extend({
 });
 
 const statusLabels = {
-  planning: 'Планируется',
-  in_progress: 'В работе',
-  done: 'Завершен',
+  planning: 'Планирование',
+  equipment_waiting: 'Ожидание оборудования',
+  equipment_arrived: 'Оборудование поступило',
+  work_scheduled: 'Работы запланированы',
+  work_in_progress: 'Работы в процессе',
+  work_completed: 'Работы завершены',
   invoiced: 'Счет выставлен',
   paid: 'Оплачен'
 };
 
 const statusColors = {
   planning: 'bg-gray-100 text-gray-800',
-  in_progress: 'bg-blue-100 text-blue-800',
-  done: 'bg-green-100 text-green-800',
-  invoiced: 'bg-yellow-100 text-yellow-800',
-  paid: 'bg-purple-100 text-purple-800'
+  equipment_waiting: 'bg-orange-100 text-orange-800',
+  equipment_arrived: 'bg-blue-100 text-blue-800',
+  work_scheduled: 'bg-purple-100 text-purple-800',
+  work_in_progress: 'bg-yellow-100 text-yellow-800',
+  work_completed: 'bg-green-100 text-green-800',
+  invoiced: 'bg-indigo-100 text-indigo-800',
+  paid: 'bg-emerald-100 text-emerald-800'
 };
 
 interface ProjectsProps {
@@ -125,7 +131,10 @@ function ProjectsList({ selectedFirm, onViewProject, onManageServices }: Project
   const createInvoiceMutation = useMutation({
     mutationFn: (projectId: number) => apiRequest('/api/invoice/create', 'POST', { projectId }),
     onSuccess: (data: any) => {
+      // Обновляем кэш проектов и счетов после создания нового счета
       queryClient.invalidateQueries({ queryKey: ['/api/projects', selectedFirm] });
+      queryClient.invalidateQueries({ queryKey: ['/api/invoices', selectedFirm] });
+      queryClient.invalidateQueries({ queryKey: ['/api/invoices'] });
       toast({ 
         title: 'Счет выставлен', 
         description: `Счет №${data.invoiceNumber} создан успешно` 
