@@ -17,6 +17,7 @@ import { apiRequest } from '@/lib/queryClient';
 import ServicesPage from './Services';
 import ProjectHistory from './ProjectHistory';
 import { ProjectShareButton } from '@/components/ProjectShareButton';
+import { StatusUpdateDialog } from '@/components/Projects/StatusUpdateDialog';
 
 interface ProjectDetailProps {
   projectId: number;
@@ -49,6 +50,8 @@ const statusColors = {
 export default function ProjectDetail({ projectId, selectedFirm, onBack }: ProjectDetailProps) {
   const [activeTab, setActiveTab] = useState('services');
   const [showAllHistory, setShowAllHistory] = useState(false);
+  const [statusDialogOpen, setStatusDialogOpen] = useState(false);
+  const [targetStatus, setTargetStatus] = useState('');
   const { toast } = useToast();
   const { user } = useAuth();
   const queryClient = useQueryClient();
@@ -98,6 +101,35 @@ export default function ProjectDetail({ projectId, selectedFirm, onBack }: Proje
   });
 
   console.log('Related data:', { client, clientError, crew, crewError });
+
+  const openStatusDialog = (status: string) => {
+    setTargetStatus(status);
+    setStatusDialogOpen(true);
+  };
+
+  // Функция для валидации возможности смены статуса
+  const canChangeStatus = (currentStatus: string, targetStatus: string): boolean => {
+    switch (targetStatus) {
+      case 'equipment_arrived':
+        // Можно перейти, если оборудование ожидается
+        return currentStatus === 'equipment_waiting';
+      case 'work_scheduled':
+        // Можно перейти, если оборудование прибыло
+        return currentStatus === 'equipment_arrived';
+      case 'work_in_progress':
+        // Можно начать работу, если оборудование прибыло и дата начала работ прошла/сегодня
+        if (currentStatus !== 'work_scheduled') return false;
+        if (!project?.workStartDate) return false;
+        const workStartDate = new Date(project.workStartDate);
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        return workStartDate <= today;
+      case 'work_completed':
+        return currentStatus === 'work_in_progress';
+      default:
+        return true;
+    }
+  };
 
   const updateProjectStatusMutation = useMutation({
     mutationFn: (data: any) => apiRequest(`/api/projects/${projectId}`, 'PATCH', data),
@@ -222,11 +254,10 @@ export default function ProjectDetail({ projectId, selectedFirm, onBack }: Proje
               {/* Кнопка "Поделиться" */}
               <ProjectShareButton projectId={project.id} firmId={project.firmId} />
               
-              {/* Кнопки управления статусом */}
+              {/* Кнопки управления статусом с валидацией */}
               {project.status === 'planning' && (
                 <Button 
-                  onClick={() => updateProjectStatus('equipment_waiting')}
-                  disabled={updateProjectStatusMutation.isPending}
+                  onClick={() => openStatusDialog('equipment_waiting')}
                   className="bg-blue-600 hover:bg-blue-700"
                 >
                   <Package className="h-4 w-4 mr-2" />
@@ -234,11 +265,20 @@ export default function ProjectDetail({ projectId, selectedFirm, onBack }: Proje
                 </Button>
               )}
               
-              {project.status === 'equipment_waiting' && project.equipmentArrivedDate && (
+              {project.status === 'equipment_waiting' && (
                 <Button 
-                  onClick={() => updateProjectStatus('work_scheduled')}
-                  disabled={updateProjectStatusMutation.isPending}
+                  onClick={() => openStatusDialog('equipment_arrived')}
                   className="bg-green-600 hover:bg-green-700"
+                >
+                  <CheckCircle className="h-4 w-4 mr-2" />
+                  Оборудование прибыло
+                </Button>
+              )}
+              
+              {project.status === 'equipment_arrived' && (
+                <Button 
+                  onClick={() => openStatusDialog('work_scheduled')}
+                  className="bg-purple-600 hover:bg-purple-700"
                 >
                   <Calendar className="h-4 w-4 mr-2" />
                   Запланировать работы
@@ -247,9 +287,10 @@ export default function ProjectDetail({ projectId, selectedFirm, onBack }: Proje
               
               {project.status === 'work_scheduled' && (
                 <Button 
-                  onClick={() => updateProjectStatus('work_in_progress')}
-                  disabled={updateProjectStatusMutation.isPending}
-                  className="bg-yellow-600 hover:bg-yellow-700"
+                  onClick={() => openStatusDialog('work_in_progress')}
+                  disabled={!canChangeStatus(project.status, 'work_in_progress')}
+                  className="bg-yellow-600 hover:bg-yellow-700 disabled:bg-gray-400"
+                  title={!canChangeStatus(project.status, 'work_in_progress') ? 'Нельзя начать работу до указанной даты или без прибытия оборудования' : ''}
                 >
                   <PlayCircle className="h-4 w-4 mr-2" />
                   Начать работы
@@ -258,9 +299,8 @@ export default function ProjectDetail({ projectId, selectedFirm, onBack }: Proje
               
               {project.status === 'work_in_progress' && (
                 <Button 
-                  onClick={() => updateProjectStatus('work_completed')}
-                  disabled={updateProjectStatusMutation.isPending}
-                  className="bg-purple-600 hover:bg-purple-700"
+                  onClick={() => openStatusDialog('work_completed')}
+                  className="bg-emerald-600 hover:bg-emerald-700"
                 >
                   <CheckCircle className="h-4 w-4 mr-2" />
                   Завершить работы
@@ -575,6 +615,15 @@ export default function ProjectDetail({ projectId, selectedFirm, onBack }: Proje
           </Tabs>
         </div>
       </div>
+
+      {/* Диалог обновления статуса */}
+      <StatusUpdateDialog
+        open={statusDialogOpen}
+        onOpenChange={setStatusDialogOpen}
+        project={project}
+        targetStatus={targetStatus}
+        firmId={selectedFirm}
+      />
     </div>
   );
 }

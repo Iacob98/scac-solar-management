@@ -49,7 +49,7 @@ const statusConfig: Record<string, { title: string; description: string; fields:
   },
   work_scheduled: {
     title: 'Работа запланирована',
-    description: 'Укажите дату начала работ',
+    description: 'Укажите ожидаемую дату начала работ',
     fields: ['workStartDate'],
   },
   work_in_progress: {

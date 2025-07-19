@@ -19,7 +19,7 @@ import Tutorial from '@/components/Tutorial';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
 import { apiRequest } from '@/lib/queryClient';
-import { StatusUpdateDialog } from '@/components/Projects/StatusUpdateDialog';
+
 import ProjectDetail from './ProjectDetail';
 import Services from './Services';
 import Reports from './Reports';
@@ -71,9 +71,7 @@ function ProjectsList({ selectedFirm, onViewProject, onManageServices, onManageR
   const [filter, setFilter] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [isTutorialOpen, setIsTutorialOpen] = useState(false);
-  const [statusDialogOpen, setStatusDialogOpen] = useState(false);
-  const [selectedProject, setSelectedProject] = useState<any>(null);
-  const [targetStatus, setTargetStatus] = useState<string>('');
+
 
   const { data: projects = [], isLoading: projectsLoading } = useQuery({
     queryKey: ['/api/projects', selectedFirm],
@@ -221,11 +219,7 @@ function ProjectsList({ selectedFirm, onViewProject, onManageServices, onManageR
     updateProjectStatusMutation.mutate({ projectId, status });
   };
 
-  const openStatusDialog = (project: any, status: string) => {
-    setSelectedProject(project);
-    setTargetStatus(status);
-    setStatusDialogOpen(true);
-  };
+
 
   const filteredProjects = (projects as Project[]).filter((project: Project) => {
     const matchesFilter = !filter || 
@@ -674,52 +668,7 @@ function ProjectsList({ selectedFirm, onViewProject, onManageServices, onManageR
                       Фото отчеты
                     </Button>
                     
-                    {/* Кнопки управления статусом */}
-                    {project.status === 'planning' && (
-                      <Button 
-                        size="sm" 
-                        onClick={() => openStatusDialog(project, 'equipment_waiting')}
-                      >
-                        Ожидать оборудование
-                      </Button>
-                    )}
-                    
-                    {project.status === 'equipment_waiting' && (
-                      <Button 
-                        size="sm" 
-                        onClick={() => openStatusDialog(project, 'equipment_arrived')}
-                      >
-                        Оборудование поступило
-                      </Button>
-                    )}
-                    
-                    {project.status === 'equipment_arrived' && (
-                      <Button 
-                        size="sm" 
-                        onClick={() => openStatusDialog(project, 'work_scheduled')}
-                      >
-                        Запланировать работы
-                      </Button>
-                    )}
-                    
-                    {project.status === 'work_scheduled' && (
-                      <Button 
-                        size="sm" 
-                        onClick={() => openStatusDialog(project, 'work_in_progress')}
-                      >
-                        Начать работы
-                      </Button>
-                    )}
-                    
-                    {project.status === 'work_in_progress' && (
-                      <Button 
-                        size="sm" 
-                        onClick={() => openStatusDialog(project, 'work_completed')}
-                      >
-                        Завершить работы
-                      </Button>
-                    )}
-                    
+                    {/* Кнопки для счетов - оставляем только функции выставления и загрузки */}
                     {project.status === 'work_completed' && (
                       <Button 
                         size="sm" 
@@ -774,14 +723,7 @@ function ProjectsList({ selectedFirm, onViewProject, onManageServices, onManageR
         </div>
       )}
 
-      {/* Диалог обновления статуса */}
-      <StatusUpdateDialog
-        open={statusDialogOpen}
-        onOpenChange={setStatusDialogOpen}
-        project={selectedProject}
-        targetStatus={targetStatus}
-        firmId={selectedFirm}
-      />
+
     </div>
   );
 }
