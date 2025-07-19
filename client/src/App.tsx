@@ -18,6 +18,7 @@ import CrewsNew from "@/pages/CrewsNew";
 import Invoices from "@/pages/Invoices";
 import Firms from "@/pages/admin/Firms";
 import Users from "@/pages/admin/Users";
+import FirmsManagement from "@/pages/admin/FirmsManagement";
 import Settings from "@/pages/Settings";
 import NotFound from "@/pages/not-found";
 
@@ -81,6 +82,7 @@ function Router() {
           <Route path="/invoices" component={() => <ProtectedRoute component={Invoices} />} />
           <Route path="/settings" component={() => <ProtectedRoute component={Settings} />} />
           <Route path="/admin/firms" component={() => <ProtectedRoute component={Firms} />} />
+          <Route path="/admin/firms-management" component={() => <ProtectedRoute component={FirmsManagement} />} />
           <Route path="/admin/users" component={() => <ProtectedRoute component={Users} />} />
           <Route component={NotFound} />
         </>
