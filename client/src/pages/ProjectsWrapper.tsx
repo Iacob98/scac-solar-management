@@ -225,6 +225,45 @@ function ProjectsList({ selectedFirm, onViewProject, onManageServices, onManageR
     const matchesStatus = statusFilter === 'all' || project.status === statusFilter;
     
     return matchesFilter && matchesStatus;
+  }).sort((a, b) => {
+    // Сортировка по приоритету дат
+    const now = new Date();
+    
+    // Функция для получения приоритета проекта (меньше = выше приоритет)
+    const getPriority = (project: Project) => {
+      // Если ожидается оборудование и дата близко
+      if (project.status === 'equipment_waiting' && project.equipmentExpectedDate) {
+        const equipmentDate = new Date(project.equipmentExpectedDate);
+        const diffDays = Math.ceil((equipmentDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+        if (diffDays <= 3) return 1; // Высокий приоритет если 3 дня или меньше
+        if (diffDays <= 7) return 2; // Средний приоритет если неделя или меньше
+      }
+      
+      // Если работы запланированы и дата близко
+      if (project.status === 'work_scheduled' && project.workStartDate) {
+        const workDate = new Date(project.workStartDate);
+        const diffDays = Math.ceil((workDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+        if (diffDays <= 1) return 1; // Высокий приоритет если завтра или сегодня
+        if (diffDays <= 3) return 2; // Средний приоритет если 3 дня или меньше
+      }
+      
+      // Если нужны звонки - высокий приоритет
+      if (project.needsCallForEquipmentDelay || project.needsCallForCrewDelay || project.needsCallForDateChange) {
+        return 1;
+      }
+      
+      return 10; // Низкий приоритет
+    };
+    
+    const priorityA = getPriority(a);
+    const priorityB = getPriority(b);
+    
+    if (priorityA !== priorityB) {
+      return priorityA - priorityB;
+    }
+    
+    // Если приоритеты равны, сортируем по дате создания (новые первые)
+    return new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime();
   });
 
   const getClientName = (clientId: number) => {

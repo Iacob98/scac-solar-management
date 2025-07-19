@@ -185,6 +185,76 @@ export default function ProjectDetail({ projectId, selectedFirm, onBack }: Proje
             <ArrowLeft className="h-4 w-4 mr-2" />
             Назад к проектам
           </Button>
+          <div className="flex items-center space-x-2">
+            <h1 className="text-2xl font-bold">Проект #{project.id}</h1>
+            <Badge className={statusColors[project.status as keyof typeof statusColors]}>
+              {statusLabels[project.status as keyof typeof statusLabels]}
+            </Badge>
+          </div>
+        </div>
+        
+        <div className="flex items-center space-x-2">
+          {/* Кнопки управления статусом */}
+          {project.status === 'planning' && (
+            <Button 
+              size="sm"
+              onClick={() => updateProjectStatus('equipment_waiting')}
+              disabled={updateProjectStatusMutation.isPending}
+            >
+              Ожидать оборудование
+            </Button>
+          )}
+          
+          {project.status === 'equipment_waiting' && project.equipmentArrivedDate && (
+            <Button 
+              size="sm"
+              onClick={() => updateProjectStatus('work_scheduled')}
+              disabled={updateProjectStatusMutation.isPending}
+            >
+              Запланировать работы
+            </Button>
+          )}
+          
+          {project.status === 'work_scheduled' && (
+            <Button 
+              size="sm"
+              onClick={() => updateProjectStatus('work_in_progress')}
+              disabled={updateProjectStatusMutation.isPending}
+            >
+              Начать работы
+            </Button>
+          )}
+          
+          {project.status === 'work_in_progress' && (
+            <Button 
+              size="sm"
+              onClick={() => updateProjectStatus('work_completed')}
+              disabled={updateProjectStatusMutation.isPending}
+            >
+              Завершить работы
+            </Button>
+          )}
+          
+          {project.status === 'work_completed' && !project.invoiceNumber && (
+            <Button 
+              size="sm"
+              onClick={() => createInvoiceMutation.mutate(project.id)}
+              disabled={createInvoiceMutation.isPending}
+            >
+              {createInvoiceMutation.isPending ? 'Создание...' : 'Выставить счет'}
+            </Button>
+          )}
+          
+          {project.invoiceNumber && project.status === 'invoiced' && (
+            <Button 
+              size="sm"
+              onClick={() => markPaidMutation.mutate(project.invoiceNumber!)}
+              disabled={markPaidMutation.isPending}
+            >
+              {markPaidMutation.isPending ? 'Обновление...' : 'Отметить оплаченным'}
+            </Button>
+          )}
+          
           <div>
             <h1 className="text-2xl font-bold">{(client as Client)?.name || 'Загрузка...'}</h1>
             <p className="text-gray-600">Детали проекта #{project.id}</p>
