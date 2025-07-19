@@ -31,6 +31,7 @@ export default function ServicesPage({ selectedFirm, projectId }: ServicesPagePr
   const queryClient = useQueryClient();
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [editingService, setEditingService] = useState<Service | null>(null);
+  const [selectedProductId, setSelectedProductId] = useState<string>('');
 
   const { data: services = [], isLoading } = useQuery({
     queryKey: ['/api/services', projectId],
@@ -85,6 +86,7 @@ export default function ServicesPage({ selectedFirm, projectId }: ServicesPagePr
       queryClient.invalidateQueries({ queryKey: ['/api/services', projectId] });
       toast({ title: 'Услуга добавлена успешно' });
       setIsCreateDialogOpen(false);
+      setSelectedProductId('');
       form.reset();
     },
     onError: (error: any) => {
@@ -141,6 +143,7 @@ export default function ServicesPage({ selectedFirm, projectId }: ServicesPagePr
   };
 
   const handleProductSelect = (productId: string) => {
+    setSelectedProductId(productId);
     const product = (products as any[]).find(p => p.id.toString() === productId);
     if (product) {
       // Устанавливаем название как код товара
@@ -167,6 +170,7 @@ export default function ServicesPage({ selectedFirm, projectId }: ServicesPagePr
   const handleCloseDialog = () => {
     setIsCreateDialogOpen(false);
     setEditingService(null);
+    setSelectedProductId('');
     form.reset();
   };
 
@@ -242,9 +246,11 @@ export default function ServicesPage({ selectedFirm, projectId }: ServicesPagePr
                 {!form.watch('isCustom') && (
                   <FormItem>
                     <FormLabel>Выберите товар из каталога</FormLabel>
-                    <Select onValueChange={handleProductSelect} value="">
+                    <Select onValueChange={handleProductSelect} value={selectedProductId}>
                       <SelectTrigger>
-                        <SelectValue placeholder="Выберите товар из каталога" />
+                        <SelectValue placeholder="Выберите товар из каталога">
+                          {selectedProductId && (products as any[]).find(p => p.id.toString() === selectedProductId)?.name}
+                        </SelectValue>
                       </SelectTrigger>
                       <SelectContent className="max-w-md">
                         {(products as any[]).map((product: any) => (
