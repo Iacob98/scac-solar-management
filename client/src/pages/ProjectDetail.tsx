@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { ArrowLeft, Edit, Settings, FileText, Users, CalendarIcon, Package, Plus, Receipt, MapPin, Clock, Euro, Calendar } from 'lucide-react';
+import { ArrowLeft, Edit, Settings, FileText, Users, CalendarIcon, Package, Plus, Receipt, MapPin, Clock, Euro, Calendar, Building2, PlayCircle, DollarSign, CheckCircle, AlertTriangle, Phone } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
 import { format } from 'date-fns';
@@ -33,60 +33,46 @@ const statusLabels = {
 };
 
 const statusColors = {
-  planning: 'bg-gray-100 text-gray-800',
-  equipment_waiting: 'bg-orange-100 text-orange-800',
-  equipment_arrived: 'bg-blue-100 text-blue-800',
-  work_scheduled: 'bg-cyan-100 text-cyan-800',
-  work_in_progress: 'bg-yellow-100 text-yellow-800',
-  work_completed: 'bg-green-100 text-green-800',
-  invoiced: 'bg-purple-100 text-purple-800',
-  paid: 'bg-emerald-100 text-emerald-800'
+  planning: 'bg-blue-100 text-blue-800',
+  equipment_waiting: 'bg-yellow-100 text-yellow-800',
+  equipment_arrived: 'bg-green-100 text-green-800',
+  work_scheduled: 'bg-purple-100 text-purple-800',
+  work_in_progress: 'bg-orange-100 text-orange-800',
+  work_completed: 'bg-emerald-100 text-emerald-800',
+  invoiced: 'bg-indigo-100 text-indigo-800',
+  paid: 'bg-gray-100 text-gray-800'
 };
 
 export default function ProjectDetail({ projectId, selectedFirm, onBack }: ProjectDetailProps) {
+  const [activeTab, setActiveTab] = useState('services');
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const [activeTab, setActiveTab] = useState('overview');
 
   const { data: project, isLoading: projectLoading } = useQuery({
     queryKey: ['/api/projects', projectId],
-    queryFn: async () => {
-      const response = await apiRequest(`/api/projects/${projectId}`, 'GET');
-      return await response.json();
-    },
-    enabled: !!projectId,
+    queryFn: () => apiRequest(`/api/projects/${projectId}`, 'GET'),
+  });
+
+  const { data: services } = useQuery({
+    queryKey: ['/api/services', projectId],
+    queryFn: () => apiRequest(`/api/services?projectId=${projectId}`, 'GET'),
+    enabled: !!project,
   });
 
   const { data: client } = useQuery({
-    queryKey: ['/api/clients', project?.clientId],
-    queryFn: async () => {
-      const response = await apiRequest(`/api/clients/single/${project?.clientId}`, 'GET');
-      return await response.json();
-    },
+    queryKey: ['/api/clients/single', project?.clientId],
+    queryFn: () => apiRequest(`/api/clients/single/${project.clientId}`, 'GET'),
     enabled: !!project?.clientId,
   });
 
   const { data: crew } = useQuery({
-    queryKey: ['/api/crews', project?.crewId],
-    queryFn: async () => {
-      const response = await apiRequest(`/api/crews/single/${project?.crewId}`, 'GET');
-      return await response.json();
-    },
+    queryKey: ['/api/crews/single', project?.crewId],
+    queryFn: () => apiRequest(`/api/crews/single/${project.crewId}`, 'GET'),
     enabled: !!project?.crewId,
   });
 
-  const { data: services = [] } = useQuery({
-    queryKey: ['/api/services', projectId],
-    queryFn: async () => {
-      const response = await apiRequest(`/api/services?projectId=${projectId}`, 'GET');
-      return await response.json();
-    },
-    enabled: !!projectId,
-  });
-
   const updateProjectStatusMutation = useMutation({
-    mutationFn: ({ projectId, status }: { projectId: number; status: string }) => 
-      apiRequest(`/api/projects/${projectId}/status`, 'PATCH', { status }),
+    mutationFn: (data: any) => apiRequest(`/api/projects/${projectId}`, 'PATCH', data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/projects', projectId] });
       toast({ title: 'Статус проекта обновлен' });
@@ -133,28 +119,15 @@ export default function ProjectDetail({ projectId, selectedFirm, onBack }: Proje
     },
   });
 
-  const updateProjectMutation = useMutation({
-    mutationFn: (data: any) => apiRequest(`/api/projects/${projectId}`, 'PATCH', data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/projects', projectId] });
-      toast({ title: 'Проект обновлен' });
-    },
-    onError: (error: any) => {
-      toast({
-        title: 'Ошибка',
-        description: error.message || 'Не удалось обновить проект',
-        variant: 'destructive'
-      });
-    },
-  });
-
-  const updateProjectStatus = (status: string) => {
-    updateProjectStatusMutation.mutate({ projectId, status });
+  const updateProjectStatus = (newStatus: string) => {
+    updateProjectStatusMutation.mutate({ 
+      status: newStatus 
+    });
   };
 
-  const totalAmount = (services as Service[]).reduce((sum, service) => {
-    return sum + (parseFloat(service.price.toString()) * parseFloat(service.quantity.toString()));
-  }, 0);
+  const updateProjectDates = (updates: Partial<Project>) => {
+    updateProjectStatusMutation.mutate(updates);
+  };
 
   if (projectLoading) {
     return (
@@ -177,513 +150,416 @@ export default function ProjectDetail({ projectId, selectedFirm, onBack }: Proje
   }
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center space-x-4">
-          <Button variant="outline" onClick={onBack}>
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            Назад к проектам
-          </Button>
-          <div className="flex items-center space-x-2">
-            <h1 className="text-2xl font-bold">Проект #{project.id}</h1>
-            <Badge className={statusColors[project.status as keyof typeof statusColors]}>
-              {statusLabels[project.status as keyof typeof statusLabels]}
-            </Badge>
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-6">
+      <div className="max-w-7xl mx-auto space-y-6">
+        {/* Header */}
+        <div className="bg-white rounded-xl shadow-sm border p-6">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center space-x-4">
+              <Button variant="ghost" onClick={onBack} className="hover:bg-blue-50">
+                <ArrowLeft className="h-4 w-4 mr-2" />
+                Назад к проектам
+              </Button>
+            </div>
+          </div>
+          
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-4">
+              <div className="p-3 bg-blue-100 rounded-lg">
+                <Building2 className="h-8 w-8 text-blue-600" />
+              </div>
+              <div>
+                <h1 className="text-3xl font-bold text-gray-900">Проект #{project.id}</h1>
+                <p className="text-gray-600 mt-1">
+                  {project.installationPersonFirstName} {project.installationPersonLastName}
+                </p>
+              </div>
+              <Badge className={`${statusColors[project.status as keyof typeof statusColors]} text-sm px-3 py-1`}>
+                {statusLabels[project.status as keyof typeof statusLabels]}
+              </Badge>
+            </div>
+            
+            <div className="flex items-center space-x-3">
+              {/* Кнопки управления статусом */}
+              {project.status === 'planning' && (
+                <Button 
+                  onClick={() => updateProjectStatus('equipment_waiting')}
+                  disabled={updateProjectStatusMutation.isPending}
+                  className="bg-blue-600 hover:bg-blue-700"
+                >
+                  <Package className="h-4 w-4 mr-2" />
+                  Ожидать оборудование
+                </Button>
+              )}
+              
+              {project.status === 'equipment_waiting' && project.equipmentArrivedDate && (
+                <Button 
+                  onClick={() => updateProjectStatus('work_scheduled')}
+                  disabled={updateProjectStatusMutation.isPending}
+                  className="bg-green-600 hover:bg-green-700"
+                >
+                  <Calendar className="h-4 w-4 mr-2" />
+                  Запланировать работы
+                </Button>
+              )}
+              
+              {project.status === 'work_scheduled' && (
+                <Button 
+                  onClick={() => updateProjectStatus('work_in_progress')}
+                  disabled={updateProjectStatusMutation.isPending}
+                  className="bg-yellow-600 hover:bg-yellow-700"
+                >
+                  <PlayCircle className="h-4 w-4 mr-2" />
+                  Начать работы
+                </Button>
+              )}
+              
+              {project.status === 'work_in_progress' && (
+                <Button 
+                  onClick={() => updateProjectStatus('work_completed')}
+                  disabled={updateProjectStatusMutation.isPending}
+                  className="bg-purple-600 hover:bg-purple-700"
+                >
+                  <CheckCircle className="h-4 w-4 mr-2" />
+                  Завершить работы
+                </Button>
+              )}
+              
+              {project.status === 'work_completed' && !project.invoiceNumber && (
+                <Button 
+                  onClick={() => createInvoiceMutation.mutate(project.id)}
+                  disabled={createInvoiceMutation.isPending}
+                  className="bg-orange-600 hover:bg-orange-700"
+                >
+                  <Receipt className="h-4 w-4 mr-2" />
+                  {createInvoiceMutation.isPending ? 'Создание...' : 'Выставить счет'}
+                </Button>
+              )}
+              
+              {project.invoiceNumber && project.status === 'invoiced' && (
+                <Button 
+                  onClick={() => markPaidMutation.mutate(project.invoiceNumber!)}
+                  disabled={markPaidMutation.isPending}
+                  className="bg-emerald-600 hover:bg-emerald-700"
+                >
+                  <DollarSign className="h-4 w-4 mr-2" />
+                  {markPaidMutation.isPending ? 'Обновление...' : 'Отметить оплаченным'}
+                </Button>
+              )}
+            </div>
           </div>
         </div>
-        
-        <div className="flex items-center space-x-2">
-          {/* Кнопки управления статусом */}
-          {project.status === 'planning' && (
-            <Button 
-              size="sm"
-              onClick={() => updateProjectStatus('equipment_waiting')}
-              disabled={updateProjectStatusMutation.isPending}
-            >
-              Ожидать оборудование
-            </Button>
-          )}
-          
-          {project.status === 'equipment_waiting' && project.equipmentArrivedDate && (
-            <Button 
-              size="sm"
-              onClick={() => updateProjectStatus('work_scheduled')}
-              disabled={updateProjectStatusMutation.isPending}
-            >
-              Запланировать работы
-            </Button>
-          )}
-          
-          {project.status === 'work_scheduled' && (
-            <Button 
-              size="sm"
-              onClick={() => updateProjectStatus('work_in_progress')}
-              disabled={updateProjectStatusMutation.isPending}
-            >
-              Начать работы
-            </Button>
-          )}
-          
-          {project.status === 'work_in_progress' && (
-            <Button 
-              size="sm"
-              onClick={() => updateProjectStatus('work_completed')}
-              disabled={updateProjectStatusMutation.isPending}
-            >
-              Завершить работы
-            </Button>
-          )}
-          
-          {project.status === 'work_completed' && !project.invoiceNumber && (
-            <Button 
-              size="sm"
-              onClick={() => createInvoiceMutation.mutate(project.id)}
-              disabled={createInvoiceMutation.isPending}
-            >
-              {createInvoiceMutation.isPending ? 'Создание...' : 'Выставить счет'}
-            </Button>
-          )}
-          
-          {project.invoiceNumber && project.status === 'invoiced' && (
-            <Button 
-              size="sm"
-              onClick={() => markPaidMutation.mutate(project.invoiceNumber!)}
-              disabled={markPaidMutation.isPending}
-            >
-              {markPaidMutation.isPending ? 'Обновление...' : 'Отметить оплаченным'}
-            </Button>
-          )}
-          
-          <div>
-            <h1 className="text-2xl font-bold">{(client as Client)?.name || 'Загрузка...'}</h1>
-            <p className="text-gray-600">Детали проекта #{project.id}</p>
-          </div>
-        </div>
-        <div className="flex items-center space-x-2">
-          <Badge className={statusColors[project.status as keyof typeof statusColors]}>
-            {statusLabels[project.status as keyof typeof statusLabels]}
-          </Badge>
-          <Button variant="outline" size="sm">
-            <Edit className="h-4 w-4 mr-2" />
-            Редактировать
-          </Button>
-        </div>
-      </div>
 
-      {/* Quick Actions */}
-      <div className="flex flex-wrap gap-2">
-        {project.status === 'planning' && (
-          <Button onClick={() => updateProjectStatus('in_progress')}>
-            Начать работу
-          </Button>
-        )}
-        
-        {project.status === 'in_progress' && (
-          <Button onClick={() => updateProjectStatus('done')}>
-            Завершить проект
-          </Button>
-        )}
-        
-        {project.status === 'done' && (
-          <Button 
-            onClick={() => createInvoiceMutation.mutate(project.id)}
-            disabled={createInvoiceMutation.isPending}
-          >
-            <Receipt className="h-4 w-4 mr-2" />
-            {createInvoiceMutation.isPending ? 'Создание счета...' : 'Выставить счет'}
-          </Button>
-        )}
-        
-        {project.status === 'invoiced' && project.invoiceNumber && (
-          <Button 
-            onClick={() => markPaidMutation.mutate(project.invoiceNumber!)}
-            disabled={markPaidMutation.isPending}
-          >
-            Отметить оплаченным
-          </Button>
-        )}
-      </div>
-
-      {/* Tabs */}
-      <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid w-full grid-cols-4">
-          <TabsTrigger value="overview">Обзор</TabsTrigger>
-          <TabsTrigger value="services">Услуги</TabsTrigger>
-          <TabsTrigger value="timeline">Хронология</TabsTrigger>
-          <TabsTrigger value="files">Файлы</TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="overview" className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/* Информация о клиенте установки */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center">
-                  <MapPin className="h-5 w-5 mr-2" />
-                  Клиент установки
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                {project.installationPersonFirstName && project.installationPersonLastName ? (
-                  <>
-                    <div>
-                      <p className="text-sm text-gray-600">Имя и фамилия</p>
-                      <p className="font-medium">{project.installationPersonFirstName} {project.installationPersonLastName}</p>
-                    </div>
-                    {project.installationPersonPhone && (
-                      <div>
-                        <p className="text-sm text-gray-600">Телефон</p>
-                        <p className="font-medium">{project.installationPersonPhone}</p>
-                      </div>
-                    )}
-                    {project.installationPersonAddress && (
-                      <div>
-                        <p className="text-sm text-gray-600">Адрес установки</p>
-                        <p className="font-medium">{project.installationPersonAddress}</p>
-                      </div>
-                    )}
-                    {project.installationPersonUniqueId && (
-                      <div>
-                        <p className="text-sm text-gray-600">Уникальный ID</p>
-                        <p className="font-medium">{project.installationPersonUniqueId}</p>
-                      </div>
-                    )}
-                  </>
-                ) : (
-                  <p className="text-gray-500">Информация не указана</p>
-                )}
-              </CardContent>
-            </Card>
-            {/* Project Info */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center">
-                  <FileText className="h-5 w-5 mr-2" />
-                  Информация о проекте
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <span className="text-sm text-gray-500">ID проекта</span>
-                    <p className="font-medium">#{project.id}</p>
-                  </div>
-                  <div>
-                    <span className="text-sm text-gray-500">Номер команды</span>
-                    <p className="font-medium">{project.teamNumber || 'Не указан'}</p>
-                  </div>
-                  <div>
-                    <span className="text-sm text-gray-500">Дата начала</span>
-                    <p className="font-medium">
-                      {project.startDate ? format(new Date(project.startDate), 'dd.MM.yyyy', { locale: ru }) : 'Не указана'}
-                    </p>
-                  </div>
-                  <div>
-                    <span className="text-sm text-gray-500">Дата окончания</span>
-                    <p className="font-medium">
-                      {project.endDate ? format(new Date(project.endDate), 'dd.MM.yyyy', { locale: ru }) : 'Не указана'}
-                    </p>
-                  </div>
-                </div>
-                {project.notes && (
-                  <div>
-                    <span className="text-sm text-gray-500">Описание</span>
-                    <p className="mt-1">{project.notes}</p>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-
-            {/* Client Info */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center">
-                  <Users className="h-5 w-5 mr-2" />
+        {/* Основной контент */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Левая колонка - основная информация */}
+          <div className="lg:col-span-2 space-y-6">
+            {/* Информация о клиенте */}
+            <Card className="border-l-4 border-l-blue-500 shadow-sm">
+              <CardHeader className="pb-3">
+                <CardTitle className="flex items-center text-lg">
+                  <Users className="h-5 w-5 mr-2 text-blue-600" />
                   Информация о клиенте
                 </CardTitle>
               </CardHeader>
-              <CardContent className="space-y-4">
-                {client ? (
-                  <>
-                    <div>
-                      <span className="text-sm text-gray-500">Имя</span>
-                      <p className="font-medium">{(client as Client).name}</p>
-                    </div>
-                    {(client as Client).email && (
-                      <div>
-                        <span className="text-sm text-gray-500">Email</span>
-                        <p className="font-medium">{(client as Client).email}</p>
-                      </div>
-                    )}
-                    {(client as Client).phone && (
-                      <div>
-                        <span className="text-sm text-gray-500">Телефон</span>
-                        <p className="font-medium">{(client as Client).phone}</p>
-                      </div>
-                    )}
-                    {(client as Client).address && (
-                      <div>
-                        <span className="text-sm text-gray-500">Адрес</span>
-                        <p className="font-medium">{(client as Client).address}</p>
-                      </div>
-                    )}
-                  </>
-                ) : (
-                  <p className="text-gray-500">Загрузка информации о клиенте...</p>
-                )}
-              </CardContent>
-            </Card>
-
-            {/* Crew Info */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center">
-                  <Users className="h-5 w-5 mr-2" />
-                  Назначенная бригада
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {crew ? (
-                  <>
-                    <div>
-                      <span className="text-sm text-gray-500">Название</span>
-                      <p className="font-medium">{(crew as Crew).name}</p>
-                    </div>
-                    <div>
-                      <span className="text-sm text-gray-500">Руководитель</span>
-                      <p className="font-medium">{(crew as Crew).leaderName}</p>
-                    </div>
-                    {(crew as Crew).phone && (
-                      <div>
-                        <span className="text-sm text-gray-500">Телефон</span>
-                        <p className="font-medium">{(crew as Crew).phone}</p>
-                      </div>
-                    )}
-                  </>
-                ) : (
-                  <p className="text-gray-500">Бригада не назначена</p>
+              <CardContent className="space-y-3">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <p className="text-sm text-gray-500">Имя клиента</p>
+                    <p className="font-medium text-gray-900">{(client as Client)?.name || 'Загрузка...'}</p>
+                  </div>
+                  <div className="space-y-2">
+                    <p className="text-sm text-gray-500">Телефон для установки</p>
+                    <p className="font-medium text-gray-900 flex items-center">
+                      <Phone className="h-4 w-4 mr-2 text-green-600" />
+                      {project.installationPhone || 'Не указан'}
+                    </p>
+                  </div>
+                  <div className="space-y-2">
+                    <p className="text-sm text-gray-500">Контактное лицо</p>
+                    <p className="font-medium text-gray-900">
+                      {project.installationPersonFirstName} {project.installationPersonLastName}
+                    </p>
+                  </div>
+                  <div className="space-y-2">
+                    <p className="text-sm text-gray-500">Номер команды</p>
+                    <p className="font-medium text-gray-900">#{project.teamNumber}</p>
+                  </div>
+                </div>
+                
+                {project.notes && (
+                  <div className="mt-4 p-3 bg-gray-50 rounded-lg">
+                    <p className="text-sm text-gray-500 mb-1">Заметки</p>
+                    <p className="text-gray-900">{project.notes}</p>
+                  </div>
                 )}
               </CardContent>
             </Card>
 
             {/* Управление проектом */}
-            <Card className="md:col-span-2">
-              <CardHeader>
-                <CardTitle className="flex items-center">
-                  <Calendar className="h-5 w-5 mr-2" />
+            <Card className="border-l-4 border-l-green-500 shadow-sm">
+              <CardHeader className="pb-3">
+                <CardTitle className="flex items-center text-lg">
+                  <Settings className="h-5 w-5 mr-2 text-green-600" />
                   Управление проектом
                 </CardTitle>
               </CardHeader>
-              <CardContent className="space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                  {/* Ожидаемая дата оборудования */}
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium">Ожидаемое прибытие оборудования</label>
-                    <Input
-                      type="date"
-                      value={project.equipmentExpectedDate || ''}
-                      onChange={(e) => {
-                        updateProjectMutation.mutate({
-                          projectId: project.id,
-                          equipmentExpectedDate: e.target.value || null
-                        });
-                      }}
-                    />
-                  </div>
-
-                  {/* Фактическая дата прибытия оборудования */}
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium">Оборудование поступило</label>
-                    <Input
-                      type="date"
-                      value={project.equipmentArrivedDate || ''}
-                      onChange={(e) => {
-                        updateProjectMutation.mutate({
-                          projectId: project.id,
-                          equipmentArrivedDate: e.target.value || null,
-                          status: e.target.value ? 'equipment_arrived' : project.status
-                        });
-                      }}
-                    />
-                  </div>
-
-                  {/* Дата начала работ */}
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium">Начало работ</label>
-                    <Input
-                      type="date"
-                      value={project.workStartDate || ''}
-                      onChange={(e) => {
-                        updateProjectMutation.mutate({
-                          projectId: project.id,
-                          workStartDate: e.target.value || null,
-                          status: e.target.value ? 'work_in_progress' : project.status
-                        });
-                      }}
-                    />
-                  </div>
-
-                  {/* Дата завершения работ */}
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium">Завершение работ</label>
-                    <Input
-                      type="date"
-                      value={project.workEndDate || ''}
-                      onChange={(e) => {
-                        updateProjectMutation.mutate({
-                          projectId: project.id,
-                          workEndDate: e.target.value || null,
-                          status: e.target.value ? 'work_completed' : project.status
-                        });
-                      }}
-                    />
-                  </div>
-                </div>
-
-                {/* Флаги для звонков */}
-                <div className="border-t pt-4">
-                  <h4 className="font-medium mb-3">Уведомления</h4>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div className="flex items-center space-x-2">
-                      <Switch
-                        checked={project.needsCallForEquipmentDelay || false}
-                        onCheckedChange={(checked) => {
-                          updateProjectMutation.mutate({
-                            projectId: project.id,
-                            needsCallForEquipmentDelay: checked
-                          });
-                        }}
-                      />
-                      <label className="text-sm">Задержка оборудования</label>
+              <CardContent>
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between p-3 bg-blue-50 rounded-lg">
+                    <div>
+                      <p className="font-medium text-blue-900">Оборудование ожидается</p>
+                      <p className="text-sm text-blue-700">
+                        {project.equipmentExpectedDate ? 
+                          format(new Date(project.equipmentExpectedDate), 'dd.MM.yyyy', { locale: ru }) : 
+                          'Дата не установлена'
+                        }
+                      </p>
                     </div>
-                    <div className="flex items-center space-x-2">
-                      <Switch
-                        checked={project.needsCallForCrewDelay || false}
-                        onCheckedChange={(checked) => {
-                          updateProjectMutation.mutate({
-                            projectId: project.id,
-                            needsCallForCrewDelay: checked
-                          });
-                        }}
-                      />
-                      <label className="text-sm">Задержка бригады</label>
+                    <Package className="h-8 w-8 text-blue-600" />
+                  </div>
+                  
+                  {project.equipmentArrivedDate && (
+                    <div className="flex items-center justify-between p-3 bg-green-50 rounded-lg">
+                      <div>
+                        <p className="font-medium text-green-900">Оборудование поступило</p>
+                        <p className="text-sm text-green-700">
+                          {format(new Date(project.equipmentArrivedDate), 'dd.MM.yyyy', { locale: ru })}
+                        </p>
+                      </div>
+                      <CheckCircle className="h-8 w-8 text-green-600" />
                     </div>
-                    <div className="flex items-center space-x-2">
-                      <Switch
-                        checked={project.needsCallForDateChange || false}
-                        onCheckedChange={(checked) => {
-                          updateProjectMutation.mutate({
-                            projectId: project.id,
-                            needsCallForDateChange: checked
-                          });
-                        }}
-                      />
-                      <label className="text-sm">Перенос даты</label>
+                  )}
+                  
+                  {project.workStartDate && (
+                    <div className="flex items-center justify-between p-3 bg-yellow-50 rounded-lg">
+                      <div>
+                        <p className="font-medium text-yellow-900">Работы начинаются</p>
+                        <p className="text-sm text-yellow-700">
+                          {format(new Date(project.workStartDate), 'dd.MM.yyyy', { locale: ru })}
+                        </p>
+                      </div>
+                      <Clock className="h-8 w-8 text-yellow-600" />
                     </div>
-                  </div>
+                  )}
+                  
+                  {(project.needsCallForEquipmentDelay || project.needsCallForCrewDelay || project.needsCallForDateChange) && (
+                    <div className="flex items-center justify-between p-3 bg-red-50 rounded-lg border border-red-200">
+                      <div>
+                        <p className="font-medium text-red-900">Требуется звонок клиенту</p>
+                        <p className="text-sm text-red-700">Обсудить изменения в проекте</p>
+                      </div>
+                      <AlertTriangle className="h-8 w-8 text-red-600" />
+                    </div>
+                  )}
                 </div>
-              </CardContent>
-            </Card>
-
-            {/* Financial Summary */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center">
-                  <Euro className="h-5 w-5 mr-2" />
-                  Финансовая сводка
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <span className="text-sm text-gray-500">Общая сумма</span>
-                    <p className="text-2xl font-bold">€{totalAmount.toFixed(2)}</p>
-                  </div>
-                  <div>
-                    <span className="text-sm text-gray-500">Количество услуг</span>
-                    <p className="text-2xl font-bold">{(services as Service[]).length}</p>
-                  </div>
-                </div>
-                {project.invoiceNumber && (
-                  <div>
-                    <span className="text-sm text-gray-500">Номер счета</span>
-                    <p className="font-medium">№{project.invoiceNumber}</p>
-                  </div>
-                )}
               </CardContent>
             </Card>
           </div>
-        </TabsContent>
-
-        <TabsContent value="services">
-          <ServicesPage selectedFirm={selectedFirm} projectId={projectId} />
-        </TabsContent>
-
-        <TabsContent value="timeline">
-          <Card>
-            <CardHeader>
-              <CardTitle>Хронология проекта</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                <div className="flex items-center space-x-4">
-                  <div className="w-4 h-4 bg-blue-500 rounded-full"></div>
-                  <div>
-                    <p className="font-medium">Проект создан</p>
-                    <p className="text-sm text-gray-500">
-                      {format(new Date(project.createdAt), 'dd.MM.yyyy HH:mm', { locale: ru })}
-                    </p>
-                  </div>
+          
+          {/* Правая колонка - боковая панель */}
+          <div className="space-y-6">
+            {/* Статус и быстрые действия */}
+            <Card className="border-l-4 border-l-purple-500 shadow-sm">
+              <CardHeader className="pb-3">
+                <CardTitle className="flex items-center text-lg">
+                  <Calendar className="h-5 w-5 mr-2 text-purple-600" />
+                  Временные рамки
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <div className="space-y-2">
+                  <p className="text-sm text-gray-500">Дата начала</p>
+                  <p className="font-medium text-gray-900">
+                    {project.startDate ? 
+                      format(new Date(project.startDate), 'dd.MM.yyyy', { locale: ru }) : 
+                      'Не установлена'
+                    }
+                  </p>
                 </div>
                 
-                {project.startDate && (
-                  <div className="flex items-center space-x-4">
-                    <div className="w-4 h-4 bg-yellow-500 rounded-full"></div>
-                    <div>
-                      <p className="font-medium">Начало работ</p>
-                      <p className="text-sm text-gray-500">
-                        {format(new Date(project.startDate), 'dd.MM.yyyy', { locale: ru })}
-                      </p>
-                    </div>
+                {project.workEndDate && (
+                  <div className="space-y-2">
+                    <p className="text-sm text-gray-500">Дата окончания работ</p>
+                    <p className="font-medium text-gray-900">
+                      {format(new Date(project.workEndDate), 'dd.MM.yyyy', { locale: ru })}
+                    </p>
                   </div>
                 )}
                 
-                {project.endDate && (
-                  <div className="flex items-center space-x-4">
-                    <div className="w-4 h-4 bg-green-500 rounded-full"></div>
-                    <div>
-                      <p className="font-medium">Планируемое завершение</p>
-                      <p className="text-sm text-gray-500">
-                        {format(new Date(project.endDate), 'dd.MM.yyyy', { locale: ru })}
-                      </p>
-                    </div>
-                  </div>
-                )}
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
+                <div className="space-y-2">
+                  <p className="text-sm text-gray-500">Команда</p>
+                  <p className="font-medium text-gray-900 flex items-center">
+                    <Users className="h-4 w-4 mr-2 text-blue-600" />
+                    {(crew as Crew)?.name || 'Не назначена'}
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
 
-        <TabsContent value="files">
-          <Card>
-            <CardHeader>
-              <CardTitle>Файлы проекта</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-center py-8">
-                <FileText className="h-12 w-12 mx-auto text-gray-400 mb-4" />
-                <h3 className="text-lg font-medium text-gray-900 mb-2">Файлы не загружены</h3>
-                <p className="text-gray-500">Загрузите документы, фотографии и отчеты по проекту</p>
-                <Button className="mt-4">
-                  <Plus className="h-4 w-4 mr-2" />
-                  Загрузить файлы
-                </Button>
+            {/* Финансовая информация */}
+            {project.invoiceNumber && (
+              <Card className="border-l-4 border-l-orange-500 shadow-sm">
+                <CardHeader className="pb-3">
+                  <CardTitle className="flex items-center text-lg">
+                    <Euro className="h-5 w-5 mr-2 text-orange-600" />
+                    Финансы
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  <div className="space-y-2">
+                    <p className="text-sm text-gray-500">Номер счета</p>
+                    <p className="font-medium text-gray-900">#{project.invoiceNumber}</p>
+                  </div>
+                  
+                  {project.invoiceUrl && (
+                    <Button variant="outline" size="sm" asChild className="w-full">
+                      <a href={project.invoiceUrl} target="_blank" rel="noopener noreferrer">
+                        <FileText className="h-4 w-4 mr-2" />
+                        Скачать счет
+                      </a>
+                    </Button>
+                  )}
+                </CardContent>
+              </Card>
+            )}
+          </div>
+        </div>
+        
+        {/* Вкладки */}
+        <div className="bg-white rounded-xl shadow-sm border p-6">
+          <Tabs value={activeTab} onValueChange={setActiveTab}>
+            <TabsList className="grid w-full grid-cols-3 mb-6">
+              <TabsTrigger value="services" className="text-sm">Услуги проекта</TabsTrigger>
+              <TabsTrigger value="management" className="text-sm">Управление датами</TabsTrigger>
+              <TabsTrigger value="files" className="text-sm">Файлы и отчеты</TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="services" className="space-y-4">
+              <ServicesPage 
+                projectId={project.id} 
+                selectedFirm={selectedFirm}
+                isEmbedded={true}
+                projectStatus={project.status}
+              />
+            </TabsContent>
+
+            <TabsContent value="management" className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {/* Управление датами оборудования */}
+                <Card className="border-l-4 border-l-blue-500">
+                  <CardHeader>
+                    <CardTitle className="flex items-center text-lg">
+                      <Package className="h-5 w-5 mr-2 text-blue-600" />
+                      Оборудование
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium">Ожидаемая дата поставки</label>
+                      <Input
+                        type="date"
+                        value={project.equipmentExpectedDate ? 
+                          new Date(project.equipmentExpectedDate).toISOString().split('T')[0] : ''}
+                        onChange={(e) => updateProjectDates({
+                          equipmentExpectedDate: e.target.value ? new Date(e.target.value).toISOString() : null
+                        })}
+                      />
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium">Фактическая дата поставки</label>
+                      <Input
+                        type="date"
+                        value={project.equipmentArrivedDate ? 
+                          new Date(project.equipmentArrivedDate).toISOString().split('T')[0] : ''}
+                        onChange={(e) => updateProjectDates({
+                          equipmentArrivedDate: e.target.value ? new Date(e.target.value).toISOString() : null
+                        })}
+                      />
+                    </div>
+                    
+                    <div className="flex items-center space-x-2">
+                      <Switch
+                        checked={project.needsCallForEquipmentDelay || false}
+                        onCheckedChange={(checked) => updateProjectDates({
+                          needsCallForEquipmentDelay: checked
+                        })}
+                      />
+                      <label className="text-sm">Нужен звонок по задержке оборудования</label>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Управление датами работ */}
+                <Card className="border-l-4 border-l-green-500">
+                  <CardHeader>
+                    <CardTitle className="flex items-center text-lg">
+                      <Clock className="h-5 w-5 mr-2 text-green-600" />
+                      Работы
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium">Дата начала работ</label>
+                      <Input
+                        type="date"
+                        value={project.workStartDate ? 
+                          new Date(project.workStartDate).toISOString().split('T')[0] : ''}
+                        onChange={(e) => updateProjectDates({
+                          workStartDate: e.target.value ? new Date(e.target.value).toISOString() : null
+                        })}
+                      />
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium">Дата окончания работ</label>
+                      <Input
+                        type="date"
+                        value={project.workEndDate ? 
+                          new Date(project.workEndDate).toISOString().split('T')[0] : ''}
+                        onChange={(e) => updateProjectDates({
+                          workEndDate: e.target.value ? new Date(e.target.value).toISOString() : null
+                        })}
+                      />
+                    </div>
+                    
+                    <div className="space-y-3">
+                      <div className="flex items-center space-x-2">
+                        <Switch
+                          checked={project.needsCallForCrewDelay || false}
+                          onCheckedChange={(checked) => updateProjectDates({
+                            needsCallForCrewDelay: checked
+                          })}
+                        />
+                        <label className="text-sm">Нужен звонок по задержке бригады</label>
+                      </div>
+                      
+                      <div className="flex items-center space-x-2">
+                        <Switch
+                          checked={project.needsCallForDateChange || false}
+                          onCheckedChange={(checked) => updateProjectDates({
+                            needsCallForDateChange: checked
+                          })}
+                        />
+                        <label className="text-sm">Нужен звонок по изменению дат</label>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
               </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-      </Tabs>
+            </TabsContent>
+
+            <TabsContent value="files" className="space-y-4">
+              <div className="text-center py-8 text-gray-500">
+                <FileText className="h-12 w-12 mx-auto mb-4" />
+                <h3 className="text-lg font-medium mb-2">Файлы и отчеты</h3>
+                <p>Функционал файлов будет добавлен позже</p>
+              </div>
+            </TabsContent>
+          </Tabs>
+        </div>
+      </div>
     </div>
   );
 }
