@@ -143,14 +143,23 @@ export default function Crews() {
 
   const openEditDialog = (crew: any) => {
     console.log('Opening edit dialog for crew:', crew);
+    console.log('Current dialog state:', isDialogOpen);
     setEditingCrew(crew);
-    form.reset({
+    
+    const formData = {
       name: crew.name,
       leaderName: crew.leaderName,
       phone: crew.phone || '',
       status: crew.status || 'active',
-    });
-    setIsDialogOpen(true);
+    };
+    
+    console.log('Setting form data:', formData);
+    form.reset(formData);
+    
+    setTimeout(() => {
+      setIsDialogOpen(true);
+      console.log('Dialog opened');
+    }, 100);
   };
 
   const closeDialog = () => {
@@ -372,7 +381,12 @@ export default function Crews() {
                         <Button
                           variant="ghost"
                           size="sm"
-                          onClick={() => openEditDialog(crew)}
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            console.log('Edit button clicked for crew:', crew);
+                            openEditDialog(crew);
+                          }}
                         >
                           <Edit className="w-4 h-4" />
                         </Button>
