@@ -47,6 +47,7 @@ const statusColors = {
 
 export default function ProjectDetail({ projectId, selectedFirm, onBack }: ProjectDetailProps) {
   const [activeTab, setActiveTab] = useState('services');
+  const [showAllHistory, setShowAllHistory] = useState(false);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -340,10 +341,10 @@ export default function ProjectDetail({ projectId, selectedFirm, onBack }: Proje
                   <Button 
                     variant="ghost" 
                     size="sm"
-                    onClick={() => setActiveTab('history')}
+                    onClick={() => setShowAllHistory(!showAllHistory)}
                     className="text-green-600 hover:bg-green-50 text-xs px-2 py-1"
                   >
-                    Показать все
+                    {showAllHistory ? 'Свернуть' : 'Показать все'}
                   </Button>
                 </CardTitle>
               </CardHeader>
@@ -352,7 +353,7 @@ export default function ProjectDetail({ projectId, selectedFirm, onBack }: Proje
                   projectId={project.id} 
                   onBack={() => {}}
                   embedded={true}
-                  limit={5}
+                  limit={showAllHistory ? undefined : 5}
                 />
               </CardContent>
             </Card>
