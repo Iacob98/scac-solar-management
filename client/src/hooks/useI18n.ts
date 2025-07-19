@@ -21,7 +21,8 @@ export function useI18n() {
 
   const formatCurrency = (amount: number | string): string => {
     const numericAmount = typeof amount === 'string' ? parseFloat(amount) : amount;
-    return new Intl.NumberFormat('ru-RU', {
+    // Используем немецкий локаль для европейского стиля форматирования
+    return new Intl.NumberFormat('de-DE', {
       style: 'currency',
       currency: 'EUR',
       minimumFractionDigits: 2,
