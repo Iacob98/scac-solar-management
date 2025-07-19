@@ -284,7 +284,7 @@ export default function ProjectDetail({ projectId, selectedFirm, onBack }: Proje
               </CardHeader>
               <CardContent className="space-y-3">
                 <div className="space-y-2">
-                  <p className="text-sm text-gray-500">Дата начала</p>
+                  <p className="text-sm text-gray-500">Дата начала проекта</p>
                   <p className="font-medium text-gray-900">
                     {project.startDate ? 
                       format(new Date(project.startDate), 'dd.MM.yyyy', { locale: ru }) : 
@@ -292,6 +292,33 @@ export default function ProjectDetail({ projectId, selectedFirm, onBack }: Proje
                     }
                   </p>
                 </div>
+
+                {project.equipmentExpectedDate && (
+                  <div className="space-y-2">
+                    <p className="text-sm text-gray-500">Ожидаемая поставка оборудования</p>
+                    <p className="font-medium text-gray-900">
+                      {format(new Date(project.equipmentExpectedDate), 'dd.MM.yyyy', { locale: ru })}
+                    </p>
+                  </div>
+                )}
+
+                {project.equipmentArrivedDate && (
+                  <div className="space-y-2">
+                    <p className="text-sm text-gray-500">Фактическая поставка</p>
+                    <p className="font-medium text-green-700">
+                      {format(new Date(project.equipmentArrivedDate), 'dd.MM.yyyy', { locale: ru })}
+                    </p>
+                  </div>
+                )}
+
+                {project.workStartDate && (
+                  <div className="space-y-2">
+                    <p className="text-sm text-gray-500">Ожидаемое начало работ</p>
+                    <p className="font-medium text-blue-700">
+                      {format(new Date(project.workStartDate), 'dd.MM.yyyy', { locale: ru })}
+                    </p>
+                  </div>
+                )}
                 
                 {project.workEndDate && (
                   <div className="space-y-2">

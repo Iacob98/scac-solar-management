@@ -33,6 +33,7 @@ type ViewMode = 'list' | 'detail' | 'services' | 'reports';
 const projectFormSchema = insertProjectSchema.omit({ firmId: true, leiterId: true }).extend({
   startDate: z.string().min(1, 'Дата начала обязательна'),
   equipmentExpectedDate: z.string().min(1, 'Ожидаемая дата поставки обязательна'),
+  workStartDate: z.string().optional(),
   clientId: z.number().min(1, 'Выберите клиента'),
   crewId: z.number().min(1, 'Выберите бригаду'),
   installationPersonFirstName: z.string().min(1, 'Имя обязательно'),
@@ -111,6 +112,7 @@ function ProjectsList({ selectedFirm, onViewProject, onManageServices, onManageR
       crewId: undefined,
       startDate: '',
       equipmentExpectedDate: '',
+      workStartDate: '',
       status: 'planning' as const,
       installationPersonFirstName: '',
       installationPersonLastName: '',
@@ -418,6 +420,20 @@ function ProjectsList({ selectedFirm, onViewProject, onManageServices, onManageR
                     )}
                   />
                 </div>
+
+                <FormField
+                  control={form.control}
+                  name="workStartDate"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Ожидаемая дата начала работ (необязательно)</FormLabel>
+                      <FormControl>
+                        <Input type="date" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
 
                 <div className="space-y-4">
                   <h3 className="text-lg font-semibold">Информация о клиенте установки</h3>
