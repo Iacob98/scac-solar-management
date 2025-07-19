@@ -18,6 +18,56 @@ import { z } from "zod";
 export async function registerRoutes(app: Express): Promise<Server> {
   await setupAuth(app);
 
+  // Development test users login
+  app.post('/api/auth/test-login', async (req, res) => {
+    try {
+      const { userId } = z.object({
+        userId: z.string(),
+      }).parse(req.body);
+
+      // Check if user exists in our system
+      const user = await storage.getUser(userId);
+      if (!user) {
+        return res.status(404).json({ message: "Test user not found" });
+      }
+
+      // Set session
+      if (req.session) {
+        req.session.userId = userId;
+        req.session.user = {
+          claims: {
+            sub: userId,
+            email: user.email,
+            name: `${user.firstName} ${user.lastName}`.trim(),
+          }
+        };
+      }
+
+      res.json({ success: true, user });
+    } catch (error) {
+      console.error("Error in test login:", error);
+      res.status(500).json({ message: "Test login failed" });
+    }
+  });
+
+  // Get available test users
+  app.get('/api/auth/test-users', async (req, res) => {
+    try {
+      const testUsers = [
+        { id: '41352215', name: 'Iacob Bujac', email: 'iasabujac@gmail.com', role: 'admin' },
+        { id: 'test_user_1', name: 'Maria Schneider', email: 'maria.schneider@solar.de', role: 'leiter' },
+        { id: 'test_user_2', name: 'Thomas Mueller', email: 'thomas.mueller@solar.de', role: 'leiter' },
+        { id: 'test_user_3', name: 'Anna Weber', email: 'anna.weber@solar.de', role: 'leiter' },
+        { id: 'test_user_4', name: 'Klaus Richter', email: 'klaus.richter@greenenergy.de', role: 'leiter' },
+        { id: 'test_user_5', name: 'Petra Wagner', email: 'petra.wagner@solarpower.de', role: 'leiter' },
+      ];
+      res.json(testUsers);
+    } catch (error) {
+      console.error("Error fetching test users:", error);
+      res.status(500).json({ message: "Failed to fetch test users" });
+    }
+  });
+
   // Auth routes
   app.get('/api/auth/user', isAuthenticated, async (req: any, res) => {
     try {

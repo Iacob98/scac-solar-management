@@ -10,6 +10,7 @@ import { isUnauthorizedError } from "@/lib/authUtils";
 
 // Pages
 import Landing from "@/pages/Landing";
+import TestLogin from "@/pages/TestLogin";
 import Home from "@/pages/Home";
 import Projects from "@/pages/Projects";
 import Clients from "@/pages/Clients";
@@ -22,21 +23,7 @@ import Settings from "@/pages/Settings";
 import NotFound from "@/pages/not-found";
 
 function ProtectedRoute({ component: Component, ...props }: any) {
-  const { isAuthenticated, isLoading } = useAuth();
-  const { toast } = useToast();
-
-  useEffect(() => {
-    if (!isLoading && !isAuthenticated) {
-      toast({
-        title: "Не авторизован",
-        description: "Вы будете перенаправлены на страницу входа...",
-        variant: "destructive",
-      });
-      setTimeout(() => {
-        window.location.href = "/api/login";
-      }, 1500);
-    }
-  }, [isAuthenticated, isLoading, toast]);
+  const { isAuthenticated, isLoading, refetch } = useAuth();
 
   if (isLoading) {
     return (
@@ -47,30 +34,21 @@ function ProtectedRoute({ component: Component, ...props }: any) {
   }
 
   if (!isAuthenticated) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <h1 className="text-2xl font-semibold text-gray-900 mb-4">
-            Перенаправление на страницу входа...
-          </h1>
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
-        </div>
-      </div>
-    );
+    return <TestLogin onLoginSuccess={() => refetch()} />;
   }
 
   return <Component {...props} />;
 }
 
 function Router() {
-  const { isAuthenticated, isLoading } = useAuth();
+  const { isAuthenticated, isLoading, refetch } = useAuth();
 
   return (
     <Switch>
       {isLoading || !isAuthenticated ? (
         <>
-          <Route path="/" component={Landing} />
-          <Route path="*" component={Landing} />
+          <Route path="/" component={() => <TestLogin onLoginSuccess={() => refetch()} />} />
+          <Route path="*" component={() => <TestLogin onLoginSuccess={() => refetch()} />} />
         </>
       ) : (
         <>
