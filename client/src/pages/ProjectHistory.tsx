@@ -25,6 +25,7 @@ interface ProjectHistoryProps {
   projectId: number;
   onBack: () => void;
   embedded?: boolean;
+  limit?: number;
 }
 
 const changeTypeIcons = {
@@ -57,7 +58,7 @@ const changeTypeLabels = {
   'assignment_change': 'Назначение команды',
 };
 
-export default function ProjectHistory({ projectId, onBack, embedded = false }: ProjectHistoryProps) {
+export default function ProjectHistory({ projectId, onBack, embedded = false, limit }: ProjectHistoryProps) {
   const { data: history = [], isLoading, error } = useQuery({
     queryKey: ['/api/projects', projectId, 'history'],
     queryFn: async () => {
@@ -90,15 +91,17 @@ export default function ProjectHistory({ projectId, onBack, embedded = false }: 
   }
 
   if (embedded) {
+    const displayHistory = limit ? history.slice(0, limit) : history;
+    
     return (
-      <div className="space-y-4 max-h-96 overflow-y-auto">
-        {history.length === 0 ? (
-          <div className="text-center py-8 text-gray-500">
-            <Clock className="h-8 w-8 mx-auto text-gray-400 mb-3" />
-            <p className="text-sm">История изменений пуста</p>
+      <div className="space-y-3">
+        {displayHistory.length === 0 ? (
+          <div className="text-center py-6 text-gray-500">
+            <Clock className="h-6 w-6 mx-auto text-gray-400 mb-2" />
+            <p className="text-xs">История изменений пуста</p>
           </div>
         ) : (
-          history.map((entry, index) => {
+          displayHistory.map((entry, index) => {
             const IconComponent = changeTypeIcons[entry.changeType] || FileText;
             const isFirst = index === 0;
             
@@ -109,37 +112,31 @@ export default function ProjectHistory({ projectId, onBack, embedded = false }: 
                   <div className="absolute left-4 -top-4 bottom-0 w-0.5 bg-gray-200"></div>
                 )}
                 
-                <div className="flex items-start space-x-3 p-3 bg-gray-50 rounded-lg">
+                <div className="flex items-start space-x-2 p-2 hover:bg-gray-50 rounded-md transition-colors">
                   {/* Icon */}
-                  <div className={`p-1.5 rounded-full ${changeTypeColors[entry.changeType]} flex-shrink-0`}>
-                    <IconComponent className="h-3 w-3" />
+                  <div className={`p-1 rounded-full ${changeTypeColors[entry.changeType]} flex-shrink-0`}>
+                    <IconComponent className="h-2.5 w-2.5" />
                   </div>
                   
                   {/* Content */}
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center justify-between mb-1">
-                      <Badge variant="secondary" className="text-xs">
+                    <div className="flex items-center justify-between">
+                      <Badge variant="secondary" className="text-xs px-1.5 py-0.5">
                         {changeTypeLabels[entry.changeType]}
                       </Badge>
-                      <div className="text-xs text-gray-500">
+                      <div className="text-xs text-gray-400">
                         {format(new Date(entry.createdAt), 'dd.MM HH:mm', { locale: ru })}
                       </div>
                     </div>
                     
-                    <p className="text-sm text-gray-900 mb-1">{entry.description}</p>
-                    
-                    <div className="text-xs text-gray-500">
-                      {entry.userFirstName && entry.userLastName 
-                        ? `${entry.userFirstName} ${entry.userLastName}`
-                        : entry.userEmail || 'Система'}
-                    </div>
+                    <p className="text-xs text-gray-700 mt-1 line-clamp-2">{entry.description}</p>
                     
                     {/* Show old/new values if available */}
                     {entry.oldValue && entry.newValue && entry.oldValue !== entry.newValue && (
-                      <div className="flex items-center space-x-2 text-xs mt-2 bg-white p-2 rounded">
-                        <span className="text-red-600">{entry.oldValue}</span>
-                        <span className="text-gray-400">→</span>
-                        <span className="text-green-600">{entry.newValue}</span>
+                      <div className="flex items-center space-x-1 text-xs mt-1">
+                        <span className="text-red-500 truncate max-w-[80px]">{entry.oldValue}</span>
+                        <span className="text-gray-300">→</span>
+                        <span className="text-green-500 truncate max-w-[80px]">{entry.newValue}</span>
                       </div>
                     )}
                   </div>

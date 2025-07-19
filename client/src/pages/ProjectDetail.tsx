@@ -332,63 +332,31 @@ export default function ProjectDetail({ projectId, selectedFirm, onBack }: Proje
               </CardContent>
             </Card>
 
-            {/* Управление проектом */}
+            {/* История проекта */}
             <Card className="border-l-4 border-l-green-500 shadow-sm">
               <CardHeader className="pb-3">
-                <CardTitle className="flex items-center text-lg">
-                  <Settings className="h-5 w-5 mr-2 text-green-600" />
-                  Управление проектом
+                <CardTitle className="flex items-center justify-between text-lg">
+                  <div className="flex items-center">
+                    <History className="h-5 w-5 mr-2 text-green-600" />
+                    История проекта
+                  </div>
+                  <Button 
+                    variant="ghost" 
+                    size="sm"
+                    onClick={() => setActiveTab('history')}
+                    className="text-green-600 hover:bg-green-50 text-xs px-2 py-1"
+                  >
+                    Показать все
+                  </Button>
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between p-3 bg-blue-50 rounded-lg">
-                    <div>
-                      <p className="font-medium text-blue-900">Оборудование ожидается</p>
-                      <p className="text-sm text-blue-700">
-                        {project.equipmentExpectedDate ? 
-                          format(new Date(project.equipmentExpectedDate), 'dd.MM.yyyy', { locale: ru }) : 
-                          'Дата не установлена'
-                        }
-                      </p>
-                    </div>
-                    <Package className="h-8 w-8 text-blue-600" />
-                  </div>
-                  
-                  {project.equipmentArrivedDate && (
-                    <div className="flex items-center justify-between p-3 bg-green-50 rounded-lg">
-                      <div>
-                        <p className="font-medium text-green-900">Оборудование поступило</p>
-                        <p className="text-sm text-green-700">
-                          {format(new Date(project.equipmentArrivedDate), 'dd.MM.yyyy', { locale: ru })}
-                        </p>
-                      </div>
-                      <CheckCircle className="h-8 w-8 text-green-600" />
-                    </div>
-                  )}
-                  
-                  {project.workStartDate && (
-                    <div className="flex items-center justify-between p-3 bg-yellow-50 rounded-lg">
-                      <div>
-                        <p className="font-medium text-yellow-900">Работы начинаются</p>
-                        <p className="text-sm text-yellow-700">
-                          {format(new Date(project.workStartDate), 'dd.MM.yyyy', { locale: ru })}
-                        </p>
-                      </div>
-                      <Clock className="h-8 w-8 text-yellow-600" />
-                    </div>
-                  )}
-                  
-                  {(project.needsCallForEquipmentDelay || project.needsCallForCrewDelay || project.needsCallForDateChange) && (
-                    <div className="flex items-center justify-between p-3 bg-red-50 rounded-lg border border-red-200">
-                      <div>
-                        <p className="font-medium text-red-900">Требуется звонок клиенту</p>
-                        <p className="text-sm text-red-700">Обсудить изменения в проекте</p>
-                      </div>
-                      <AlertTriangle className="h-8 w-8 text-red-600" />
-                    </div>
-                  )}
-                </div>
+                <ProjectHistory 
+                  projectId={project.id} 
+                  onBack={() => {}}
+                  embedded={true}
+                  limit={5}
+                />
               </CardContent>
             </Card>
           </div>
@@ -465,10 +433,11 @@ export default function ProjectDetail({ projectId, selectedFirm, onBack }: Proje
         {/* Вкладки */}
         <div className="bg-white rounded-xl shadow-sm border p-6">
           <Tabs value={activeTab} onValueChange={setActiveTab}>
-            <TabsList className="grid w-full grid-cols-3 mb-6">
+            <TabsList className="grid w-full grid-cols-4 mb-6">
               <TabsTrigger value="services" className="text-sm">Услуги проекта</TabsTrigger>
-              <TabsTrigger value="management" className="text-sm">Управление проектом</TabsTrigger>
+              <TabsTrigger value="management" className="text-sm">Управление датами</TabsTrigger>
               <TabsTrigger value="files" className="text-sm">Файлы и отчеты</TabsTrigger>
+              <TabsTrigger value="history" className="text-sm">Полная история</TabsTrigger>
             </TabsList>
 
             <TabsContent value="services" className="space-y-4">
@@ -585,23 +554,14 @@ export default function ProjectDetail({ projectId, selectedFirm, onBack }: Proje
                   </CardContent>
                 </Card>
               </div>
+            </TabsContent>
 
-              {/* История изменений */}
-              <Card className="border-l-4 border-l-purple-500">
-                <CardHeader>
-                  <CardTitle className="flex items-center text-lg">
-                    <History className="h-5 w-5 mr-2 text-purple-600" />
-                    История изменений
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <ProjectHistory 
-                    projectId={project.id} 
-                    onBack={() => {}}
-                    embedded={true}
-                  />
-                </CardContent>
-              </Card>
+            <TabsContent value="history" className="space-y-4">
+              <ProjectHistory 
+                projectId={project.id} 
+                onBack={() => setActiveTab('management')}
+                embedded={false}
+              />
             </TabsContent>
 
             <TabsContent value="files" className="space-y-4">
