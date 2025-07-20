@@ -4,13 +4,13 @@ import { ru } from 'date-fns/locale';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, Clock, User, FileText, AlertCircle, Calendar, Package, Phone, Users } from 'lucide-react';
+import { ArrowLeft, Clock, User, FileText, AlertCircle, Calendar, Package, Phone, Users, Upload, Trash2, Star, Share2 } from 'lucide-react';
 
 interface ProjectHistoryEntry {
   id: number;
   projectId: number;
   userId: string;
-  changeType: 'status_change' | 'date_update' | 'info_update' | 'created' | 'equipment_update' | 'call_update' | 'assignment_change';
+  changeType: 'status_change' | 'date_update' | 'info_update' | 'created' | 'equipment_update' | 'call_update' | 'assignment_change' | 'shared' | 'file_added' | 'file_deleted' | 'report_added' | 'report_updated' | 'report_deleted';
   fieldName?: string;
   oldValue?: string;
   newValue?: string;
@@ -36,6 +36,12 @@ const changeTypeIcons = {
   'equipment_update': Package,
   'call_update': Phone,
   'assignment_change': Users,
+  'shared': Share2,
+  'file_added': Upload,
+  'file_deleted': Trash2,
+  'report_added': Star,
+  'report_updated': Star,
+  'report_deleted': Trash2,
 };
 
 const changeTypeColors = {
@@ -46,6 +52,12 @@ const changeTypeColors = {
   'equipment_update': 'bg-orange-100 text-orange-700',
   'call_update': 'bg-red-100 text-red-700',
   'assignment_change': 'bg-yellow-100 text-yellow-700',
+  'shared': 'bg-indigo-100 text-indigo-700',
+  'file_added': 'bg-emerald-100 text-emerald-700',
+  'file_deleted': 'bg-rose-100 text-rose-700',
+  'report_added': 'bg-amber-100 text-amber-700',
+  'report_updated': 'bg-amber-100 text-amber-700',
+  'report_deleted': 'bg-rose-100 text-rose-700',
 };
 
 const changeTypeLabels = {
@@ -56,6 +68,12 @@ const changeTypeLabels = {
   'equipment_update': 'Оборудование',
   'call_update': 'Звонок клиенту',
   'assignment_change': 'Назначение команды',
+  'shared': 'Общий доступ',
+  'file_added': 'Файл добавлен',
+  'file_deleted': 'Файл удален',
+  'report_added': 'Отчет создан',
+  'report_updated': 'Отчет обновлен',
+  'report_deleted': 'Отчет удален',
 };
 
 export default function ProjectHistory({ projectId, onBack, embedded = false, limit }: ProjectHistoryProps) {

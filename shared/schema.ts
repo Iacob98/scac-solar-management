@@ -192,7 +192,7 @@ export const projectHistory = pgTable("project_history", {
   projectId: integer("project_id").notNull().references(() => projects.id),
   userId: varchar("user_id").notNull().references(() => users.id),
   changeType: varchar("change_type", { 
-    enum: ['status_change', 'date_update', 'info_update', 'created', 'equipment_update', 'call_update', 'assignment_change', 'shared'] 
+    enum: ['status_change', 'date_update', 'info_update', 'created', 'equipment_update', 'call_update', 'assignment_change', 'shared', 'file_added', 'file_deleted', 'report_added', 'report_updated', 'report_deleted'] 
   }).notNull(),
   fieldName: varchar("field_name"), // название поля которое изменилось
   oldValue: text("old_value"),
