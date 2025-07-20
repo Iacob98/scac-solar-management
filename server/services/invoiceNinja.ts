@@ -357,7 +357,7 @@ export class InvoiceNinjaService {
   async markInvoiceAsPaid(invoiceId: string): Promise<InvoiceNinjaInvoice> {
     try {
       const response = await axios.put(
-        `${this.baseUrl}/api/v1/invoices/${invoiceId}/mark_paid`,
+        `${this.baseUrl}/api/v1/invoices/${invoiceId}?action=paid`,
         {},
         { headers: this.getHeaders() }
       );

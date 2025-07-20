@@ -210,26 +210,51 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Find invoice in our database across all accessible firms
       let invoice;
+      let firm;
       const userFirms = await storage.getFirmsByUserId(userId);
       
-      for (const firm of userFirms) {
-        const firmInvoices = await storage.getInvoicesByFirmId(firm.id);
+      for (const userFirm of userFirms) {
+        const firmInvoices = await storage.getInvoicesByFirmId(userFirm.id);
         const foundInvoice = firmInvoices.find(inv => inv.invoiceNumber === invoiceNumber);
         if (foundInvoice) {
           invoice = foundInvoice;
+          firm = userFirm;
           break;
         }
       }
       
-      if (!invoice) {
+      if (!invoice || !firm) {
         return res.status(404).json({ message: "Invoice not found or access denied" });
       }
 
-      // Update invoice as paid
+      // Mark invoice as paid in Invoice Ninja first
+      try {
+        const invoiceNinja = new InvoiceNinjaService(firm.invoiceNinjaUrl, firm.token);
+        await invoiceNinja.markInvoiceAsPaid(invoice.invoiceId);
+        console.log(`Successfully marked invoice ${invoice.invoiceId} as paid in Invoice Ninja`);
+      } catch (ninjaError) {
+        console.error("Failed to mark invoice as paid in Invoice Ninja:", ninjaError);
+        // Continue with local update even if Invoice Ninja fails
+      }
+
+      // Update invoice as paid in our database
       await storage.updateInvoice(invoice.id, { isPaid: true });
 
-      // Update project status
+      // Update project status to paid
       await storage.updateProject(invoice.projectId, { status: 'paid' });
+
+      // Add history entry
+      console.log(`Adding payment history entry for project ${invoice.projectId}, invoice ${invoiceNumber}`);
+      await storage.createProjectHistoryEntry({
+        projectId: invoice.projectId,
+        userId,
+        changeType: 'status_change',
+        fieldName: 'status',
+        oldValue: 'invoiced',
+        newValue: 'paid',
+        description: `Счет №${invoiceNumber} помечен как оплаченный`,
+      });
+      console.log(`Successfully added payment history entry`);
 
       res.json({ success: true, message: "Invoice marked as paid" });
 
