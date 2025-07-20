@@ -1316,6 +1316,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
         invoiceUrl: `${firm.invoiceNinjaUrl}/invoices/${ninjaInvoice.id}`,
       });
 
+      // Добавляем запись в историю проекта о создании счета
+      if (userId) {
+        await storage.createProjectHistoryEntry({
+          projectId,
+          userId,
+          changeType: 'status_change',
+          fieldName: 'status',
+          oldValue: project.status,
+          newValue: 'invoiced',
+          description: `Создан счет №${ninjaInvoice.number} на сумму ${ninjaInvoice.amount}`,
+        });
+      }
+
       res.json({
         invoice,
         invoiceNumber: ninjaInvoice.number,
