@@ -28,7 +28,7 @@ const profileSchema = z.object({
   lastName: z.string().min(1, 'Фамилия обязательна'),
   email: z.string().email('Неверный формат email'),
   phone: z.string().optional(),
-  profileImageUrl: z.string().url('Неверный URL изображения').optional().or(z.literal('')),
+  profileImageUrl: z.string().optional(),
 });
 
 const passwordSchema = z.object({
@@ -45,6 +45,7 @@ export default function Settings() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState<'profile' | 'password'>('profile');
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
 
   const profileForm = useForm<z.infer<typeof profileSchema>>({
     resolver: zodResolver(profileSchema),
@@ -63,6 +64,36 @@ export default function Settings() {
       currentPassword: '',
       newPassword: '',
       confirmPassword: '',
+    },
+  });
+
+  const uploadAvatarMutation = useMutation({
+    mutationFn: async (file: File) => {
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('category', 'profile');
+
+      const response = await apiRequest('POST', '/api/files/upload', formData, {
+        'Content-Type': undefined, // Let browser set boundary
+      });
+      return response.json();
+    },
+    onSuccess: (data) => {
+      // Обновляем форму с новым URL аватара
+      profileForm.setValue('profileImageUrl', `/api/files/${data.fileId}`);
+      toast({
+        title: "Успешно",
+        description: "Аватар загружен успешно",
+      });
+      setUploadingAvatar(false);
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Ошибка",
+        description: error.message || "Не удалось загрузить аватар",
+        variant: "destructive",
+      });
+      setUploadingAvatar(false);
     },
   });
 
@@ -123,6 +154,34 @@ export default function Settings() {
     return `${firstName?.charAt(0) || ''}${lastName?.charAt(0) || ''}`.toUpperCase();
   };
 
+  const handleAvatarUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      // Проверка типа файла
+      if (!file.type.startsWith('image/')) {
+        toast({
+          title: "Ошибка",
+          description: "Пожалуйста, выберите файл изображения",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Проверка размера файла (максимум 5MB)
+      if (file.size > 5 * 1024 * 1024) {
+        toast({
+          title: "Ошибка",
+          description: "Размер файла не должен превышать 5MB",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      setUploadingAvatar(true);
+      uploadAvatarMutation.mutate(file);
+    }
+  };
+
   return (
     <MainLayout>
       <div className="p-6 max-w-4xl mx-auto space-y-6">
@@ -177,18 +236,30 @@ export default function Settings() {
                     </AvatarFallback>
                   </Avatar>
                   <div className="flex-1">
-                    <Label htmlFor="profileImageUrl">URL изображения профиля</Label>
-                    <Input
-                      id="profileImageUrl"
-                      {...profileForm.register('profileImageUrl')}
-                      placeholder="https://example.com/avatar.jpg"
-                      className="mt-1"
-                    />
-                    {profileForm.formState.errors.profileImageUrl && (
-                      <p className="text-sm text-red-600 mt-1">
-                        {profileForm.formState.errors.profileImageUrl.message}
-                      </p>
-                    )}
+                    <Label>Изображение профиля</Label>
+                    <div className="mt-2">
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={handleAvatarUpload}
+                        style={{ display: 'none' }}
+                        id="avatar-upload"
+                        disabled={uploadingAvatar}
+                      />
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => document.getElementById('avatar-upload')?.click()}
+                        disabled={uploadingAvatar}
+                        className="w-full"
+                      >
+                        <Camera className="h-4 w-4 mr-2" />
+                        {uploadingAvatar ? 'Загрузка...' : 'Загрузить фото'}
+                      </Button>
+                    </div>
+                    <p className="text-xs text-gray-500 mt-1">
+                      Поддерживаются JPG, PNG, GIF до 5MB
+                    </p>
                   </div>
                 </div>
 

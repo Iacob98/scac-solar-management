@@ -176,7 +176,7 @@ export const fileStorage = pgTable("file_storage", {
   mimeType: varchar("mime_type").notNull(), // MIME тип файла
   size: integer("size").notNull(), // Размер файла в байтах
   category: varchar("category", { 
-    enum: ["project_file", "report", "invoice", "document", "image"] 
+    enum: ["project_file", "report", "invoice", "document", "image", "profile"] 
   }).notNull(),
   projectId: integer("project_id").references(() => projects.id), // Опциональная связь с проектом
   uploadedBy: varchar("uploaded_by").notNull().references(() => users.id), // Кто загрузил файл

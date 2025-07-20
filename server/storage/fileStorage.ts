@@ -14,7 +14,7 @@ export interface FileMetadata {
   size: number;
   uploadedAt: Date;
   projectId?: number;
-  category: 'project_file' | 'report' | 'invoice' | 'document' | 'image';
+  category: 'project_file' | 'report' | 'invoice' | 'document' | 'image' | 'profile';
 }
 
 export class FileStorage {

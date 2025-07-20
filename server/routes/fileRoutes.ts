@@ -38,7 +38,7 @@ const upload = multer({
 });
 
 const uploadFileSchema = z.object({
-  category: z.enum(['project_file', 'report', 'invoice', 'document', 'image']),
+  category: z.enum(['project_file', 'report', 'invoice', 'document', 'image', 'profile']),
   projectId: z.string().optional().transform(val => val ? parseInt(val) : undefined)
 });
 
