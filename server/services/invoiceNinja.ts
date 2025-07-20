@@ -356,15 +356,48 @@ export class InvoiceNinjaService {
 
   async markInvoiceAsPaid(invoiceId: string): Promise<InvoiceNinjaInvoice> {
     try {
-      const response = await axios.put(
-        `${this.baseUrl}/api/v1/invoices/${invoiceId}?action=paid`,
-        {},
+      // Try v5 bulk action method first
+      const bulkResponse = await axios.post(
+        `${this.baseUrl}/api/v1/invoices/bulk`,
+        {
+          action: 'mark_paid',
+          ids: [invoiceId]
+        },
         { headers: this.getHeaders() }
       );
-      return response.data.data;
-    } catch (error: any) {
-      console.error('Error marking invoice as paid in Invoice Ninja:', error.response?.data || error.message);
-      throw new Error(`Failed to mark invoice as paid: ${error.response?.data?.message || error.message}`);
+      
+      if (bulkResponse.data && bulkResponse.data.data && bulkResponse.data.data.length > 0) {
+        return bulkResponse.data.data[0];
+      }
+      
+      throw new Error('Bulk action did not return data');
+    } catch (bulkError: any) {
+      console.log('Bulk action failed, trying direct action method:', bulkError.response?.data || bulkError.message);
+      
+      // Fallback to direct action method
+      try {
+        const directResponse = await axios.put(
+          `${this.baseUrl}/api/v1/invoices/${invoiceId}?action=mark_paid`,
+          {},
+          { headers: this.getHeaders() }
+        );
+        return directResponse.data.data;
+      } catch (directError: any) {
+        console.log('Direct action failed, trying simple update:', directError.response?.data || directError.message);
+        
+        // Final fallback - try updating status directly
+        try {
+          const updateResponse = await axios.put(
+            `${this.baseUrl}/api/v1/invoices/${invoiceId}`,
+            { status_id: 4 }, // Status ID 4 = Paid in Invoice Ninja
+            { headers: this.getHeaders() }
+          );
+          return updateResponse.data.data;
+        } catch (updateError: any) {
+          console.error('All methods failed to mark invoice as paid in Invoice Ninja');
+          throw new Error(`Failed to mark invoice as paid: ${updateError.response?.data?.message || updateError.message}`);
+        }
+      }
     }
   }
 }
