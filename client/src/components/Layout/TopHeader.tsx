@@ -2,10 +2,9 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { useQuery } from '@tanstack/react-query';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { Search, Bell, ChevronDown, Settings, LogOut, UserCircle } from 'lucide-react';
+import { Bell, ChevronDown, Settings, LogOut, UserCircle } from 'lucide-react';
 import type { Firm } from '@shared/schema';
 
 export function TopHeader() {
@@ -86,15 +85,7 @@ export function TopHeader() {
           </SelectContent>
         </Select>
 
-        {/* Global Search */}
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-          <Input
-            type="text"
-            placeholder="Поиск проектов, клиентов..."
-            className="w-64 pl-10"
-          />
-        </div>
+
       </div>
 
       <div className="flex items-center space-x-4">
