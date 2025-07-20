@@ -106,11 +106,13 @@ export interface IStorage {
   // File operations
   getFilesByProjectId(projectId: number): Promise<ProjectFile[]>;
   createFile(file: InsertProjectFile): Promise<ProjectFile>;
+  getFileById(id: number): Promise<ProjectFile | undefined>;
   deleteFile(id: number): Promise<void>;
   
   // Report operations
   getReportsByProjectId(projectId: number): Promise<ProjectReport[]>;
   createReport(report: InsertProjectReport): Promise<ProjectReport>;
+  getReportById(id: number): Promise<ProjectReport | undefined>;
   updateReport(id: number, report: Partial<InsertProjectReport>): Promise<ProjectReport>;
   deleteReport(id: number): Promise<void>;
   
@@ -470,6 +472,14 @@ export class DatabaseStorage implements IStorage {
     return newFile;
   }
 
+  async getFileById(id: number): Promise<ProjectFile | undefined> {
+    const [file] = await db
+      .select()
+      .from(projectFiles)
+      .where(eq(projectFiles.id, id));
+    return file || undefined;
+  }
+
   async deleteFile(id: number): Promise<void> {
     await db.delete(projectFiles).where(eq(projectFiles.id, id));
   }
@@ -486,6 +496,14 @@ export class DatabaseStorage implements IStorage {
   async createReport(report: InsertProjectReport): Promise<ProjectReport> {
     const [newReport] = await db.insert(projectReports).values(report).returning();
     return newReport;
+  }
+
+  async getReportById(id: number): Promise<ProjectReport | undefined> {
+    const [report] = await db
+      .select()
+      .from(projectReports)
+      .where(eq(projectReports.id, id));
+    return report || undefined;
   }
 
   async updateReport(id: number, report: Partial<InsertProjectReport>): Promise<ProjectReport> {

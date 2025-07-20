@@ -1376,6 +1376,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
       
       const file = await storage.createFile(fileData);
+      
+      // Добавляем запись в историю проекта
+      const userId = req.user.claims.sub;
+      if (userId) {
+        const fileTypeLabels = {
+          'report_photo': 'фото отчет',
+          'review_document': 'документ отзыва',
+          'acceptance': 'документ приемки'
+        };
+        const fileTypeLabel = fileTypeLabels[file.fileType as keyof typeof fileTypeLabels] || file.fileType;
+        
+        await storage.createProjectHistoryEntry({
+          projectId,
+          userId,
+          changeType: 'file_added',
+          description: `Добавлен файл: ${file.fileName || fileTypeLabel}`,
+        });
+      }
+      
       res.json(file);
     } catch (error) {
       console.error("Error creating project file:", error);
@@ -1386,7 +1405,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.delete('/api/files/:id', isAuthenticated, async (req: any, res) => {
     try {
       const fileId = parseInt(req.params.id);
+      
+      // Получаем данные файла перед удалением для истории
+      const file = await storage.getFileById(fileId);
+      
       await storage.deleteFile(fileId);
+      
+      // Добавляем запись в историю проекта
+      const userId = req.user.claims.sub;
+      if (userId && file) {
+        const fileTypeLabels = {
+          'report_photo': 'фото отчет',
+          'review_document': 'документ отзыва',
+          'acceptance': 'документ приемки'
+        };
+        const fileTypeLabel = fileTypeLabels[file.fileType as keyof typeof fileTypeLabels] || file.fileType;
+        
+        await storage.createProjectHistoryEntry({
+          projectId: file.projectId,
+          userId,
+          changeType: 'file_deleted',
+          description: `Удален файл: ${file.fileName || fileTypeLabel}`,
+        });
+      }
+      
       res.json({ message: "File deleted successfully" });
     } catch (error) {
       console.error("Error deleting file:", error);
@@ -1415,6 +1457,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
       
       const report = await storage.createReport(reportData);
+      
+      // Добавляем запись в историю проекта
+      const userId = req.user.claims.sub;
+      if (userId) {
+        const stars = '★'.repeat(report.rating);
+        await storage.createProjectHistoryEntry({
+          projectId,
+          userId,
+          changeType: 'report_added',
+          description: `Создан отчет с оценкой ${report.rating}/5 ${stars}`,
+        });
+      }
+      
       res.json(report);
     } catch (error) {
       console.error("Error creating project report:", error);
@@ -1427,6 +1482,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const reportId = parseInt(req.params.id);
       const updateData = req.body;
       const report = await storage.updateReport(reportId, updateData);
+      
+      // Добавляем запись в историю проекта
+      const userId = req.user.claims.sub;
+      if (userId && report) {
+        const stars = '★'.repeat(report.rating);
+        await storage.createProjectHistoryEntry({
+          projectId: report.projectId,
+          userId,
+          changeType: 'report_updated',
+          description: `Обновлен отчет с оценкой ${report.rating}/5 ${stars}`,
+        });
+      }
+      
       res.json(report);
     } catch (error) {
       console.error("Error updating report:", error);
@@ -1437,7 +1505,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.delete('/api/reports/:id', isAuthenticated, async (req: any, res) => {
     try {
       const reportId = parseInt(req.params.id);
+      
+      // Получаем данные отчета перед удалением для истории
+      const report = await storage.getReportById(reportId);
+      
       await storage.deleteReport(reportId);
+      
+      // Добавляем запись в историю проекта
+      const userId = req.user.claims.sub;
+      if (userId && report) {
+        const stars = '★'.repeat(report.rating);
+        await storage.createProjectHistoryEntry({
+          projectId: report.projectId,
+          userId,
+          changeType: 'report_deleted',
+          description: `Удален отчет с оценкой ${report.rating}/5 ${stars}`,
+        });
+      }
+      
       res.json({ message: "Report deleted successfully" });
     } catch (error) {
       console.error("Error deleting report:", error);
