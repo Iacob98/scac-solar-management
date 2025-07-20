@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useToast } from '@/hooks/use-toast';
 import { apiRequest } from '@/lib/queryClient';
+import { useI18n } from '@/hooks/useI18n';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -39,6 +40,7 @@ interface ProjectWizardProps {
 }
 
 export function ProjectWizard({ isOpen, onClose, firmId }: ProjectWizardProps) {
+  const { formatCurrency } = useI18n();
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [currentStep, setCurrentStep] = useState(1);
@@ -451,9 +453,9 @@ export function ProjectWizard({ isOpen, onClose, firmId }: ProjectWizardProps) {
                         <TableRow key={service.id}>
                           <TableCell>{service.description}</TableCell>
                           <TableCell>{service.quantity}</TableCell>
-                          <TableCell>{parseFloat(service.price).toFixed(2)} €</TableCell>
+                          <TableCell>{formatCurrency(parseFloat(service.price))}</TableCell>
                           <TableCell>
-                            {(parseFloat(service.price) * parseFloat(service.quantity)).toFixed(2)} €
+                            {formatCurrency(parseFloat(service.price) * parseFloat(service.quantity))}
                           </TableCell>
                           <TableCell>
                             <Button
@@ -471,7 +473,7 @@ export function ProjectWizard({ isOpen, onClose, firmId }: ProjectWizardProps) {
                   </Table>
                   <div className="mt-4 text-right">
                     <p className="text-lg font-semibold">
-                      Gesamtsumme: {calculateTotal().toFixed(2)} €
+                      Gesamtsumme: {formatCurrency(calculateTotal())}
                     </p>
                   </div>
                 </CardContent>
@@ -520,14 +522,14 @@ export function ProjectWizard({ isOpen, onClose, firmId }: ProjectWizardProps) {
                       {services.map((service, index) => (
                         <div key={service.id} className="flex justify-between">
                           <span>{service.description}</span>
-                          <span>{(parseFloat(service.price) * parseFloat(service.quantity)).toFixed(2)} €</span>
+                          <span>{formatCurrency(parseFloat(service.price) * parseFloat(service.quantity))}</span>
                         </div>
                       ))}
                     </div>
                     <div className="border-t pt-2">
                       <div className="flex justify-between font-semibold">
                         <span>Gesamtsumme:</span>
-                        <span>{calculateTotal().toFixed(2)} €</span>
+                        <span>{formatCurrency(calculateTotal())}</span>
                       </div>
                     </div>
                   </div>

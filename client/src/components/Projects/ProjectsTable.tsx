@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useToast } from '@/hooks/use-toast';
 import { apiRequest } from '@/lib/queryClient';
+import { useI18n } from '@/hooks/useI18n';
 import type { Project, Client, Crew, Service } from '@shared/schema';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
@@ -22,6 +23,7 @@ interface ProjectsTableProps {
 }
 
 export function ProjectsTable({ firmId, filters }: ProjectsTableProps) {
+  const { formatCurrency } = useI18n();
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
@@ -308,9 +310,9 @@ export function ProjectsTable({ firmId, filters }: ProjectsTableProps) {
                         <TableRow key={service.id}>
                           <TableCell>{service.description}</TableCell>
                           <TableCell>{service.quantity}</TableCell>
-                          <TableCell>{parseFloat(service.price).toFixed(2)} €</TableCell>
+                          <TableCell>{formatCurrency(parseFloat(service.price))}</TableCell>
                           <TableCell>
-                            {(parseFloat(service.price) * parseFloat(service.quantity)).toFixed(2)} €
+                            {formatCurrency(parseFloat(service.price) * parseFloat(service.quantity))}
                           </TableCell>
                         </TableRow>
                       ))}
@@ -318,7 +320,7 @@ export function ProjectsTable({ firmId, filters }: ProjectsTableProps) {
                   </Table>
                   <div className="mt-4 text-right">
                     <p className="text-lg font-semibold">
-                      Gesamtsumme: {calculateProjectTotal().toFixed(2)} €
+                      Gesamtsumme: {formatCurrency(calculateProjectTotal())}
                     </p>
                   </div>
                 </CardContent>

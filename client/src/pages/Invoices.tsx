@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useI18n } from '@/hooks/useI18n';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
@@ -24,9 +25,7 @@ import {
 } from 'lucide-react';
 
 export default function Invoices() {
-  // Форматирование валюты и даты для русской локали
-  const formatCurrency = (amount: number) => new Intl.NumberFormat('ru-RU', { style: 'currency', currency: 'EUR' }).format(amount);
-  const formatDate = (date: string) => new Date(date).toLocaleDateString('ru-RU');
+  const { formatCurrency, formatDate } = useI18n();
   const { toast } = useToast();
   const { user } = useAuth();
   const queryClient = useQueryClient();

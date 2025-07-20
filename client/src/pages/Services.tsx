@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useI18n } from '@/hooks/useI18n';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -27,6 +28,7 @@ interface ServicesPageProps {
 }
 
 export default function ServicesPage({ selectedFirm, projectId }: ServicesPageProps) {
+  const { formatCurrency } = useI18n();
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
@@ -260,7 +262,7 @@ export default function ServicesPage({ selectedFirm, projectId }: ServicesPagePr
                           <SelectItem key={product.id} value={product.id.toString()}>
                             <div className="flex justify-between items-center w-full">
                               <span className="font-medium text-sm truncate pr-2">{product.name}</span>
-                              <span className="text-sm font-medium text-blue-600 flex-shrink-0">€{parseFloat(product.price || 0).toFixed(2)}</span>
+                              <span className="text-sm font-medium text-blue-600 flex-shrink-0">{formatCurrency(parseFloat(product.price || 0))}</span>
                             </div>
                           </SelectItem>
                         ))}
@@ -401,7 +403,7 @@ export default function ServicesPage({ selectedFirm, projectId }: ServicesPagePr
                 <div className="grid grid-cols-3 gap-4 text-sm">
                   <div>
                     <span className="text-gray-500">Цена:</span>
-                    <div className="font-medium">€{parseFloat(service.price.toString()).toFixed(2)}</div>
+                    <div className="font-medium">{formatCurrency(parseFloat(service.price.toString()))}</div>
                   </div>
                   <div>
                     <span className="text-gray-500">Количество:</span>
@@ -410,7 +412,7 @@ export default function ServicesPage({ selectedFirm, projectId }: ServicesPagePr
                   <div>
                     <span className="text-gray-500">Итого:</span>
                     <div className="font-medium">
-                      €{(parseFloat(service.price.toString()) * parseFloat(service.quantity.toString())).toFixed(2)}
+                      {formatCurrency(parseFloat(service.price.toString()) * parseFloat(service.quantity.toString()))}
                     </div>
                   </div>
                 </div>
@@ -431,7 +433,7 @@ export default function ServicesPage({ selectedFirm, projectId }: ServicesPagePr
               <CardContent className="p-4">
                 <div className="flex justify-between items-center">
                   <span className="text-lg font-semibold text-blue-900">Общая сумма:</span>
-                  <span className="text-2xl font-bold text-blue-900">€{totalAmount.toFixed(2)}</span>
+                  <span className="text-2xl font-bold text-blue-900">{formatCurrency(totalAmount)}</span>
                 </div>
               </CardContent>
             </Card>
