@@ -1,6 +1,10 @@
 import fs from 'fs/promises';
 import path from 'path';
 import { randomUUID } from 'crypto';
+import { db } from '../db';
+import { fileStorage } from '../../shared/schema';
+
+type FileRecord = typeof fileStorage.$inferSelect;
 
 export interface FileMetadata {
   id: string;
@@ -181,9 +185,9 @@ export class FileStorage {
   }
 
   async saveInvoicePDF(pdfBuffer: Buffer, invoiceNumber: string, projectId: number, uploadedBy: string): Promise<FileRecord> {
-    const fileId = crypto.randomUUID();
+    const fileId = randomUUID();
     const fileName = `invoice_${invoiceNumber}_${Date.now()}.pdf`;
-    const filePath = path.join(this.uploadsDir, fileName);
+    const filePath = path.join(this.baseDir, fileName);
 
     // Сохраняем PDF файл на диск
     await fs.writeFile(filePath, pdfBuffer);

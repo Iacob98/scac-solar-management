@@ -338,21 +338,7 @@ export class InvoiceNinjaService {
     }
   }
 
-  async downloadInvoicePDF(invoiceId: string): Promise<Buffer> {
-    try {
-      const response = await axios.get(
-        `${this.baseUrl}/api/v1/invoices/${invoiceId}/download`,
-        { 
-          headers: this.getHeaders(),
-          responseType: 'arraybuffer'
-        }
-      );
-      return Buffer.from(response.data);
-    } catch (error: any) {
-      console.error('Error downloading invoice PDF from Invoice Ninja:', error.response?.data || error.message);
-      throw new Error(`Failed to download invoice PDF: ${error.response?.data?.message || error.message}`);
-    }
-  }
+
 
   async markInvoiceAsPaid(invoiceId: string): Promise<InvoiceNinjaInvoice> {
     try {
