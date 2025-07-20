@@ -3,6 +3,9 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { setupAuth, isAuthenticated } from "./replitAuth";
 import { InvoiceNinjaService } from "./services/invoiceNinja";
+import { db } from "./db";
+import { projects, projectHistory } from "@shared/schema";
+import { eq } from "drizzle-orm";
 import { 
   insertFirmSchema, 
   insertClientSchema, 
@@ -37,6 +40,26 @@ const isAdmin = async (req: any, res: any, next: any) => {
 
 export async function registerRoutes(app: Express): Promise<Server> {
   await setupAuth(app);
+
+  // Test endpoint for history entries
+  app.get('/api/test-history', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const result = await storage.createProjectHistoryEntry({
+        projectId: 16,
+        userId,
+        changeType: 'info_update',
+        fieldName: 'test',
+        oldValue: null,
+        newValue: 'test',
+        description: 'Тестовая запись в историю',
+      });
+      res.json({ success: true, historyId: result.id });
+    } catch (error) {
+      console.error('Test history error:', error);
+      res.status(500).json({ error: error.message });
+    }
+  });
 
   // Development test users login
   app.post('/api/auth/test-login', async (req, res) => {
@@ -1245,6 +1268,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post('/api/invoice/create', isAuthenticated, async (req: any, res) => {
     try {
       const { projectId } = req.body;
+      const userId = req.user.claims.sub;
       
       if (!projectId) {
         return res.status(400).json({ message: "Project ID is required" });
@@ -1309,25 +1333,38 @@ export async function registerRoutes(app: Express): Promise<Server> {
         isPaid: false,
       });
 
-      // Update project status and invoice info
-      await storage.updateProject(projectId, {
-        status: 'invoiced',
-        invoiceNumber: ninjaInvoice.number,
-        invoiceUrl: `${firm.invoiceNinjaUrl}/invoices/${ninjaInvoice.id}`,
-      });
+      // Выполняем обновление проекта и запись в историю в одной транзакции
+      console.log(`Adding history entry for project ${projectId}, userId: ${userId}, invoice: ${ninjaInvoice.number}`);
+      await db.transaction(async (tx) => {
+        // Добавляем запись в историю проекта о создании счета
+        if (userId) {
+          const historyEntry = {
+            projectId,
+            userId,
+            changeType: 'info_update' as const,
+            fieldName: 'invoice',
+            oldValue: null,
+            newValue: ninjaInvoice.number,
+            description: `Создан счет №${ninjaInvoice.number} на сумму ${ninjaInvoice.amount}`,
+          };
+          console.log(`History entry data:`, historyEntry);
+          const [result] = await tx
+            .insert(projectHistory)
+            .values(historyEntry)
+            .returning();
+          console.log(`Successfully added history entry with ID ${result.id} for invoice ${ninjaInvoice.number}`);
+        }
 
-      // Добавляем запись в историю проекта о создании счета
-      if (userId) {
-        await storage.createProjectHistoryEntry({
-          projectId,
-          userId,
-          changeType: 'status_change',
-          fieldName: 'status',
-          oldValue: project.status,
-          newValue: 'invoiced',
-          description: `Создан счет №${ninjaInvoice.number} на сумму ${ninjaInvoice.amount}`,
-        });
-      }
+        // Update project status and invoice info
+        await tx.update(projects)
+          .set({ 
+            status: 'invoiced',
+            invoiceNumber: ninjaInvoice.number,
+            invoiceUrl: `${firm.invoiceNinjaUrl}/invoices/${ninjaInvoice.id}`,
+            updatedAt: new Date()
+          })
+          .where(eq(projects.id, projectId));
+      });
 
       res.json({
         invoice,

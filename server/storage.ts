@@ -669,6 +669,14 @@ export class DatabaseStorage implements IStorage {
       .innerJoin(userFirms, eq(users.id, userFirms.userId))
       .where(eq(userFirms.firmId, firmId));
   }
+
+  async createProjectHistoryEntry(entry: InsertProjectHistory): Promise<ProjectHistory> {
+    const [historyEntry] = await db
+      .insert(projectHistory)
+      .values(entry)
+      .returning();
+    return historyEntry;
+  }
 }
 
 export const storage = new DatabaseStorage();
