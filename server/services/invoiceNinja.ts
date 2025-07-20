@@ -167,6 +167,8 @@ export interface CreateInvoiceRequest {
   }>;
   custom_value1?: string;
   custom_value2?: string;
+  custom_value3?: string;
+  custom_value4?: string;
   date: string;
   due_date: string;
   public_notes?: string;

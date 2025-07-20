@@ -38,6 +38,35 @@ const isAdmin = async (req: any, res: any, next: any) => {
   }
 };
 
+// Helper function to build German installation notes
+function buildInstallationNotesGerman(installationPerson: any, project: any): string {
+  const notes = ['Installationsdetails:'];
+  
+  if (installationPerson.firstName || installationPerson.lastName) {
+    const fullName = [installationPerson.firstName, installationPerson.lastName].filter(Boolean).join(' ');
+    notes.push(`Name: ${fullName}`);
+  }
+  
+  if (installationPerson.address) {
+    notes.push(`Adresse: ${installationPerson.address}`);
+  }
+  
+  if (installationPerson.uniqueId) {
+    notes.push(`Kunden-ID: ${installationPerson.uniqueId}`);
+  }
+  
+  if (installationPerson.phone) {
+    notes.push(`Telefon: ${installationPerson.phone}`);
+  }
+  
+  if (project.notes) {
+    notes.push('', 'Zusätzliche Hinweise:');
+    notes.push(project.notes);
+  }
+  
+  return notes.join('\n');
+}
+
 export async function registerRoutes(app: Express): Promise<Server> {
   await setupAuth(app);
 
@@ -164,126 +193,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Invoice routes  
-  app.post('/api/invoice/create', isAuthenticated, async (req: any, res) => {
-    try {
-      const userId = req.user.claims.sub;
-      const user = await storage.getUser(userId);
-      
-      if (!user) {
-        return res.status(404).json({ message: "User not found" });
-      }
 
-      const { projectId } = z.object({
-        projectId: z.number(),
-      }).parse(req.body);
-
-      // Get project with all related data
-      const project = await storage.getProjectById(projectId);
-      if (!project) {
-        return res.status(404).json({ message: "Project not found" });
-      }
-
-      // Get firm info for Invoice Ninja API
-      const firms = await storage.getFirms();
-      const firm = firms.find(f => f.id === project.firmId);
-      if (!firm) {
-        return res.status(404).json({ message: "Firm not found" });
-      }
-
-      // Get client info
-      const clients = await storage.getClientsByFirmId(project.firmId);
-      const client = clients.find(c => c.id === project.clientId);
-      if (!client) {
-        return res.status(404).json({ message: "Client not found" });
-      }
-
-      // Get services for the project
-      const services = await storage.getServicesByProjectId(projectId);
-      if (services.length === 0) {
-        return res.status(400).json({ message: "No services found for project" });
-      }
-
-      // Create Invoice Ninja service instance
-      const ninjaService = new InvoiceNinjaService(firm.invoiceNinjaUrl, firm.token);
-
-      // Check if client exists in Invoice Ninja, create if not
-      let ninjaClientId = client.ninjaClientId;
-      if (!ninjaClientId) {
-        const ninjaClient = await ninjaService.createClient({
-          name: client.name,
-          email: client.email || '',
-          phone: client.phone || '',
-          address1: client.address || '',
-          country_id: "276", // Germany
-        });
-        ninjaClientId = ninjaClient.id;
-        
-        // Update our client with the ninja_client_id
-        await storage.updateClient(client.id, { ninjaClientId });
-      }
-
-      // Create invoice in Invoice Ninja (German format)
-      const invoiceData = {
-        client_id: ninjaClientId,
-        line_items: services.map(service => ({
-          quantity: Number(service.quantity) || 1,
-          cost: parseFloat(service.price.toString()),
-          product_key: service.productKey || service.description.split(' ')[0],
-          notes: service.description,
-          custom_value1: '',
-          custom_value2: '',
-        })),
-        // German invoice format
-        date: new Date().toISOString().split('T')[0],
-        due_date: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // 14 days
-        public_notes: `Kundendaten: ${client.name}\nKundenanschrift: ${client.address}\nKundennummer: CLIENT-${client.id}`,
-        private_notes: `Projekt ID: ${projectId}, Team: ${project.teamNumber || 'N/A'}`,
-        custom_value1: `PROJ-${projectId}`,
-        custom_value2: `CREW-${project.crewId || 'N/A'}`,
-        // Add German tax settings
-        tax_name1: 'USt.',
-        tax_rate1: 0, // 0% as per German §13b UStG for B2B solar installations
-        footer: 'Umsatzsteuerfreie Leistungen gemäß §13b Abs. 2 UStG.\nVielen Dank für die gute Zusammenarbeit.',
-      };
-
-      const invoice = await ninjaService.createInvoice(invoiceData);
-
-      // Save invoice to our database
-      const newInvoice = await storage.createInvoice({
-        projectId: projectId,
-        invoiceId: invoice.id,
-        invoiceNumber: invoice.number,
-        invoiceDate: invoice.date,
-        dueDate: invoice.due_date,
-        totalAmount: invoice.amount.toString(),
-        isPaid: false,
-      });
-
-      // Get PDF link from Invoice Ninja
-      const pdfUrl = await ninjaService.downloadInvoicePDF ? 
-        `/api/v1/invoices/${invoice.id}/download` : '';
-
-      // Update project status
-      await storage.updateProject(projectId, {
-        status: 'invoiced',
-        invoiceNumber: invoice.number,
-        invoiceUrl: pdfUrl,
-      });
-
-      res.json({
-        success: true,
-        invoice: newInvoice,
-        invoiceNumber: invoice.number,
-        invoiceUrl: pdfUrl,
-        totalAmount: invoice.amount,
-      });
-
-    } catch (error: any) {
-      console.error("Error creating invoice:", error);
-      res.status(500).json({ message: error?.message || "Failed to create invoice" });
-    }
-  });
 
   app.patch('/api/invoice/mark-paid', isAuthenticated, async (req: any, res) => {
     try {
@@ -937,10 +847,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const userId = req.user.claims.sub;
       console.log('Creating project with data:', req.body);
       
-      const projectData = insertProjectSchema.parse({
-        ...req.body,
-        leiterId: userId,
-      });
+      // Очищаем пустые даты перед парсингом
+      const cleanedData = { ...req.body, leiterId: userId };
+      if (cleanedData.workStartDate === '') {
+        cleanedData.workStartDate = null;
+      }
+      if (cleanedData.workEndDate === '') {
+        cleanedData.workEndDate = null;
+      }
+      if (cleanedData.equipmentExpectedDate === '') {
+        cleanedData.equipmentExpectedDate = null;
+      }
+      if (cleanedData.equipmentArrivedDate === '') {
+        cleanedData.equipmentArrivedDate = null;
+      }
+      
+      const projectData = insertProjectSchema.parse(cleanedData);
       
       console.log('Parsed project data:', projectData);
       const project = await storage.createProject(projectData);
@@ -1301,7 +1223,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const invoiceNinja = new InvoiceNinjaService(firm.invoiceNinjaUrl, firm.token);
       
-      // Create invoice in Invoice Ninja
+      // Create invoice in Invoice Ninja with installation person details
+      const installationPerson = {
+        firstName: project.installationPersonFirstName || '',
+        lastName: project.installationPersonLastName || '',
+        address: project.installationPersonAddress || '',
+        uniqueId: project.installationPersonUniqueId || '',
+        phone: project.installationPersonPhone || ''
+      };
+      
       const invoiceData = {
         client_id: projectClient.ninjaClientId || '',
         line_items: services.map(service => ({
@@ -1312,12 +1242,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
           custom_value1: service.isCustom ? 'custom' : 'catalog',
           custom_value2: '',
         })),
+        // Project and installation details
         custom_value1: `PROJ-${projectId}`,
         custom_value2: project.crewId ? `CREW-${project.crewId}` : '',
+        custom_value3: installationPerson.uniqueId ? `ID: ${installationPerson.uniqueId}` : '',
+        custom_value4: installationPerson.phone ? `Tel: ${installationPerson.phone}` : '',
         date: new Date().toISOString().split('T')[0],
         due_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-        public_notes: project.notes || '',
-        private_notes: `Generated from SCAC Project ${projectId}`,
+        public_notes: buildInstallationNotesGerman(installationPerson, project),
+        private_notes: `Generated from SCAC Project ${projectId}. Client: ${projectClient.name}`,
       };
 
       const ninjaInvoice = await invoiceNinja.createInvoice(invoiceData);

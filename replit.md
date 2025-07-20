@@ -163,3 +163,12 @@ The application follows a monolithic architecture with clear separation between 
 - Enhanced invoice creation process to record history entries with invoice numbers and amounts
 - Updated ProjectHistory.tsx component with icons, colors, and labels for new history types
 - All project activities now tracked with proper user attribution and descriptive messages
+
+### Enhanced Invoice Ninja Integration (July 2025)
+- Fixed project creation error with empty date fields (workStartDate, workEndDate, etc.)
+- Implemented comprehensive customer data integration in Invoice Ninja invoices
+- Added installation person details (firstName, lastName, address, uniqueId, phone) to invoice public notes
+- Enhanced custom fields in invoices: custom_value3 for customer ID, custom_value4 for phone number
+- Created German-language installation notes formatting for professional invoice presentation
+- Improved transaction handling for invoice creation and project history recording
+- All invoice creation now includes detailed installation customer information from project data
