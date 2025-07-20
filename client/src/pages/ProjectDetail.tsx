@@ -132,9 +132,9 @@ export default function ProjectDetail({ projectId, selectedFirm, onBack }: Proje
   });
 
   const { data: files = [], isLoading: filesLoading } = useQuery({
-    queryKey: ['/api/projects', projectId, 'files'],
+    queryKey: ['/api/files/project', projectId],
     queryFn: async () => {
-      const response = await apiRequest(`/api/projects/${projectId}/files`, 'GET');
+      const response = await apiRequest(`/api/files/project/${projectId}`, 'GET');
       return await response.json();
     },
     enabled: !!project,
@@ -253,7 +253,6 @@ export default function ProjectDetail({ projectId, selectedFirm, onBack }: Proje
       return response.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/projects', projectId, 'files'] });
       queryClient.invalidateQueries({ queryKey: ['/api/files/project', projectId] });
       toast({ title: 'Файл загружен успешно' });
       setIsFileDialogOpen(false);
@@ -285,9 +284,9 @@ export default function ProjectDetail({ projectId, selectedFirm, onBack }: Proje
   });
 
   const deleteFileMutation = useMutation({
-    mutationFn: (fileId: number) => apiRequest(`/api/project-files/${fileId}`, 'DELETE'),
+    mutationFn: (fileId: string) => apiRequest(`/api/files/${fileId}`, 'DELETE'),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/projects', projectId, 'files'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/files/project', projectId] });
       toast({ title: 'Файл удален успешно' });
     },
     onError: (error: any) => {
@@ -941,33 +940,39 @@ export default function ProjectDetail({ projectId, selectedFirm, onBack }: Proje
                     <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                       {photoFiles.map((file: ProjectFile) => (
                         <div key={file.id} className="relative group cursor-pointer">
-                          <img
-                            src={file.fileUrl}
-                            alt={file.fileName || 'Фото отчет'}
-                            className="w-full h-40 object-cover rounded-lg"
-                            onError={(e) => {
-                              (e.target as HTMLImageElement).src = '/placeholder-image.svg';
-                            }}
-                          />
+                          {file.mimeType && file.mimeType.startsWith('image/') ? (
+                            <img
+                              src={`/api/files/${file.fileId}`}
+                              alt={file.originalName || 'Фото отчет'}
+                              className="w-full h-40 object-cover rounded-lg"
+                              onError={(e) => {
+                                (e.target as HTMLImageElement).src = '/placeholder-image.svg';
+                              }}
+                            />
+                          ) : (
+                            <div className="w-full h-40 bg-gray-100 rounded-lg flex items-center justify-center">
+                              <FileText className="h-12 w-12 text-gray-400" />
+                            </div>
+                          )}
                           <div className="absolute inset-0 bg-black bg-opacity-50 opacity-0 group-hover:opacity-100 transition-opacity rounded-lg flex items-center justify-center gap-2">
                             <Button
                               size="sm"
                               variant="secondary"
-                              onClick={() => window.open(file.fileUrl, '_blank')}
+                              onClick={() => window.open(`/api/files/${file.fileId}`, '_blank')}
                             >
                               <Eye className="h-4 w-4" />
                             </Button>
                             <Button
                               size="sm"
                               variant="destructive"
-                              onClick={() => deleteFileMutation.mutate(file.id)}
+                              onClick={() => deleteFileMutation.mutate(file.fileId)}
                               disabled={deleteFileMutation.isPending}
                             >
                               <Trash2 className="h-4 w-4" />
                             </Button>
                           </div>
-                          {file.fileName && (
-                            <p className="text-xs text-gray-600 mt-2 truncate">{file.fileName}</p>
+                          {file.originalName && (
+                            <p className="text-xs text-gray-600 mt-2 truncate">{file.originalName}</p>
                           )}
                         </div>
                       ))}

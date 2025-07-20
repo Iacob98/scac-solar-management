@@ -69,7 +69,7 @@ router.post('/upload', isAuthenticated, upload.single('file'), async (req, res) 
       size: fileMetadata.size,
       category: validatedData.category,
       projectId: validatedData.projectId,
-      uploadedBy: req.user!.id
+      uploadedBy: parseInt(req.user!.id)
     };
 
     const savedFile = await storage.createFileRecord(fileRecord);
@@ -78,7 +78,7 @@ router.post('/upload', isAuthenticated, upload.single('file'), async (req, res) 
     if (validatedData.projectId) {
       await storage.addProjectHistory({
         projectId: validatedData.projectId,
-        userId: req.user!.id,
+        userId: parseInt(req.user!.id),
         changeType: 'file_added',
         fieldName: 'file',
         oldValue: null,

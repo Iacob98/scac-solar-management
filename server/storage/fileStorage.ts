@@ -199,7 +199,7 @@ export class FileStorage {
         size: pdfBuffer.length,
         category: 'invoice',
         projectId,
-        uploadedBy,
+        uploadedBy: parseInt(uploadedBy),
         uploadedAt: new Date(),
         isDeleted: false
       })
