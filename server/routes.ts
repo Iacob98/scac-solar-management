@@ -18,6 +18,7 @@ import {
 } from "@shared/schema";
 import { z } from "zod";
 import fileRoutes from "./routes/fileRoutes";
+import { fileStorageService } from "./storage/fileStorage";
 
 // Admin role check middleware
 const isAdmin = async (req: any, res: any, next: any) => {
@@ -1294,6 +1295,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
         totalAmount: ninjaInvoice.amount.toString(),
         isPaid: false,
       });
+
+      // Скачиваем PDF счета и сохраняем в файловое хранилище
+      try {
+        console.log(`Downloading PDF for invoice: ${ninjaInvoice.id}`);
+        const pdfBuffer = await invoiceNinja.downloadInvoicePDF(ninjaInvoice.id);
+        
+        console.log(`Saving PDF to file storage for project ${projectId}`);
+        const savedFile = await fileStorageService.saveInvoicePDF(
+          pdfBuffer,
+          ninjaInvoice.number,
+          projectId,
+          userId
+        );
+        
+        console.log(`Successfully saved invoice PDF with file ID: ${savedFile.fileId}`);
+      } catch (pdfError) {
+        console.error(`Warning: Failed to download/save invoice PDF:`, pdfError);
+        // Не прерываем процесс создания счета, если загрузка PDF не удалась
+      }
 
       // Выполняем обновление проекта и запись в историю в одной транзакции
       console.log(`Adding history entry for project ${projectId}, userId: ${userId}, invoice: ${ninjaInvoice.number}`);

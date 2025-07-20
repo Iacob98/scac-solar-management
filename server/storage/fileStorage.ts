@@ -179,7 +179,36 @@ export class FileStorage {
       throw new Error('Не удалось очистить хранилище');
     }
   }
+
+  async saveInvoicePDF(pdfBuffer: Buffer, invoiceNumber: string, projectId: number, uploadedBy: string): Promise<FileRecord> {
+    const fileId = crypto.randomUUID();
+    const fileName = `invoice_${invoiceNumber}_${Date.now()}.pdf`;
+    const filePath = path.join(this.uploadsDir, fileName);
+
+    // Сохраняем PDF файл на диск
+    await fs.writeFile(filePath, pdfBuffer);
+
+    // Создаем запись в базе данных
+    const [fileRecord] = await db
+      .insert(fileStorage)
+      .values({
+        fileId,
+        originalName: `Счет ${invoiceNumber}.pdf`,
+        fileName,
+        mimeType: 'application/pdf',
+        size: pdfBuffer.length,
+        category: 'invoice',
+        projectId,
+        uploadedBy,
+        uploadedAt: new Date(),
+        isDeleted: false
+      })
+      .returning();
+
+    return fileRecord;
+  }
 }
 
 // Экспортируем глобальный экземпляр
-export const fileStorage = new FileStorage();
+export const fileStorageService = new FileStorage();
+export const fileStorage = fileStorageService; // Backward compatibility

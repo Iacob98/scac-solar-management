@@ -151,7 +151,6 @@ export function FileUpload({ projectId, onFileUploaded }: FileUploadProps) {
               <SelectItem value="document">Документ</SelectItem>
               <SelectItem value="image">Изображение</SelectItem>
               <SelectItem value="report">Отчет</SelectItem>
-              <SelectItem value="invoice">Счет</SelectItem>
             </SelectContent>
           </Select>
         </div>

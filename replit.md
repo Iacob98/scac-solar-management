@@ -182,3 +182,12 @@ The application follows a monolithic architecture with clear separation between 
 - Enhanced error handling for Invoice Ninja API connectivity issues
 - Fixed API request routing issues in Invoices page for proper project data loading
 - Payment history entries include invoice numbers and payment confirmation details
+
+### Comprehensive File Storage System (July 2025)
+- Implemented complete file storage system with database schema and API endpoints
+- Created file upload and management components (FileUpload, FileList, FileStorage page)
+- Added automatic PDF download and storage when invoices are created in Invoice Ninja
+- Removed URL-based file adding, keeping only direct file upload functionality
+- Integrated file storage into project workflow with categorization system
+- Added file management to main navigation with dedicated storage interface
+- Implemented secure file access with user authentication and project association
