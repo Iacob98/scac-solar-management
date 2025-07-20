@@ -1,5 +1,4 @@
 import { useAuth } from '@/hooks/useAuth';
-import { useI18n } from '@/hooks/useI18n';
 import { useQuery } from '@tanstack/react-query';
 import { MainLayout } from '@/components/Layout/MainLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -24,7 +23,6 @@ import { useToast } from '@/hooks/use-toast';
 
 export default function Home() {
   const { user } = useAuth();
-  const { t } = useI18n();
   const { toast } = useToast();
   const [selectedFirmId, setSelectedFirmId] = useState<string>('');
   const [isTutorialOpen, setIsTutorialOpen] = useState(false);

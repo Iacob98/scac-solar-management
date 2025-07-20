@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import { useI18n } from '@/hooks/useI18n';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useToast } from '@/hooks/use-toast';
 import { apiRequest } from '@/lib/queryClient';
@@ -28,7 +27,6 @@ const userSchema = z.object({
 });
 
 export default function Users() {
-  const { t } = useI18n();
   const { toast } = useToast();
   const { user } = useAuth();
   const queryClient = useQueryClient();

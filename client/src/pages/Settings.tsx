@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import { useAuth } from '@/hooks/useAuth';
-import { useI18n } from '@/hooks/useI18n';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useToast } from '@/hooks/use-toast';
 import { apiRequest } from '@/lib/queryClient';
@@ -43,7 +42,6 @@ const passwordSchema = z.object({
 
 export default function Settings() {
   const { user } = useAuth();
-  const { t } = useI18n();
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState<'profile' | 'password'>('profile');

@@ -1,10 +1,8 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { useI18n } from "@/hooks/useI18n";
 import { WbSunny, Business, Engineering, Receipt } from "@mui/icons-material";
 
 export default function Landing() {
-  const { t } = useI18n();
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-white">

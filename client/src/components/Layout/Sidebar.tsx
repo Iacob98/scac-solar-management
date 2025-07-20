@@ -1,22 +1,20 @@
 import { Link, useLocation } from 'wouter';
-import { useI18n } from '@/hooks/useI18n';
 import { useAuth } from '@/hooks/useAuth';
 
 export function Sidebar() {
-  const { t } = useI18n();
   const { user } = useAuth();
   const [location] = useLocation();
 
   const menuItems = [
-    { path: '/projects', label: t('projects'), icon: 'dashboard' },
-    { path: '/clients', label: t('clients'), icon: 'people' },
-    { path: '/crews', label: t('crews'), icon: 'groups' },
-    ...(user?.role === 'admin' ? [{ path: '/invoices', label: t('invoices'), icon: 'receipt' }] : []),
+    { path: '/projects', label: 'Проекты', icon: 'dashboard' },
+    { path: '/clients', label: 'Клиенты', icon: 'people' },
+    { path: '/crews', label: 'Бригады', icon: 'groups' },
+    ...(user?.role === 'admin' ? [{ path: '/invoices', label: 'Счета', icon: 'receipt' }] : []),
   ];
 
   const adminItems = [
     { path: '/admin/firms', label: 'Управление фирмами', icon: 'domain_add' },
-    { path: '/admin/users', label: t('users'), icon: 'admin_panel_settings' },
+    { path: '/admin/users', label: 'Пользователи', icon: 'admin_panel_settings' },
   ];
 
   const isActive = (path: string) => location === path;
@@ -56,7 +54,7 @@ export function Sidebar() {
         {user?.role === 'admin' && (
           <div className="pt-4 border-t">
             <p className="text-xs font-medium text-gray-400 uppercase tracking-wider mb-2">
-              {t('administration')}
+              Администрирование
             </p>
             {adminItems.map((item) => (
               <Link key={item.path} href={item.path}>

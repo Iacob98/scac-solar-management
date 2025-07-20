@@ -105,6 +105,12 @@ The application follows a monolithic architecture with clear separation between 
 - Translated all UI elements to Russian language
 - Updated i18n hooks to always use Russian locale
 - Fixed currency and date formatting for Russian locale
+- Completed comprehensive i18n system cleanup (January 2025):
+  - Removed obsolete i18n library and translation files
+  - Eliminated unused i18n imports across entire frontend codebase
+  - Standardized direct Russian text usage throughout application
+  - Fixed React hooks order issues caused by i18n cleanup
+  - Simplified currency and date formatting with inline Intl functions
 
 ### Dashboard and Statistics
 - Completely redesigned Home page with working statistics

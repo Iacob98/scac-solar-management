@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react';
-import { useI18n } from '@/hooks/useI18n';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useToast } from '@/hooks/use-toast';
 import { apiRequest } from '@/lib/queryClient';
@@ -26,7 +25,6 @@ const crewSchema = z.object({
 });
 
 export default function Crews() {
-  const { t } = useI18n();
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [selectedFirmId, setSelectedFirmId] = useState<string>('');

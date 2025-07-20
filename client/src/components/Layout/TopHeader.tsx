@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react';
-import { useI18n } from '@/hooks/useI18n';
 import { useAuth } from '@/hooks/useAuth';
 import { useQuery } from '@tanstack/react-query';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -10,7 +9,6 @@ import { Search, Bell, ChevronDown, Settings, LogOut, UserCircle } from 'lucide-
 import type { Firm } from '@shared/schema';
 
 export function TopHeader() {
-  const { t } = useI18n();
   const { user } = useAuth();
   const [selectedFirmId, setSelectedFirmId] = useState<string>(() => {
     // Initialize with saved value immediately to prevent flashing
@@ -93,7 +91,7 @@ export function TopHeader() {
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
           <Input
             type="text"
-            placeholder={`${t('projects')}, ${t('clients')} ${t('search').toLowerCase()}...`}
+            placeholder="Поиск проектов, клиентов..."
             className="w-64 pl-10"
           />
         </div>
@@ -127,12 +125,12 @@ export function TopHeader() {
           <DropdownMenuContent align="end" className="w-56">
             <DropdownMenuItem onClick={() => window.location.href = '/settings'}>
               <Settings className="w-4 h-4 mr-2" />
-              {t('settings')}
+              Настройки
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={() => window.location.href = '/api/logout'}>
               <LogOut className="w-4 h-4 mr-2" />
-              {t('logout')}
+              Выход
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>

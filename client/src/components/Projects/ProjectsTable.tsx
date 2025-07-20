@@ -2,7 +2,6 @@ import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useToast } from '@/hooks/use-toast';
 import { apiRequest } from '@/lib/queryClient';
-import { useI18n } from '@/hooks/useI18n';
 import type { Project, Client, Crew, Service } from '@shared/schema';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
@@ -23,7 +22,6 @@ interface ProjectsTableProps {
 }
 
 export function ProjectsTable({ firmId, filters }: ProjectsTableProps) {
-  const { t } = useI18n();
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);

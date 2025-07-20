@@ -1,24 +1,5 @@
-import { useState, useEffect } from 'react';
-import { translations, type Language, type TranslationKey } from '@/lib/i18n';
-
+// Утилиты для форматирования (локализация упрощена до русского языка)
 export function useI18n() {
-  const [language, setLanguage] = useState<Language>('ru');
-
-  useEffect(() => {
-    // Всегда использовать русский язык
-    setLanguage('ru');
-    localStorage.setItem('language', 'ru');
-  }, []);
-
-  const changeLanguage = (newLanguage: Language) => {
-    setLanguage(newLanguage);
-    localStorage.setItem('language', newLanguage);
-  };
-
-  const t = (key: TranslationKey): string => {
-    return translations[language][key] || key;
-  };
-
   const formatCurrency = (amount: number | string): string => {
     const numericAmount = typeof amount === 'string' ? parseFloat(amount) : amount;
     // Используем немецкий локаль для европейского стиля форматирования
@@ -39,9 +20,6 @@ export function useI18n() {
   };
 
   return {
-    language,
-    changeLanguage,
-    t,
     formatCurrency,
     formatDate,
   };
