@@ -175,8 +175,10 @@ The application follows a monolithic architecture with clear separation between 
 
 ### Payment Status Synchronization (July 2025)
 - Implemented bidirectional payment status synchronization with Invoice Ninja
-- When invoice marked as paid in SCAC system, it also attempts to mark as paid in Invoice Ninja
+- Fixed Invoice Ninja v5 API compatibility using correct bulk actions endpoint
+- Added multi-level fallback approach for maximum Invoice Ninja version compatibility
+- Successfully marks invoices as paid in both SCAC and Invoice Ninja systems
 - Added comprehensive history tracking for payment status changes
 - Enhanced error handling for Invoice Ninja API connectivity issues
-- System continues operation even if Invoice Ninja synchronization fails
+- Fixed API request routing issues in Invoices page for proper project data loading
 - Payment history entries include invoice numbers and payment confirmation details
