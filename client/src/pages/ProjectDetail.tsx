@@ -58,8 +58,10 @@ const reportFormSchema = insertProjectReportSchema.extend({
   rating: z.number().min(1, "Оценка обязательна").max(5, "Максимальная оценка 5"),
 });
 
-const fileFormSchema = insertProjectFileSchema.extend({
-  fileUrl: z.string().url("Введите корректный URL файла"),
+const fileFormSchema = z.object({
+  projectId: z.number(),
+  fileName: z.string().min(1, "Название файла обязательно"),
+  fileType: z.enum(['report_photo', 'review_document', 'technical_doc', 'other']),
 });
 
 export default function ProjectDetail({ projectId, selectedFirm, onBack }: ProjectDetailProps) {
@@ -68,6 +70,7 @@ export default function ProjectDetail({ projectId, selectedFirm, onBack }: Proje
   const [isReportDialogOpen, setIsReportDialogOpen] = useState(false);
   const [isFileDialogOpen, setIsFileDialogOpen] = useState(false);
   const [editingReport, setEditingReport] = useState<ProjectReport | null>(null);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const { toast } = useToast();
   const { user } = useAuth();
   const queryClient = useQueryClient();
@@ -185,7 +188,6 @@ export default function ProjectDetail({ projectId, selectedFirm, onBack }: Proje
     resolver: zodResolver(fileFormSchema),
     defaultValues: {
       projectId: projectId || 0,
-      fileUrl: '',
       fileName: '',
       fileType: 'report_photo' as const,
     },
@@ -227,17 +229,41 @@ export default function ProjectDetail({ projectId, selectedFirm, onBack }: Proje
   });
 
   const createFileMutation = useMutation({
-    mutationFn: (data: any) => apiRequest(`/api/projects/${projectId}/files`, 'POST', data),
+    mutationFn: async (data: any) => {
+      if (!selectedFile) {
+        throw new Error('Файл не выбран');
+      }
+
+      const formData = new FormData();
+      formData.append('file', selectedFile);
+      formData.append('category', 'project_file');
+      formData.append('projectId', projectId.toString());
+
+      const response = await fetch('/api/files/upload', {
+        method: 'POST',
+        body: formData,
+        credentials: 'include'
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || 'Ошибка загрузки файла');
+      }
+
+      return response.json();
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/projects', projectId, 'files'] });
-      toast({ title: 'Файл добавлен успешно' });
+      queryClient.invalidateQueries({ queryKey: ['/api/files/project', projectId] });
+      toast({ title: 'Файл загружен успешно' });
       setIsFileDialogOpen(false);
+      setSelectedFile(null);
       fileForm.reset();
     },
     onError: (error: any) => {
       toast({
         title: 'Ошибка',
-        description: error.message || 'Не удалось добавить файл',
+        description: error.message || 'Не удалось загрузить файл',
         variant: 'destructive'
       });
     },
@@ -282,6 +308,14 @@ export default function ProjectDetail({ projectId, selectedFirm, onBack }: Proje
   };
 
   const onSubmitFile = (data: any) => {
+    if (!selectedFile) {
+      toast({
+        title: 'Ошибка',
+        description: 'Выберите файл для загрузки',
+        variant: 'destructive'
+      });
+      return;
+    }
     createFileMutation.mutate(data);
   };
 
@@ -730,23 +764,33 @@ export default function ProjectDetail({ projectId, selectedFirm, onBack }: Proje
                           )}
                         />
 
-                        <FormField
-                          control={fileForm.control}
-                          name="fileUrl"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>URL файла</FormLabel>
-                              <FormControl>
-                                <Input 
-                                  type="url" 
-                                  placeholder="https://example.com/file.jpg" 
-                                  {...field} 
-                                />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
+                        <div className="space-y-2">
+                          <label className="text-sm font-medium">Файл</label>
+                          <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
+                            <input
+                              type="file"
+                              accept="image/*,.pdf,.doc,.docx,.txt"
+                              onChange={(e) => {
+                                const file = e.target.files?.[0];
+                                if (file) {
+                                  setSelectedFile(file);
+                                  fileForm.setValue('fileName', file.name);
+                                }
+                              }}
+                              className="hidden"
+                              id="file-upload"
+                            />
+                            <label htmlFor="file-upload" className="cursor-pointer">
+                              <Upload className="h-8 w-8 mx-auto text-gray-400 mb-2" />
+                              <p className="text-gray-600">
+                                {selectedFile ? selectedFile.name : 'Нажмите для выбора файла'}
+                              </p>
+                              <p className="text-xs text-gray-500 mt-1">
+                                Поддерживаются изображения, PDF, DOC, TXT
+                              </p>
+                            </label>
+                          </div>
+                        </div>
 
                         <div className="flex justify-end space-x-2">
                           <Button 

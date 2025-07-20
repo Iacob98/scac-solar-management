@@ -9,7 +9,6 @@ export function Sidebar() {
     { path: '/projects', label: 'Проекты', icon: 'dashboard' },
     { path: '/clients', label: 'Клиенты', icon: 'people' },
     { path: '/crews', label: 'Бригады', icon: 'groups' },
-    { path: '/files', label: 'Файлы', icon: 'folder_open' },
     ...(user?.role === 'admin' ? [{ path: '/invoices', label: 'Счета', icon: 'receipt' }] : []),
   ];
 
