@@ -347,8 +347,10 @@ export default function ProjectDetail({ projectId, selectedFirm, onBack }: Proje
     }
   };
 
-  const photoFiles = files.filter((file: ProjectFile) => file.fileType === 'report_photo');
-  const reviewFiles = files.filter((file: ProjectFile) => file.fileType === 'review_document');
+  const photoFiles = files.filter((file: any) => 
+    file.category === 'project_file' && file.mimeType && file.mimeType.startsWith('image/')
+  );
+  const allFiles = files.filter((file: any) => file.category === 'project_file');
 
   if (projectLoading) {
     return (
@@ -928,7 +930,7 @@ export default function ProjectDetail({ projectId, selectedFirm, onBack }: Proje
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <Image className="h-5 w-5" />
-                    Фото отчеты выполненных работ ({photoFiles.length}/10)
+                    Файлы проекта ({allFiles.length})
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
@@ -938,7 +940,7 @@ export default function ProjectDetail({ projectId, selectedFirm, onBack }: Proje
                     </div>
                   ) : (
                     <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                      {photoFiles.map((file: ProjectFile) => (
+                      {allFiles.map((file: any) => (
                         <div key={file.id} className="relative group cursor-pointer">
                           {file.mimeType && file.mimeType.startsWith('image/') ? (
                             <img
@@ -976,10 +978,10 @@ export default function ProjectDetail({ projectId, selectedFirm, onBack }: Proje
                           )}
                         </div>
                       ))}
-                      {photoFiles.length === 0 && (
+                      {allFiles.length === 0 && (
                         <div className="col-span-full text-center py-8">
                           <Image className="h-12 w-12 mx-auto text-gray-400 mb-4" />
-                          <p className="text-gray-500">Фото отчеты не добавлены</p>
+                          <p className="text-gray-500">Файлы проекта не добавлены</p>
                         </div>
                       )}
                     </div>
