@@ -32,8 +32,8 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Plus, Building, ExternalLink, Edit } from 'lucide-react';
-import type { Firm } from '@shared/schema';
+import { Plus, Building, ExternalLink, Edit, Users, UserPlus, UserMinus } from 'lucide-react';
+import type { Firm, User } from '@shared/schema';
 import { MainLayout } from '@/components/Layout/MainLayout';
 
 // Schema for creating a new firm
@@ -52,9 +52,26 @@ export default function FirmsManagement() {
   const { toast } = useToast();
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [isTestingConnection, setIsTestingConnection] = useState(false);
+  const [isUsersDialogOpen, setIsUsersDialogOpen] = useState(false);
+  const [selectedFirm, setSelectedFirm] = useState<Firm | null>(null);
 
   const { data: firms = [], isLoading } = useQuery<Firm[]>({
     queryKey: ['/api/firms'],
+  });
+
+  const { data: usersWithFirms = [] } = useQuery<(User & { firms: Firm[] })[]>({
+    queryKey: ['/api/users-with-firms'],
+    enabled: isUsersDialogOpen,
+  });
+
+  const { data: firmUsers = [] } = useQuery<User[]>({
+    queryKey: ['/api/firms', selectedFirm?.id, 'users'],
+    queryFn: async () => {
+      if (!selectedFirm?.id) return [];
+      const response = await apiRequest(`/api/firms/${selectedFirm.id}/users`, 'GET');
+      return response.json();
+    },
+    enabled: !!selectedFirm?.id && isUsersDialogOpen,
   });
 
   const form = useForm<CreateFirmInput>({
@@ -141,6 +158,51 @@ export default function FirmsManagement() {
     } finally {
       setIsTestingConnection(false);
     }
+  };
+
+  const assignUserMutation = useMutation({
+    mutationFn: ({ firmId, userId }: { firmId: string; userId: string }) => 
+      apiRequest(`/api/firms/${firmId}/users/${userId}`, 'POST'),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/firms', selectedFirm?.id, 'users'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/users-with-firms'] });
+      toast({
+        title: 'Успешно',
+        description: 'Пользователь добавлен в фирму',
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: 'Ошибка',
+        description: error.message || 'Не удалось добавить пользователя',
+        variant: 'destructive',
+      });
+    },
+  });
+
+  const removeUserMutation = useMutation({
+    mutationFn: ({ firmId, userId }: { firmId: string; userId: string }) => 
+      apiRequest(`/api/firms/${firmId}/users/${userId}`, 'DELETE'),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/firms', selectedFirm?.id, 'users'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/users-with-firms'] });
+      toast({
+        title: 'Успешно',
+        description: 'Пользователь удален из фирмы',
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: 'Ошибка',
+        description: error.message || 'Не удалось удалить пользователя',
+        variant: 'destructive',
+      });
+    },
+  });
+
+  const handleManageUsers = (firm: Firm) => {
+    setSelectedFirm(firm);
+    setIsUsersDialogOpen(true);
   };
 
   if (isLoading) {
@@ -385,10 +447,18 @@ export default function FirmsManagement() {
                 )}
               </div>
 
-              <div className="mt-4 pt-4 border-t">
+              <div className="mt-4 pt-4 border-t flex justify-between items-center">
                 <p className="text-xs text-gray-500">
                   Создана: {new Date(firm.createdAt).toLocaleDateString('ru-RU')}
                 </p>
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={() => handleManageUsers(firm)}
+                >
+                  <Users className="h-4 w-4 mr-2" />
+                  Управление пользователями
+                </Button>
               </div>
             </CardContent>
           </Card>
@@ -402,6 +472,137 @@ export default function FirmsManagement() {
           </div>
         )}
         </div>
+
+        {/* Users Management Dialog */}
+        <Dialog open={isUsersDialogOpen} onOpenChange={setIsUsersDialogOpen}>
+          <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>Управление пользователями - {selectedFirm?.name}</DialogTitle>
+              <DialogDescription>
+                Распределите пользователей по данной фирме. Только администраторы могут управлять доступом.
+              </DialogDescription>
+            </DialogHeader>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* Current firm users */}
+              <div>
+                <h3 className="text-lg font-semibold mb-4 flex items-center">
+                  <Users className="h-5 w-5 mr-2" />
+                  Пользователи фирмы ({firmUsers.length})
+                </h3>
+                <div className="space-y-2 max-h-96 overflow-y-auto">
+                  {firmUsers.length === 0 ? (
+                    <div className="text-center py-8 text-gray-500">
+                      <Users className="h-12 w-12 mx-auto mb-4 text-gray-300" />
+                      <p>Нет пользователей в этой фирме</p>
+                    </div>
+                  ) : (
+                    firmUsers.map((user) => (
+                      <div key={user.id} className="flex items-center justify-between p-3 border rounded-lg">
+                        <div className="flex items-center space-x-3">
+                          {user.profileImageUrl ? (
+                            <img 
+                              src={user.profileImageUrl} 
+                              alt={`${user.firstName} ${user.lastName}`}
+                              className="w-10 h-10 rounded-full"
+                            />
+                          ) : (
+                            <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
+                              <span className="text-blue-600 font-medium">
+                                {user.firstName?.[0]}{user.lastName?.[0]}
+                              </span>
+                            </div>
+                          )}
+                          <div>
+                            <p className="font-medium">{user.firstName} {user.lastName}</p>
+                            <p className="text-sm text-gray-500">{user.email}</p>
+                            <Badge variant={user.role === 'admin' ? 'default' : 'secondary'}>
+                              {user.role === 'admin' ? 'Администратор' : 'Руководитель проекта'}
+                            </Badge>
+                          </div>
+                        </div>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => removeUserMutation.mutate({ 
+                            firmId: selectedFirm!.id, 
+                            userId: user.id 
+                          })}
+                          disabled={removeUserMutation.isPending}
+                        >
+                          <UserMinus className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
+
+              {/* Available users to add */}
+              <div>
+                <h3 className="text-lg font-semibold mb-4 flex items-center">
+                  <UserPlus className="h-5 w-5 mr-2" />
+                  Доступные пользователи
+                </h3>
+                <div className="space-y-2 max-h-96 overflow-y-auto">
+                  {usersWithFirms
+                    .filter(user => !firmUsers.some(fu => fu.id === user.id))
+                    .map((user) => (
+                      <div key={user.id} className="flex items-center justify-between p-3 border rounded-lg">
+                        <div className="flex items-center space-x-3">
+                          {user.profileImageUrl ? (
+                            <img 
+                              src={user.profileImageUrl} 
+                              alt={`${user.firstName} ${user.lastName}`}
+                              className="w-10 h-10 rounded-full"
+                            />
+                          ) : (
+                            <div className="w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center">
+                              <span className="text-gray-600 font-medium">
+                                {user.firstName?.[0]}{user.lastName?.[0]}
+                              </span>
+                            </div>
+                          )}
+                          <div>
+                            <p className="font-medium">{user.firstName} {user.lastName}</p>
+                            <p className="text-sm text-gray-500">{user.email}</p>
+                            <div className="flex items-center space-x-2">
+                              <Badge variant={user.role === 'admin' ? 'default' : 'secondary'}>
+                                {user.role === 'admin' ? 'Администратор' : 'Руководитель проекта'}
+                              </Badge>
+                              {user.firms.length > 0 && (
+                                <Badge variant="outline">
+                                  {user.firms.length} фирм{user.firms.length === 1 ? 'а' : ''}
+                                </Badge>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                        <Button
+                          variant="default"
+                          size="sm"
+                          onClick={() => assignUserMutation.mutate({ 
+                            firmId: selectedFirm!.id, 
+                            userId: user.id 
+                          })}
+                          disabled={assignUserMutation.isPending}
+                        >
+                          <UserPlus className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    ))}
+                  
+                  {usersWithFirms.filter(user => !firmUsers.some(fu => fu.id === user.id)).length === 0 && (
+                    <div className="text-center py-8 text-gray-500">
+                      <UserPlus className="h-12 w-12 mx-auto mb-4 text-gray-300" />
+                      <p>Все пользователи уже добавлены в эту фирму</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
       </div>
     </MainLayout>
   );

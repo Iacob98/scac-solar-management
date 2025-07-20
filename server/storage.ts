@@ -58,6 +58,8 @@ export interface IStorage {
   getFirmsByUserId(userId: string): Promise<Firm[]>;
   createFirm(firm: InsertFirm): Promise<Firm>;
   assignUserToFirm(userId: string, firmId: string): Promise<void>;
+  removeUserFromFirm(userId: string, firmId: string): Promise<void>;
+  getUsersByFirmId(firmId: string): Promise<User[]>;
   
   // Client operations
   getClientsByFirmId(firmId: string): Promise<Client[]>;
@@ -211,7 +213,31 @@ export class DatabaseStorage implements IStorage {
   }
 
   async assignUserToFirm(userId: string, firmId: string): Promise<void> {
-    await db.insert(userFirms).values({ userId, firmId });
+    await db.insert(userFirms).values({ userId, firmId }).onConflictDoNothing();
+  }
+
+  async removeUserFromFirm(userId: string, firmId: string): Promise<void> {
+    await db.delete(userFirms).where(and(
+      eq(userFirms.userId, userId),
+      eq(userFirms.firmId, firmId)
+    ));
+  }
+
+  async getUsersByFirmId(firmId: string): Promise<User[]> {
+    return await db
+      .select({
+        id: users.id,
+        email: users.email,
+        firstName: users.firstName,
+        lastName: users.lastName,
+        profileImageUrl: users.profileImageUrl,
+        role: users.role,
+        createdAt: users.createdAt,
+        updatedAt: users.updatedAt,
+      })
+      .from(users)
+      .innerJoin(userFirms, eq(users.id, userFirms.userId))
+      .where(eq(userFirms.firmId, firmId));
   }
 
   // Client operations

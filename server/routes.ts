@@ -15,6 +15,26 @@ import {
 } from "@shared/schema";
 import { z } from "zod";
 
+// Admin role check middleware
+const isAdmin = async (req: any, res: any, next: any) => {
+  try {
+    const userId = req.user?.claims?.sub;
+    if (!userId) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+    
+    const user = await storage.getUser(userId);
+    if (!user || user.role !== 'admin') {
+      return res.status(403).json({ message: "Admin access required" });
+    }
+    
+    next();
+  } catch (error) {
+    console.error("Error in isAdmin middleware:", error);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
 export async function registerRoutes(app: Express): Promise<Server> {
   await setupAuth(app);
 
@@ -1538,14 +1558,59 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get('/api/firms/:firmId/users', isAuthenticated, async (req: any, res) => {
+  // Firm-User management endpoints
+  app.get('/api/firms/:firmId/users', isAuthenticated, isAdmin, async (req: any, res) => {
     try {
       const { firmId } = req.params;
       
-      const users = await storage.getFirmUsers(firmId);
+      const users = await storage.getUsersByFirmId(firmId);
       res.json(users);
     } catch (error) {
       console.error("Ошибка получения пользователей фирмы:", error);
+      res.status(500).json({ error: "Ошибка сервера" });
+    }
+  });
+
+  app.post('/api/firms/:firmId/users/:userId', isAuthenticated, isAdmin, async (req: any, res) => {
+    try {
+      const { firmId, userId } = req.params;
+      
+      await storage.assignUserToFirm(userId, firmId);
+      res.json({ success: true, message: "Пользователь добавлен в фирму" });
+    } catch (error) {
+      console.error("Ошибка добавления пользователя в фирму:", error);
+      res.status(500).json({ error: "Ошибка сервера" });
+    }
+  });
+
+  app.delete('/api/firms/:firmId/users/:userId', isAuthenticated, isAdmin, async (req: any, res) => {
+    try {
+      const { firmId, userId } = req.params;
+      
+      await storage.removeUserFromFirm(userId, firmId);
+      res.json({ success: true, message: "Пользователь удален из фирмы" });
+    } catch (error) {
+      console.error("Ошибка удаления пользователя из фирмы:", error);
+      res.status(500).json({ error: "Ошибка сервера" });
+    }
+  });
+
+  // Get users with their firm assignments
+  app.get('/api/users-with-firms', isAuthenticated, isAdmin, async (req: any, res) => {
+    try {
+      const allUsers = await storage.getUsers();
+      const usersWithFirms = await Promise.all(
+        allUsers.map(async (user) => {
+          const userFirms = await storage.getFirmsByUserId(user.id);
+          return {
+            ...user,
+            firms: userFirms,
+          };
+        })
+      );
+      res.json(usersWithFirms);
+    } catch (error) {
+      console.error("Ошибка получения пользователей с фирмами:", error);
       res.status(500).json({ error: "Ошибка сервера" });
     }
   });
