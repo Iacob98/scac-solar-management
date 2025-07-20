@@ -20,6 +20,7 @@ import Invoices from "@/pages/Invoices";
 import Users from "@/pages/admin/Users";
 import FirmsManagement from "@/pages/admin/FirmsManagement";
 import Settings from "@/pages/Settings";
+import { FileStorage } from "@/pages/FileStorage";
 import NotFound from "@/pages/not-found";
 
 function ProtectedRoute({ component: Component, ...props }: any) {
@@ -48,6 +49,7 @@ function Router() {
       <Route path="/clients" component={() => <ProtectedRoute component={Clients} />} />
       <Route path="/crews" component={() => <ProtectedRoute component={CrewsNew} />} />
       <Route path="/invoices" component={() => <ProtectedRoute component={Invoices} />} />
+      <Route path="/files" component={() => <ProtectedRoute component={FileStorage} />} />
       <Route path="/settings" component={() => <ProtectedRoute component={Settings} />} />
       <Route path="/admin/firms" component={() => <ProtectedRoute component={FirmsManagement} />} />
       <Route path="/admin/users" component={() => <ProtectedRoute component={Users} />} />

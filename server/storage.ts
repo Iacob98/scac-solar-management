@@ -12,6 +12,7 @@ import {
   projectHistory,
   projectShares,
   userFirms,
+  fileStorage,
   type User,
   type UpsertUser,
   type Firm,
@@ -36,6 +37,8 @@ import {
   type InsertProjectHistory,
   type ProjectShare,
   type InsertProjectShare,
+  type FileStorage,
+  type InsertFileStorage,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, desc, sql } from "drizzle-orm";
@@ -132,6 +135,15 @@ export interface IStorage {
   getUserSharedProjects(userId: string): Promise<number[]>;
   removeProjectShare(projectId: number, sharedWith: string): Promise<void>;
   getFirmUsers(firmId: string): Promise<User[]>;
+  
+  // New File Storage operations
+  createFileRecord(file: InsertFileStorage): Promise<FileStorage>;
+  getFileRecord(fileId: string): Promise<FileStorage | undefined>;
+  getProjectFiles(projectId: number): Promise<FileStorage[]>;
+  deleteFileRecord(fileId: string): Promise<void>;
+  hasProjectAccess(userId: string, projectId: number): Promise<boolean>;
+  getFileStorageStats(): Promise<{ totalFiles: number; totalSize: number }>;
+  addProjectHistory(entry: InsertProjectHistory): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -676,6 +688,95 @@ export class DatabaseStorage implements IStorage {
       .values(entry)
       .returning();
     return historyEntry;
+  }
+
+  // New File Storage methods
+  async createFileRecord(file: InsertFileStorage): Promise<FileStorage> {
+    const [fileRecord] = await db
+      .insert(fileStorage)
+      .values(file)
+      .returning();
+    return fileRecord;
+  }
+
+  async getFileRecord(fileId: string): Promise<FileStorage | undefined> {
+    const [file] = await db
+      .select()
+      .from(fileStorage)
+      .where(eq(fileStorage.fileId, fileId));
+    return file;
+  }
+
+  async getProjectFiles(projectId: number): Promise<FileStorage[]> {
+    return await db
+      .select()
+      .from(fileStorage)
+      .where(
+        and(
+          eq(fileStorage.projectId, projectId),
+          eq(fileStorage.isDeleted, false)
+        )
+      )
+      .orderBy(desc(fileStorage.uploadedAt));
+  }
+
+  async deleteFileRecord(fileId: string): Promise<void> {
+    await db
+      .update(fileStorage)
+      .set({
+        isDeleted: true,
+        deletedAt: new Date()
+      })
+      .where(eq(fileStorage.fileId, fileId));
+  }
+
+  async hasProjectAccess(userId: string, projectId: number): Promise<boolean> {
+    // Админы имеют доступ ко всем проектам
+    const user = await this.getUser(userId);
+    if (user?.role === 'admin') {
+      return true;
+    }
+
+    // Проверяем, является ли пользователь лейтером проекта
+    const [project] = await db
+      .select()
+      .from(projects)
+      .where(eq(projects.id, projectId));
+    
+    if (project?.leiterId === userId) {
+      return true;
+    }
+
+    // Проверяем, есть ли общий доступ к проекту
+    const [sharedProject] = await db
+      .select()
+      .from(projectShares)
+      .where(
+        and(
+          eq(projectShares.projectId, projectId),
+          eq(projectShares.sharedWith, userId)
+        )
+      );
+
+    return !!sharedProject;
+  }
+
+  async getFileStorageStats(): Promise<{ totalFiles: number; totalSize: number }> {
+    const stats = await db
+      .select({
+        totalFiles: sql<number>`count(*)::int`,
+        totalSize: sql<number>`sum(${fileStorage.size})::int`
+      })
+      .from(fileStorage)
+      .where(eq(fileStorage.isDeleted, false));
+
+    return stats[0] || { totalFiles: 0, totalSize: 0 };
+  }
+
+  async addProjectHistory(entry: InsertProjectHistory): Promise<void> {
+    await db
+      .insert(projectHistory)
+      .values(entry);
   }
 }
 

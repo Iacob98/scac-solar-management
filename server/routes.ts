@@ -17,6 +17,7 @@ import {
   insertProjectReportSchema
 } from "@shared/schema";
 import { z } from "zod";
+import fileRoutes from "./routes/fileRoutes";
 
 // Admin role check middleware
 const isAdmin = async (req: any, res: any, next: any) => {
@@ -69,6 +70,9 @@ function buildInstallationNotesGerman(installationPerson: any, project: any): st
 
 export async function registerRoutes(app: Express): Promise<Server> {
   await setupAuth(app);
+
+  // File storage routes
+  app.use('/api/files', fileRoutes);
 
   // Test endpoint for history entries
   app.get('/api/test-history', isAuthenticated, async (req: any, res) => {

@@ -157,7 +157,7 @@ export const invoices = pgTable("invoices", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
-// Project Files table
+// Project Files table (legacy - будет удалена в будущем)
 export const projectFiles = pgTable("project_files", {
   id: serial("id").primaryKey(),
   projectId: integer("project_id").notNull().references(() => projects.id),
@@ -165,6 +165,24 @@ export const projectFiles = pgTable("project_files", {
   fileName: varchar("file_name"),
   fileType: varchar("file_type", { enum: ["report_photo", "review_document", "acceptance"] }).notNull(),
   uploadedAt: timestamp("uploaded_at").defaultNow(),
+});
+
+// File Storage table - новая улучшенная система хранения файлов
+export const fileStorage = pgTable("file_storage", {
+  id: serial("id").primaryKey(),
+  fileId: varchar("file_id").notNull().unique(), // UUID для идентификации файла
+  originalName: varchar("original_name").notNull(), // Оригинальное имя файла
+  fileName: varchar("file_name").notNull(), // Имя файла на диске
+  mimeType: varchar("mime_type").notNull(), // MIME тип файла
+  size: integer("size").notNull(), // Размер файла в байтах
+  category: varchar("category", { 
+    enum: ["project_file", "report", "invoice", "document", "image"] 
+  }).notNull(),
+  projectId: integer("project_id").references(() => projects.id), // Опциональная связь с проектом
+  uploadedBy: varchar("uploaded_by").notNull().references(() => users.id), // Кто загрузил файл
+  uploadedAt: timestamp("uploaded_at").defaultNow(),
+  isDeleted: boolean("is_deleted").default(false), // Мягкое удаление
+  deletedAt: timestamp("deleted_at"),
 });
 
 // Project Reports table - для фото отчетов выполненных работ
@@ -256,6 +274,7 @@ export const projectsRelations = relations(projects, ({ one, many }) => ({
   services: many(services),
   invoices: many(invoices),
   files: many(projectFiles),
+  storageFiles: many(fileStorage),
   reports: many(projectReports),
   history: many(projectHistory),
   shares: many(projectShares),
@@ -271,6 +290,11 @@ export const invoicesRelations = relations(invoices, ({ one }) => ({
 
 export const projectFilesRelations = relations(projectFiles, ({ one }) => ({
   project: one(projects, { fields: [projectFiles.projectId], references: [projects.id] }),
+}));
+
+export const fileStorageRelations = relations(fileStorage, ({ one }) => ({
+  project: one(projects, { fields: [fileStorage.projectId], references: [projects.id] }),
+  uploadedByUser: one(users, { fields: [fileStorage.uploadedBy], references: [users.id] }),
 }));
 
 export const projectReportsRelations = relations(projectReports, ({ one }) => ({
@@ -349,3 +373,12 @@ export const insertProjectShareSchema = createInsertSchema(projectShares).omit({
 });
 export type InsertProjectShare = z.infer<typeof insertProjectShareSchema>;
 export type ProjectShare = typeof projectShares.$inferSelect;
+
+export const insertFileStorageSchema = createInsertSchema(fileStorage).omit({ 
+  id: true, 
+  uploadedAt: true,
+  isDeleted: true,
+  deletedAt: true 
+});
+export type InsertFileStorage = z.infer<typeof insertFileStorageSchema>;
+export type FileStorage = typeof fileStorage.$inferSelect;
