@@ -223,7 +223,28 @@ function ProjectsList({ selectedFirm, onViewProject, onManageServices, onManageR
     updateProjectStatusMutation.mutate({ projectId, status });
   };
 
+  const getClientName = (clientId: number) => {
+    const client = (clients as Client[]).find((c: Client) => c.id === clientId);
+    return client?.name || 'Неизвестный клиент';
+  };
 
+  const getInstallationPersonName = (project: Project) => {
+    if (project.installationPersonFirstName && project.installationPersonLastName) {
+      return `${project.installationPersonFirstName} ${project.installationPersonLastName}`;
+    }
+    if (project.installationPersonFirstName) {
+      return project.installationPersonFirstName;
+    }
+    if (project.installationPersonLastName) {
+      return project.installationPersonLastName;
+    }
+    return 'Не указан клиент установки';
+  };
+
+  const getCrewName = (crewId: number) => {
+    const crew = (crews as Crew[]).find((c: Crew) => c.id === crewId);
+    return crew?.name || 'Не назначена';
+  };
 
   const filteredProjects = (projects as Project[]).filter((project: Project) => {
     const matchesFilter = !filter || 
@@ -274,29 +295,6 @@ function ProjectsList({ selectedFirm, onViewProject, onManageServices, onManageR
     // Если приоритеты равны, сортируем по дате создания (новые первые)
     return new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime();
   });
-
-  const getClientName = (clientId: number) => {
-    const client = (clients as Client[]).find((c: Client) => c.id === clientId);
-    return client?.name || 'Неизвестный клиент';
-  };
-
-  const getInstallationPersonName = (project: Project) => {
-    if (project.installationPersonFirstName && project.installationPersonLastName) {
-      return `${project.installationPersonFirstName} ${project.installationPersonLastName}`;
-    }
-    if (project.installationPersonFirstName) {
-      return project.installationPersonFirstName;
-    }
-    if (project.installationPersonLastName) {
-      return project.installationPersonLastName;
-    }
-    return 'Не указан клиент установки';
-  };
-
-  const getCrewName = (crewId: number) => {
-    const crew = (crews as Crew[]).find((c: Crew) => c.id === crewId);
-    return crew?.name || 'Не назначена';
-  };
 
   if (!selectedFirm) {
     return (
