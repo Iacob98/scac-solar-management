@@ -60,6 +60,9 @@ router.post('/upload', isAuthenticated, upload.single('file'), async (req, res) 
       validatedData.projectId
     );
 
+    // Получаем ID пользователя из аутентификации
+    const userId = (req.user as any)?.claims?.sub || (req.user as any)?.id;
+    
     // Сохраняем метаданные в базу данных
     const fileRecord: InsertFileStorage = {
       fileId: fileMetadata.id,
@@ -69,7 +72,7 @@ router.post('/upload', isAuthenticated, upload.single('file'), async (req, res) 
       size: fileMetadata.size,
       category: validatedData.category,
       projectId: validatedData.projectId,
-      uploadedBy: parseInt(req.user!.id)
+      uploadedBy: parseInt(userId)
     };
 
     const savedFile = await storage.createFileRecord(fileRecord);
@@ -78,7 +81,7 @@ router.post('/upload', isAuthenticated, upload.single('file'), async (req, res) 
     if (validatedData.projectId) {
       await storage.addProjectHistory({
         projectId: validatedData.projectId,
-        userId: parseInt(req.user!.id),
+        userId: parseInt(userId),
         changeType: 'file_added',
         fieldName: 'file',
         oldValue: null,
@@ -117,7 +120,8 @@ router.get('/:fileId', isAuthenticated, async (req, res) => {
     // Проверяем права доступа к файлу
     // Если файл связан с проектом, проверяем доступ к проекту
     if (fileRecord.projectId) {
-      const hasAccess = await storage.hasProjectAccess(req.user!.id, fileRecord.projectId);
+      const userId = (req.user as any)?.claims?.sub || (req.user as any)?.id;
+      const hasAccess = await storage.hasProjectAccess(userId, fileRecord.projectId);
       if (!hasAccess) {
         return res.status(403).json({ message: 'Нет доступа к файлу' });
       }
@@ -148,7 +152,8 @@ router.get('/project/:projectId', isAuthenticated, async (req, res) => {
     const projectId = parseInt(req.params.projectId);
     
     // Проверяем доступ к проекту
-    const hasAccess = await storage.hasProjectAccess(req.user!.id, projectId);
+    const userId = (req.user as any)?.claims?.sub || (req.user as any)?.id;
+    const hasAccess = await storage.hasProjectAccess(userId, projectId);
     if (!hasAccess) {
       return res.status(403).json({ message: 'Нет доступа к проекту' });
     }
@@ -174,16 +179,20 @@ router.delete('/:fileId', isAuthenticated, async (req, res) => {
       return res.status(404).json({ message: 'Файл не найден' });
     }
 
+    // Получаем ID пользователя из аутентификации
+    const userId = (req.user as any)?.claims?.sub || (req.user as any)?.id;
+    const userRole = (req.user as any)?.role || 'user';
+    
     // Проверяем права доступа
     if (fileRecord.projectId) {
-      const hasAccess = await storage.hasProjectAccess(req.user!.id, fileRecord.projectId);
+      const hasAccess = await storage.hasProjectAccess(userId, fileRecord.projectId);
       if (!hasAccess) {
         return res.status(403).json({ message: 'Нет доступа к файлу' });
       }
     }
 
     // Проверяем, что пользователь может удалить файл (загрузивший его или админ)
-    if (fileRecord.uploadedBy !== req.user!.id && req.user!.role !== 'admin') {
+    if (fileRecord.uploadedBy !== parseInt(userId) && userRole !== 'admin') {
       return res.status(403).json({ message: 'Нет прав на удаление файла' });
     }
 
