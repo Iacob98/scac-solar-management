@@ -60,8 +60,8 @@ export default function Users() {
     );
   }
 
-  const { data: users = [], isLoading: loadingUsers } = useQuery<User[]>({
-    queryKey: ['/api/users'],
+  const { data: users = [], isLoading: loadingUsers } = useQuery<(User & { firms?: Firm[] })[]>({
+    queryKey: ['/api/users-with-firms'],
   });
 
   const { data: firms = [], isLoading: loadingFirms } = useQuery<Firm[]>({
@@ -353,9 +353,22 @@ export default function Users() {
                     <TableCell>
                       <div className="flex items-center space-x-2">
                         <Building className="w-4 h-4 text-gray-400" />
-                        <span className="text-sm">
-                          {user.role === 'admin' ? 'Все фирмы' : `${user.firmIds?.length || 0} фирм`}
-                        </span>
+                        <div className="flex flex-col space-y-1">
+                          {user.role === 'admin' ? (
+                            <Badge variant="default">Все фирмы</Badge>
+                          ) : (
+                            <>
+                              <Badge variant={user.firms?.length ? "secondary" : "outline"}>
+                                {user.firms?.length || 0} {user.firms?.length === 1 ? 'фирма' : 'фирм'}
+                              </Badge>
+                              {user.firms && user.firms.length > 0 && (
+                                <div className="text-xs text-gray-500 max-w-xs">
+                                  {user.firms.map(firm => firm.name).join(', ')}
+                                </div>
+                              )}
+                            </>
+                          )}
+                        </div>
                       </div>
                     </TableCell>
                     <TableCell>
