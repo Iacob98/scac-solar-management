@@ -1219,10 +1219,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Invoice routes
   app.post('/api/invoice/create', isAuthenticated, async (req: any, res) => {
     try {
+      console.log('Invoice creation request:', req.body);
       const { projectId } = req.body;
       const userId = req.user.claims.sub;
+      console.log('User ID:', userId, 'Project ID:', projectId);
       
       if (!projectId) {
+        console.log('Error: Project ID is required');
         return res.status(400).json({ message: "Project ID is required" });
       }
 
@@ -1353,9 +1356,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         invoiceNumber: ninjaInvoice.number,
         invoiceUrl: `${firm.invoiceNinjaUrl}/invoices/${ninjaInvoice.id}`,
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error creating invoice:", error);
-      res.status(500).json({ message: "Failed to create invoice" });
+      console.error("Error details:", error.message, error.stack);
+      res.status(500).json({ 
+        message: "Failed to create invoice", 
+        error: error.message 
+      });
     }
   });
 
