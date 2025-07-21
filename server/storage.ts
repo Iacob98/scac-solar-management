@@ -13,6 +13,7 @@ import {
   projectShares,
   userFirms,
   fileStorage,
+  projectNotes,
   type User,
   type UpsertUser,
   type Firm,
@@ -41,7 +42,7 @@ import {
   type InsertFileStorage,
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, and, desc, sql } from "drizzle-orm";
+import { eq, and, desc, sql, gte, lte } from "drizzle-orm";
 
 export interface IStorage {
   // User operations (mandatory for Replit Auth)
@@ -618,9 +619,22 @@ export class DatabaseStorage implements IStorage {
         userFirstName: users.firstName,
         userLastName: users.lastName,
         userEmail: users.email,
+        // Добавляем приоритет примечания для записей типа note_added
+        notePriority: projectNotes.priority,
       })
       .from(projectHistory)
       .leftJoin(users, eq(projectHistory.userId, users.id))
+      .leftJoin(
+        projectNotes, 
+        and(
+          eq(projectHistory.changeType, 'note_added'),
+          eq(projectNotes.projectId, projectHistory.projectId),
+          eq(projectNotes.userId, projectHistory.userId),
+          // Ищем примечание, созданное в то же время (плюс-минус несколько секунд)
+          gte(projectNotes.createdAt, sql`${projectHistory.createdAt} - interval '5 seconds'`),
+          lte(projectNotes.createdAt, sql`${projectHistory.createdAt} + interval '5 seconds'`)
+        )
+      )
       .where(eq(projectHistory.projectId, projectId))
       .orderBy(desc(projectHistory.createdAt));
   }

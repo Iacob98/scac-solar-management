@@ -19,6 +19,7 @@ interface ProjectHistoryEntry {
   userFirstName?: string;
   userLastName?: string;
   userEmail?: string;
+  notePriority?: 'normal' | 'important' | 'urgent' | 'critical' | null;
 }
 
 interface ProjectHistoryProps {
@@ -157,7 +158,9 @@ export default function ProjectHistory({ projectId, onBack, embedded = false, li
           displayHistory.map((entry, index) => {
             const IconComponent = changeTypeIcons[entry.changeType] || FileText;
             const isFirst = index === 0;
-            const priority = entry.changeType === 'note_added' ? extractNotePriority(entry.description) : 'normal';
+            // Используем приоритет из API или извлекаем из описания для старых записей
+            const priority = entry.changeType === 'note_added' ? 
+              (entry.notePriority || extractNotePriority(entry.description)) : 'normal' as 'normal' | 'important' | 'urgent' | 'critical';
             const cardStyle = entry.changeType === 'note_added' ? priorityStyles[priority] : 'bg-white border-gray-200';
             
             return (
@@ -256,7 +259,9 @@ export default function ProjectHistory({ projectId, onBack, embedded = false, li
             history.map((entry, index) => {
               const IconComponent = changeTypeIcons[entry.changeType] || FileText;
               const isFirst = index === 0;
-              const priority = entry.changeType === 'note_added' ? extractNotePriority(entry.description) : 'normal';
+              // Используем приоритет из API или извлекаем из описания для старых записей
+              const priority = entry.changeType === 'note_added' ? 
+                (entry.notePriority || extractNotePriority(entry.description)) : 'normal' as 'normal' | 'important' | 'urgent' | 'critical';
               const cardBgStyle = entry.changeType === 'note_added' && priority !== 'normal' ? 
                 `${priority === 'important' ? 'bg-blue-50 border-blue-200' : 
                   priority === 'urgent' ? 'bg-orange-50 border-orange-200' : 
