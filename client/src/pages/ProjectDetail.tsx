@@ -372,16 +372,7 @@ export default function ProjectDetail({ projectId, selectedFirm, onBack }: Proje
   };
 
   const onSubmitNote = (data: any) => {
-    console.log('🔥 onSubmitNote вызвана!');
-    console.log('📝 Данные формы:', data);
-    console.log('🚦 createNoteMutation статус до вызова:', {
-      isPending: createNoteMutation.isPending,
-      isError: createNoteMutation.isError,
-      error: createNoteMutation.error
-    });
-    console.log('🎯 Вызываем createNoteMutation.mutate()...');
     createNoteMutation.mutate(data);
-    console.log('✅ createNoteMutation.mutate() вызван');
   };
 
   const handleEditReport = (report: ProjectReport) => {
@@ -1147,14 +1138,7 @@ export default function ProjectDetail({ projectId, selectedFirm, onBack }: Proje
                       <DialogTitle>Добавить примечание к проекту</DialogTitle>
                     </DialogHeader>
                     <Form {...noteForm}>
-                      <form onSubmit={(e) => {
-                        e.preventDefault();
-                        console.log('🔴 Form submit event triggered');
-                        console.log('📋 Current form values:', noteForm.getValues());
-                        console.log('❌ Form errors:', noteForm.formState.errors);
-                        console.log('✅ Form valid:', noteForm.formState.isValid);
-                        noteForm.handleSubmit(onSubmitNote)(e);
-                      }} className="space-y-4">
+                      <form onSubmit={noteForm.handleSubmit(onSubmitNote)} className="space-y-4">
                         <FormField
                           control={noteForm.control}
                           name="content"
@@ -1215,15 +1199,7 @@ export default function ProjectDetail({ projectId, selectedFirm, onBack }: Proje
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  {(() => {
-                    console.log('Notes render - состояние:', {
-                      notesLoading,
-                      notesLength: notes.length,
-                      notes,
-                      notesError
-                    });
-                    return null;
-                  })()}
+
                   {notesLoading ? (
                     <div className="text-center py-4">Загрузка примечаний...</div>
                   ) : notes.length === 0 ? (
@@ -1234,7 +1210,7 @@ export default function ProjectDetail({ projectId, selectedFirm, onBack }: Proje
                     </div>
                   ) : (
                     <div className="space-y-4">
-                      {notes.map((note: ProjectNote) => (
+                      {notes.slice().reverse().map((note: ProjectNote) => (
                         <div key={note.id} className="border rounded-lg p-4 bg-gray-50">
                           <div className="flex items-start justify-between mb-2">
                             <div className="text-sm text-gray-600">
