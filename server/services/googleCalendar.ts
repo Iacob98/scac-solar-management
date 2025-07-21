@@ -1,6 +1,6 @@
 import { google } from 'googleapis';
 import { db } from '../db';
-import { googleTokens, calendarLogs, type GoogleToken, type InsertCalendarLog } from '@shared/schema';
+import { googleTokens, calendarLogs, googleCalendarSettings, type GoogleToken, type InsertCalendarLog } from '@shared/schema';
 import { eq, and } from 'drizzle-orm';
 
 export interface CalendarEvent {
@@ -13,26 +13,39 @@ export interface CalendarEvent {
 }
 
 export class GoogleCalendarService {
-  private oauth2Client: any;
   
-  constructor() {
-    this.oauth2Client = new google.auth.OAuth2(
-      process.env.GOOGLE_CLIENT_ID,
-      process.env.GOOGLE_CLIENT_SECRET,
-      process.env.GOOGLE_REDIRECT_URI
+  /**
+   * Получить OAuth2 клиента для фирмы
+   */
+  private async getOAuth2Client(firmId: string) {
+    const [settings] = await db
+      .select()
+      .from(googleCalendarSettings)
+      .where(eq(googleCalendarSettings.firmId, firmId));
+
+    if (!settings) {
+      throw new Error('Google Calendar settings not configured for this firm');
+    }
+
+    return new google.auth.OAuth2(
+      settings.clientId,
+      settings.clientSecret,
+      settings.redirectUri
     );
   }
 
   /**
    * Получить URL для OAuth авторизации
    */
-  getAuthUrl(firmId: string): string {
+  async getAuthUrl(firmId: string): Promise<string> {
+    const oauth2Client = await this.getOAuth2Client(firmId);
+    
     const scopes = [
       'https://www.googleapis.com/auth/calendar',
       'https://www.googleapis.com/auth/calendar.events'
     ];
 
-    return this.oauth2Client.generateAuthUrl({
+    return oauth2Client.generateAuthUrl({
       access_type: 'offline',
       scope: scopes,
       state: firmId, // передаем ID фирмы в state
@@ -44,7 +57,8 @@ export class GoogleCalendarService {
    */
   async exchangeCodeForTokens(code: string, firmId: string): Promise<GoogleToken> {
     try {
-      const { tokens } = await this.oauth2Client.getAccessToken(code);
+      const oauth2Client = await this.getOAuth2Client(firmId);
+      const { tokens } = await oauth2Client.getToken(code);
       
       // Сохраняем токены в базу данных
       const [savedToken] = await db.insert(googleTokens)

@@ -144,7 +144,7 @@ router.get('/connect/:firmId', requireAuth, async (req, res) => {
       return res.status(403).json({ message: 'Доступ запрещен' });
     }
 
-    const authUrl = googleCalendarService.getAuthUrl(firmId);
+    const authUrl = await googleCalendarService.getAuthUrl(firmId);
     res.json({ authUrl });
   } catch (error) {
     console.error('Error generating auth URL:', error);
