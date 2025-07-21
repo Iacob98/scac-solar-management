@@ -1146,7 +1146,14 @@ export default function ProjectDetail({ projectId, selectedFirm, onBack }: Proje
                       <DialogTitle>Добавить примечание к проекту</DialogTitle>
                     </DialogHeader>
                     <Form {...noteForm}>
-                      <form onSubmit={noteForm.handleSubmit(onSubmitNote)} className="space-y-4">
+                      <form onSubmit={(e) => {
+                        e.preventDefault();
+                        console.log('🔴 Form submit event triggered');
+                        console.log('📋 Current form values:', noteForm.getValues());
+                        console.log('❌ Form errors:', noteForm.formState.errors);
+                        console.log('✅ Form valid:', noteForm.formState.isValid);
+                        noteForm.handleSubmit(onSubmitNote)(e);
+                      }} className="space-y-4">
                         <FormField
                           control={noteForm.control}
                           name="content"
