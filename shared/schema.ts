@@ -49,6 +49,7 @@ export const firms = pgTable("firms", {
   address: text("address"),
   taxId: varchar("tax_id"),
   logoUrl: varchar("logo_url"),
+  gcalMasterId: varchar("gcal_master_id"), // ID корпоративного календаря фирмы
   createdAt: timestamp("created_at").defaultNow(),
 });
 
@@ -81,6 +82,7 @@ export const crews = pgTable("crews", {
   address: text("address"),
   status: varchar("status", { enum: ["active", "vacation", "equipment_issue", "unavailable"] }).notNull().default("active"),
   archived: boolean("archived").default(false),
+  gcalId: varchar("gcal_id"), // ID календаря бригады в Google Calendar
   createdAt: timestamp("created_at").defaultNow(),
 });
 
@@ -94,6 +96,7 @@ export const crewMembers = pgTable("crew_members", {
   uniqueNumber: varchar("unique_number").notNull(), // Уникальный номер участника
   phone: varchar("phone"),
   role: varchar("role").default("worker"), // "leader", "worker", "specialist"
+  memberEmail: varchar("member_email"), // Email для доступа к календарю
   createdAt: timestamp("created_at").defaultNow(),
 });
 
@@ -407,3 +410,43 @@ export const insertProjectNoteSchema = createInsertSchema(projectNotes).omit({
 });
 export type InsertProjectNote = z.infer<typeof insertProjectNoteSchema>;
 export type ProjectNote = typeof projectNotes.$inferSelect;
+
+// Google Tokens table - хранит OAuth токены фирмы
+export const googleTokens = pgTable("google_tokens", {
+  id: serial("id").primaryKey(),
+  firmId: uuid("firm_id").notNull().references(() => firms.id),
+  accessToken: text("access_token").notNull(),
+  refreshToken: text("refresh_token").notNull(),
+  expiry: timestamp("expiry").notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Calendar Logs table - аудит всех операций с Google API
+export const calendarLogs = pgTable("calendar_logs", {
+  id: serial("id").primaryKey(),
+  timestamp: timestamp("timestamp").defaultNow().notNull(),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  action: varchar("action").notNull(), // create_event, update_event, delete_event, etc.
+  projectId: integer("project_id").references(() => projects.id),
+  eventId: varchar("event_id"), // Google Calendar event ID
+  status: varchar("status", { enum: ["success", "error"] }).notNull(),
+  details: jsonb("details"), // Подробности операции
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const insertGoogleTokenSchema = createInsertSchema(googleTokens).omit({ 
+  id: true, 
+  createdAt: true,
+  updatedAt: true
+});
+export type InsertGoogleToken = z.infer<typeof insertGoogleTokenSchema>;
+export type GoogleToken = typeof googleTokens.$inferSelect;
+
+export const insertCalendarLogSchema = createInsertSchema(calendarLogs).omit({ 
+  id: true, 
+  timestamp: true,
+  createdAt: true 
+});
+export type InsertCalendarLog = z.infer<typeof insertCalendarLogSchema>;
+export type CalendarLog = typeof calendarLogs.$inferSelect;

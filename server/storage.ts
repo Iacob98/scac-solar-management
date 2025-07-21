@@ -64,6 +64,7 @@ export interface IStorage {
   assignUserToFirm(userId: string, firmId: string): Promise<void>;
   removeUserFromFirm(userId: string, firmId: string): Promise<void>;
   getUsersByFirmId(firmId: string): Promise<User[]>;
+  hasUserFirmAccess(userId: string, firmId: string): Promise<boolean>;
   
   // Client operations
   getClientsByFirmId(firmId: string): Promise<Client[]>;
@@ -253,6 +254,15 @@ export class DatabaseStorage implements IStorage {
       .from(users)
       .innerJoin(userFirms, eq(users.id, userFirms.userId))
       .where(eq(userFirms.firmId, firmId));
+  }
+
+  async hasUserFirmAccess(userId: string, firmId: string): Promise<boolean> {
+    const [access] = await db
+      .select({ userId: userFirms.userId })
+      .from(userFirms)
+      .where(and(eq(userFirms.userId, userId), eq(userFirms.firmId, firmId)))
+      .limit(1);
+    return !!access;
   }
 
   // Client operations

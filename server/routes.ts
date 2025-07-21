@@ -19,6 +19,7 @@ import {
 } from "@shared/schema";
 import { z } from "zod";
 import fileRoutes from "./routes/fileRoutes";
+import googleCalendarRoutes from "./routes/googleCalendar";
 import { fileStorageService } from "./storage/fileStorage";
 
 // Admin role check middleware
@@ -75,6 +76,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // File storage routes
   app.use('/api/files', fileRoutes);
+  
+  // Google Calendar routes
+  app.use('/api/google', googleCalendarRoutes);
 
   // Test endpoint for history entries
   app.get('/api/test-history', isAuthenticated, async (req: any, res) => {

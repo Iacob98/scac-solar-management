@@ -21,6 +21,7 @@ import Users from "@/pages/admin/Users";
 import FirmsManagement from "@/pages/admin/FirmsManagement";
 import Settings from "@/pages/Settings";
 import { FileStorage } from "@/pages/FileStorage";
+import GoogleCalendar from "@/pages/GoogleCalendar";
 import NotFound from "@/pages/not-found";
 
 function ProtectedRoute({ component: Component, ...props }: any) {
@@ -50,6 +51,7 @@ function Router() {
       <Route path="/crews" component={() => <ProtectedRoute component={CrewsNew} />} />
       <Route path="/invoices" component={() => <ProtectedRoute component={Invoices} />} />
       <Route path="/files" component={() => <ProtectedRoute component={FileStorage} />} />
+      <Route path="/calendar" component={() => <ProtectedRoute component={GoogleCalendar} />} />
       <Route path="/settings" component={() => <ProtectedRoute component={Settings} />} />
       <Route path="/admin/firms" component={() => <ProtectedRoute component={FirmsManagement} />} />
       <Route path="/admin/users" component={() => <ProtectedRoute component={Users} />} />
