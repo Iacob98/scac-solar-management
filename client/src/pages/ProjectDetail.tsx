@@ -91,7 +91,7 @@ export default function ProjectDetail({ projectId, selectedFirm, onBack }: Proje
     },
     retry: 1,
     staleTime: 0,
-    cacheTime: 0,
+    gcTime: 0,
   });
 
   console.log('Project state:', { project, projectLoading, projectError, projectId });
@@ -643,8 +643,6 @@ export default function ProjectDetail({ projectId, selectedFirm, onBack }: Proje
               <ServicesPage 
                 projectId={project.id} 
                 selectedFirm={selectedFirm}
-                isEmbedded={true}
-                projectStatus={project.status}
               />
             </TabsContent>
 
@@ -1055,7 +1053,10 @@ export default function ProjectDetail({ projectId, selectedFirm, onBack }: Proje
                             <div className="flex items-center gap-2">
                               <div className="flex">{renderStars(report.rating)}</div>
                               <span className="text-sm text-gray-500">
-                                {new Date(report.completedAt || report.createdAt).toLocaleDateString('ru-RU')}
+                                {(() => {
+                                  const dateToFormat = report.completedAt || report.createdAt;
+                                  return dateToFormat ? new Date(dateToFormat).toLocaleDateString('ru-RU') : 'Не указано';
+                                })()}
                               </span>
                             </div>
                             <div className="flex gap-2">
@@ -1190,7 +1191,7 @@ export default function ProjectDetail({ projectId, selectedFirm, onBack }: Proje
                         <div key={note.id} className="border rounded-lg p-4 bg-gray-50">
                           <div className="flex items-start justify-between mb-2">
                             <div className="text-sm text-gray-600">
-                              Добавлено {format(new Date(note.createdAt), 'dd.MM.yyyy в HH:mm', { locale: ru })}
+                              Добавлено {note.createdAt ? format(new Date(note.createdAt), 'dd.MM.yyyy в HH:mm', { locale: ru }) : 'Не указано'}
                             </div>
                           </div>
                           <div className="text-gray-900 whitespace-pre-wrap">
