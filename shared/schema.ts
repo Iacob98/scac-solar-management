@@ -204,13 +204,22 @@ export const invoiceQueue = pgTable("invoice_queue", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
+// Project Notes table - примечания к проекту
+export const projectNotes = pgTable("project_notes", {
+  id: serial("id").primaryKey(),
+  projectId: integer("project_id").notNull().references(() => projects.id),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  content: text("content").notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
 // Project History table - для отслеживания всех изменений в проекте
 export const projectHistory = pgTable("project_history", {
   id: serial("id").primaryKey(),
   projectId: integer("project_id").notNull().references(() => projects.id),
   userId: varchar("user_id").notNull().references(() => users.id),
   changeType: varchar("change_type", { 
-    enum: ['status_change', 'date_update', 'info_update', 'created', 'equipment_update', 'call_update', 'assignment_change', 'shared', 'file_added', 'file_deleted', 'report_added', 'report_updated', 'report_deleted'] 
+    enum: ['status_change', 'date_update', 'info_update', 'created', 'equipment_update', 'call_update', 'assignment_change', 'shared', 'file_added', 'file_deleted', 'report_added', 'report_updated', 'report_deleted', 'note_added'] 
   }).notNull(),
   fieldName: varchar("field_name"), // название поля которое изменилось
   oldValue: text("old_value"),
@@ -278,6 +287,7 @@ export const projectsRelations = relations(projects, ({ one, many }) => ({
   reports: many(projectReports),
   history: many(projectHistory),
   shares: many(projectShares),
+  notes: many(projectNotes),
 }));
 
 export const servicesRelations = relations(services, ({ one }) => ({
@@ -310,6 +320,11 @@ export const projectSharesRelations = relations(projectShares, ({ one }) => ({
   project: one(projects, { fields: [projectShares.projectId], references: [projects.id] }),
   sharedByUser: one(users, { fields: [projectShares.sharedBy], references: [users.id] }),
   sharedWithUser: one(users, { fields: [projectShares.sharedWith], references: [users.id] }),
+}));
+
+export const projectNotesRelations = relations(projectNotes, ({ one }) => ({
+  project: one(projects, { fields: [projectNotes.projectId], references: [projects.id] }),
+  user: one(users, { fields: [projectNotes.userId], references: [users.id] }),
 }));
 
 // Schema types
@@ -382,3 +397,10 @@ export const insertFileStorageSchema = createInsertSchema(fileStorage).omit({
 });
 export type InsertFileStorage = z.infer<typeof insertFileStorageSchema>;
 export type FileStorage = typeof fileStorage.$inferSelect;
+
+export const insertProjectNoteSchema = createInsertSchema(projectNotes).omit({ 
+  id: true, 
+  createdAt: true 
+});
+export type InsertProjectNote = z.infer<typeof insertProjectNoteSchema>;
+export type ProjectNote = typeof projectNotes.$inferSelect;

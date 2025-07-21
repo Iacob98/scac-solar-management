@@ -4,7 +4,7 @@ import { storage } from "./storage";
 import { setupAuth, isAuthenticated } from "./replitAuth";
 import { InvoiceNinjaService } from "./services/invoiceNinja";
 import { db } from "./db";
-import { projects, projectHistory } from "@shared/schema";
+import { projects, projectHistory, projectNotes } from "@shared/schema";
 import { eq } from "drizzle-orm";
 import { 
   insertFirmSchema, 
@@ -14,7 +14,8 @@ import {
   insertProjectSchema, 
   insertServiceSchema,
   insertProjectFileSchema,
-  insertProjectReportSchema
+  insertProjectReportSchema,
+  insertProjectNoteSchema
 } from "@shared/schema";
 import { z } from "zod";
 import fileRoutes from "./routes/fileRoutes";
@@ -1597,6 +1598,46 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(history);
     } catch (error) {
       console.error("Ошибка получения истории проекта:", error);
+      res.status(500).json({ error: "Ошибка сервера" });
+    }
+  });
+
+  // Project Notes routes
+  app.get('/api/projects/:projectId/notes', isAuthenticated, async (req: any, res) => {
+    try {
+      const projectId = parseInt(req.params.projectId);
+      const notes = await db.select().from(projectNotes).where(eq(projectNotes.projectId, projectId));
+      res.json(notes);
+    } catch (error) {
+      console.error("Ошибка получения примечаний проекта:", error);
+      res.status(500).json({ error: "Ошибка сервера" });
+    }
+  });
+
+  app.post('/api/projects/:projectId/notes', isAuthenticated, async (req: any, res) => {
+    try {
+      const projectId = parseInt(req.params.projectId);
+      const userId = req.user?.claims?.sub || req.user?.id;
+      
+      const validatedData = insertProjectNoteSchema.parse({
+        ...req.body,
+        projectId,
+        userId
+      });
+
+      const [note] = await db.insert(projectNotes).values(validatedData).returning();
+      
+      // Добавляем запись в историю
+      await db.insert(projectHistory).values({
+        projectId,
+        userId,
+        changeType: 'note_added',
+        description: `Добавлено примечание: ${note.content.substring(0, 50)}${note.content.length > 50 ? '...' : ''}`
+      });
+
+      res.json(note);
+    } catch (error) {
+      console.error("Ошибка создания примечания:", error);
       res.status(500).json({ error: "Ошибка сервера" });
     }
   });

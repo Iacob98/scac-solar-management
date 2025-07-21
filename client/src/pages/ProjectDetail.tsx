@@ -8,7 +8,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { ArrowLeft, FileText, Users, Package, Clock, Euro, Calendar, Building2, Phone, History, Star, Plus, Upload, Image, Trash2, Eye } from 'lucide-react';
+import { ArrowLeft, FileText, Users, Package, Clock, Euro, Calendar, Building2, Phone, History, Star, Plus, Upload, Image, Trash2, Eye, MessageSquare } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -16,7 +16,7 @@ import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
 import { format } from 'date-fns';
 import { ru } from 'date-fns/locale';
-import { type Project, type Service, type Client, type Crew, insertProjectReportSchema, insertProjectFileSchema, type ProjectReport, type ProjectFile } from '@shared/schema';
+import { type Project, type Service, type Client, type Crew, insertProjectReportSchema, insertProjectFileSchema, insertProjectNoteSchema, type ProjectReport, type ProjectFile, type ProjectNote } from '@shared/schema';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
 import { apiRequest } from '@/lib/queryClient';
@@ -64,6 +64,10 @@ const fileFormSchema = z.object({
   fileType: z.enum(['report_photo', 'review_document', 'technical_doc', 'other']),
 });
 
+const noteFormSchema = insertProjectNoteSchema.extend({
+  content: z.string().min(1, "Текст примечания обязателен"),
+});
+
 export default function ProjectDetail({ projectId, selectedFirm, onBack }: ProjectDetailProps) {
   const [activeTab, setActiveTab] = useState('services');
   const [showAllHistory, setShowAllHistory] = useState(false);
@@ -71,6 +75,7 @@ export default function ProjectDetail({ projectId, selectedFirm, onBack }: Proje
   const [isFileDialogOpen, setIsFileDialogOpen] = useState(false);
   const [editingReport, setEditingReport] = useState<ProjectReport | null>(null);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [isNoteDialogOpen, setIsNoteDialogOpen] = useState(false);
   const { toast } = useToast();
   const { user } = useAuth();
   const queryClient = useQueryClient();
@@ -140,6 +145,15 @@ export default function ProjectDetail({ projectId, selectedFirm, onBack }: Proje
     enabled: !!project,
   });
 
+  const { data: notes = [], isLoading: notesLoading } = useQuery({
+    queryKey: ['/api/projects', projectId, 'notes'],
+    queryFn: async () => {
+      const response = await apiRequest(`/api/projects/${projectId}/notes`, 'GET');
+      return await response.json();
+    },
+    enabled: !!project,
+  });
+
   const updateProjectStatusMutation = useMutation({
     mutationFn: (data: any) => apiRequest(`/api/projects/${projectId}`, 'PATCH', data),
     onSuccess: () => {
@@ -190,6 +204,14 @@ export default function ProjectDetail({ projectId, selectedFirm, onBack }: Proje
       projectId: projectId || 0,
       fileName: '',
       fileType: 'report_photo' as const,
+    },
+  });
+
+  const noteForm = useForm({
+    resolver: zodResolver(noteFormSchema),
+    defaultValues: {
+      projectId: projectId || 0,
+      content: '',
     },
   });
 
@@ -298,6 +320,24 @@ export default function ProjectDetail({ projectId, selectedFirm, onBack }: Proje
     },
   });
 
+  const createNoteMutation = useMutation({
+    mutationFn: (data: any) => apiRequest(`/api/projects/${projectId}/notes`, 'POST', data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/projects', projectId, 'notes'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/projects', projectId, 'history'] });
+      toast({ title: 'Примечание добавлено успешно' });
+      setIsNoteDialogOpen(false);
+      noteForm.reset();
+    },
+    onError: (error: any) => {
+      toast({
+        title: 'Ошибка',
+        description: error.message || 'Не удалось добавить примечание',
+        variant: 'destructive'
+      });
+    },
+  });
+
   const onSubmitReport = (data: any) => {
     if (editingReport) {
       updateReportMutation.mutate(data);
@@ -316,6 +356,10 @@ export default function ProjectDetail({ projectId, selectedFirm, onBack }: Proje
       return;
     }
     createFileMutation.mutate(data);
+  };
+
+  const onSubmitNote = (data: any) => {
+    createNoteMutation.mutate(data);
   };
 
   const handleEditReport = (report: ProjectReport) => {
@@ -588,10 +632,11 @@ export default function ProjectDetail({ projectId, selectedFirm, onBack }: Proje
         {/* Вкладки */}
         <div className="bg-white rounded-xl shadow-sm border p-6">
           <Tabs value={activeTab} onValueChange={setActiveTab}>
-            <TabsList className="grid w-full grid-cols-3 mb-6">
+            <TabsList className="grid w-full grid-cols-4 mb-6">
               <TabsTrigger value="services" className="text-sm">Услуги проекта</TabsTrigger>
               <TabsTrigger value="management" className="text-sm">Управление датами</TabsTrigger>
               <TabsTrigger value="files" className="text-sm">Файлы и отчеты</TabsTrigger>
+              <TabsTrigger value="notes" className="text-sm">Примечания</TabsTrigger>
             </TabsList>
 
             <TabsContent value="services" className="space-y-4">
@@ -1064,6 +1109,100 @@ export default function ProjectDetail({ projectId, selectedFirm, onBack }: Proje
               </Card>
             </TabsContent>
 
+            <TabsContent value="notes" className="space-y-6">
+              {/* Action Buttons */}
+              <div className="flex gap-4">
+                <Dialog open={isNoteDialogOpen} onOpenChange={setIsNoteDialogOpen}>
+                  <DialogTrigger asChild>
+                    <Button>
+                      <MessageSquare className="h-4 w-4 mr-2" />
+                      Добавить примечание
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent>
+                    <DialogHeader>
+                      <DialogTitle>Добавить примечание к проекту</DialogTitle>
+                    </DialogHeader>
+                    <Form {...noteForm}>
+                      <form onSubmit={noteForm.handleSubmit(onSubmitNote)} className="space-y-4">
+                        <FormField
+                          control={noteForm.control}
+                          name="content"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Текст примечания</FormLabel>
+                              <FormControl>
+                                <Textarea 
+                                  placeholder="Введите примечание или комментарий к проекту..."
+                                  className="min-h-[120px]"
+                                  {...field} 
+                                />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+
+                        <div className="flex justify-end space-x-2">
+                          <Button 
+                            type="button" 
+                            variant="outline" 
+                            onClick={() => {
+                              setIsNoteDialogOpen(false);
+                              noteForm.reset();
+                            }}
+                          >
+                            Отмена
+                          </Button>
+                          <Button 
+                            type="submit" 
+                            disabled={createNoteMutation.isPending}
+                          >
+                            {createNoteMutation.isPending ? 'Сохранение...' : 'Добавить примечание'}
+                          </Button>
+                        </div>
+                      </form>
+                    </Form>
+                  </DialogContent>
+                </Dialog>
+              </div>
+
+              {/* Notes List */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center">
+                    <MessageSquare className="h-5 w-5 mr-2 text-blue-600" />
+                    Примечания проекта
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {notesLoading ? (
+                    <div className="text-center py-4">Загрузка примечаний...</div>
+                  ) : notes.length === 0 ? (
+                    <div className="text-center py-8 text-gray-500">
+                      <MessageSquare className="h-12 w-12 mx-auto mb-4 text-gray-300" />
+                      <p>Примечания к проекту пока не добавлены</p>
+                      <p className="text-sm">Используйте кнопку выше для добавления первого примечания</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-4">
+                      {notes.map((note: ProjectNote) => (
+                        <div key={note.id} className="border rounded-lg p-4 bg-gray-50">
+                          <div className="flex items-start justify-between mb-2">
+                            <div className="text-sm text-gray-600">
+                              Добавлено {format(new Date(note.createdAt), 'dd.MM.yyyy в HH:mm', { locale: ru })}
+                            </div>
+                          </div>
+                          <div className="text-gray-900 whitespace-pre-wrap">
+                            {note.content}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </TabsContent>
 
           </Tabs>
         </div>
