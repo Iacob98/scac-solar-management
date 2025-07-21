@@ -1606,7 +1606,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get('/api/projects/:projectId/notes', isAuthenticated, async (req: any, res) => {
     try {
       const projectId = parseInt(req.params.projectId);
+      console.log('GET /api/projects/:projectId/notes - получение примечаний для проекта:', projectId);
+      
+      if (isNaN(projectId)) {
+        console.log('Неверный ID проекта:', req.params.projectId);
+        return res.status(400).json({ error: "Неверный ID проекта" });
+      }
+      
       const notes = await db.select().from(projectNotes).where(eq(projectNotes.projectId, projectId));
+      console.log('Найдено примечаний:', notes.length);
+      console.log('Примечания:', notes);
+      
       res.json(notes);
     } catch (error) {
       console.error("Ошибка получения примечаний проекта:", error);
@@ -1619,26 +1629,49 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const projectId = parseInt(req.params.projectId);
       const userId = req.user?.claims?.sub || req.user?.id;
       
+      console.log('POST /api/projects/:projectId/notes - создание примечания');
+      console.log('ProjectID:', projectId);
+      console.log('UserID:', userId);
+      console.log('Request body:', req.body);
+      
+      if (isNaN(projectId)) {
+        console.log('Неверный ID проекта:', req.params.projectId);
+        return res.status(400).json({ error: "Неверный ID проекта" });
+      }
+      
+      if (!userId) {
+        console.log('Пользователь не найден в запросе');
+        return res.status(401).json({ error: "Пользователь не авторизован" });
+      }
+      
       const validatedData = insertProjectNoteSchema.parse({
         ...req.body,
         projectId,
         userId
       });
+      
+      console.log('Валидированные данные:', validatedData);
 
       const [note] = await db.insert(projectNotes).values(validatedData).returning();
+      console.log('Создано примечание:', note);
       
       // Добавляем запись в историю
-      await db.insert(projectHistory).values({
+      const historyEntry = {
         projectId,
         userId,
-        changeType: 'note_added',
+        changeType: 'note_added' as const,
         description: `Добавлено примечание: ${note.content.substring(0, 50)}${note.content.length > 50 ? '...' : ''}`
-      });
+      };
+      console.log('Добавляем в историю:', historyEntry);
+      
+      await db.insert(projectHistory).values(historyEntry);
+      console.log('История обновлена');
 
       res.json(note);
     } catch (error) {
       console.error("Ошибка создания примечания:", error);
-      res.status(500).json({ error: "Ошибка сервера" });
+      console.error("Стек ошибки:", error.stack);
+      res.status(500).json({ error: "Ошибка сервера", details: error.message });
     }
   });
 

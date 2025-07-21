@@ -321,8 +321,13 @@ export default function ProjectDetail({ projectId, selectedFirm, onBack }: Proje
   });
 
   const createNoteMutation = useMutation({
-    mutationFn: (data: any) => apiRequest(`/api/projects/${projectId}/notes`, 'POST', data),
-    onSuccess: () => {
+    mutationFn: (data: any) => {
+      console.log('createNoteMutation mutationFn вызвана:', data);
+      console.log('URL запроса:', `/api/projects/${projectId}/notes`);
+      return apiRequest(`/api/projects/${projectId}/notes`, 'POST', data);
+    },
+    onSuccess: (result) => {
+      console.log('createNoteMutation onSuccess:', result);
       queryClient.invalidateQueries({ queryKey: ['/api/projects', projectId, 'notes'] });
       queryClient.invalidateQueries({ queryKey: ['/api/projects', projectId, 'history'] });
       toast({ title: 'Примечание добавлено успешно' });
@@ -330,6 +335,12 @@ export default function ProjectDetail({ projectId, selectedFirm, onBack }: Proje
       noteForm.reset();
     },
     onError: (error: any) => {
+      console.log('createNoteMutation onError:', error);
+      console.log('Детали ошибки:', {
+        message: error.message,
+        status: error.status,
+        response: error.response
+      });
       toast({
         title: 'Ошибка',
         description: error.message || 'Не удалось добавить примечание',
@@ -359,6 +370,12 @@ export default function ProjectDetail({ projectId, selectedFirm, onBack }: Proje
   };
 
   const onSubmitNote = (data: any) => {
+    console.log('onSubmitNote вызвана с данными:', data);
+    console.log('createNoteMutation статус:', {
+      isPending: createNoteMutation.isPending,
+      isError: createNoteMutation.isError,
+      error: createNoteMutation.error
+    });
     createNoteMutation.mutate(data);
   };
 
