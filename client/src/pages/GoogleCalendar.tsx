@@ -65,7 +65,7 @@ export default function GoogleCalendar() {
     defaultValues: {
       clientId: '',
       clientSecret: '',
-      redirectUri: window.location.origin + '/calendar',
+      redirectUri: window.location.origin + '/api/google/callback',
       masterCalendarId: '',
     },
   });
@@ -81,7 +81,7 @@ export default function GoogleCalendar() {
     const settings = apiSettings as any;
     if (settings?.configured) {
       form.setValue('clientId', settings.clientId || '');
-      form.setValue('redirectUri', settings.redirectUri || window.location.origin + '/calendar');
+      form.setValue('redirectUri', settings.redirectUri || window.location.origin + '/api/google/callback');
       form.setValue('masterCalendarId', settings.masterCalendarId || '');
     }
   }, [apiSettings, form]);
@@ -382,7 +382,7 @@ export default function GoogleCalendar() {
                 <div>
                   <h4 className="font-medium mb-2">4. Настройте Redirect URI</h4>
                   <p className="text-muted-foreground">
-                    Добавьте <code className="bg-muted px-1 rounded">{window.location.origin + '/calendar'}</code> в список разрешенных URI
+                    Добавьте <code className="bg-muted px-1 rounded">{window.location.origin + '/api/google/callback'}</code> в список разрешенных URI
                   </p>
                 </div>
               </div>

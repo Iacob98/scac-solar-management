@@ -165,11 +165,34 @@ router.get('/callback', async (req, res) => {
 
     await googleCalendarService.exchangeCodeForTokens(code as string, firmId as string);
     
+    // Получаем информацию о фирме для создания календаря  
+    const [firm] = await db.select().from(firms).where(eq(firms.id, firmId)).limit(1);
+    if (firm && !firm.gcalMasterId) {
+      try {
+        // Автоматически создаем корпоративный календарь после успешной авторизации
+        const calendarId = await googleCalendarService.createCalendar(
+          `Проекты – ${firm.name}`,
+          `Корпоративный календарь проектов для ${firm.name}`,
+          firmId
+        );
+        
+        // Обновляем фирму с ID корпоративного календаря
+        await db
+          .update(firms)
+          .set({ gcalMasterId: calendarId })
+          .where(eq(firms.id, firmId));
+          
+      } catch (error) {
+        console.error('Error creating master calendar after OAuth:', error);
+        // Не прерываем процесс, просто логируем ошибку
+      }
+    }
+    
     // Перенаправляем обратно в приложение с сообщением об успехе
-    res.redirect(`${process.env.FRONTEND_URL || 'http://localhost:5000'}?google_auth=success`);
+    res.redirect(`${process.env.FRONTEND_URL || 'http://localhost:5000'}/?google_auth=success`);
   } catch (error) {
     console.error('Error in OAuth callback:', error);
-    res.redirect(`${process.env.FRONTEND_URL || 'http://localhost:5000'}?google_auth=error`);
+    res.redirect(`${process.env.FRONTEND_URL || 'http://localhost:5000'}/?google_auth=error`);
   }
 });
 

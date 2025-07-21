@@ -125,12 +125,13 @@ export class GoogleCalendarService {
       throw new Error('No tokens to refresh');
     }
 
-    this.oauth2Client.setCredentials({
+    const oauth2Client = await this.getOAuth2Client(firmId);
+    oauth2Client.setCredentials({
       refresh_token: tokens.refreshToken
     });
 
     try {
-      const { credentials } = await this.oauth2Client.refreshAccessToken();
+      const { credentials } = await oauth2Client.refreshAccessToken();
       
       await db.update(googleTokens)
         .set({
@@ -149,8 +150,49 @@ export class GoogleCalendarService {
   /**
    * Создать календарь
    */
-  async createCalendar(name: string, description?: string): Promise<string> {
-    const calendar = google.calendar({ version: 'v3', auth: this.oauth2Client });
+  async createCalendar(name: string, description?: string, firmId?: string): Promise<string> {
+    let oauth2Client;
+    
+    if (firmId) {
+      // Получаем OAuth клиента для фирмы и устанавливаем токены
+      oauth2Client = await this.getOAuth2Client(firmId);
+      
+      // Загружаем и устанавливаем токены
+      const [tokens] = await db.select()
+        .from(googleTokens)
+        .where(eq(googleTokens.firmId, firmId))
+        .limit(1);
+
+      if (!tokens) {
+        throw new Error('No Google tokens found for this firm');
+      }
+
+      // Проверяем, не истекли ли токены
+      if (new Date() > tokens.expiry) {
+        await this.refreshTokens(firmId);
+        // Перезагружаем токены после обновления
+        const [refreshedTokens] = await db.select()
+          .from(googleTokens)
+          .where(eq(googleTokens.firmId, firmId))
+          .limit(1);
+        
+        oauth2Client.setCredentials({
+          access_token: refreshedTokens!.accessToken,
+          refresh_token: refreshedTokens!.refreshToken,
+          expiry_date: refreshedTokens!.expiry.getTime()
+        });
+      } else {
+        oauth2Client.setCredentials({
+          access_token: tokens.accessToken,
+          refresh_token: tokens.refreshToken,
+          expiry_date: tokens.expiry.getTime()
+        });
+      }
+    } else {
+      throw new Error('firmId is required for creating calendar');
+    }
+    
+    const calendar = google.calendar({ version: 'v3', auth: oauth2Client });
     
     try {
       const response = await calendar.calendars.insert({
