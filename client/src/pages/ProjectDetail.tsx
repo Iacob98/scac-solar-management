@@ -152,7 +152,7 @@ export default function ProjectDetail({ projectId, selectedFirm, onBack }: Proje
       return await response.json();
     },
     enabled: !!project,
-    refetchInterval: 3000, // Обновляем каждые 3 секунды для тестирования
+    // refetchInterval: 3000, // Временно отключено для тестирования
   });
 
   const updateProjectStatusMutation = useMutation({
