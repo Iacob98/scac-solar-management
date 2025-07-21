@@ -213,6 +213,7 @@ export default function ProjectDetail({ projectId, selectedFirm, onBack }: Proje
     defaultValues: {
       projectId: projectId || 0,
       content: '',
+      userId: user?.id || '',
     },
   });
 
@@ -1169,6 +1170,15 @@ export default function ProjectDetail({ projectId, selectedFirm, onBack }: Proje
                               </FormControl>
                               <FormMessage />
                             </FormItem>
+                          )}
+                        />
+
+                        {/* Hidden field for userId */}
+                        <FormField
+                          control={noteForm.control}
+                          name="userId"
+                          render={({ field }) => (
+                            <Input type="hidden" {...field} value={user?.id || ''} />
                           )}
                         />
 
