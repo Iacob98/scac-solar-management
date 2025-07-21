@@ -145,13 +145,14 @@ export default function ProjectDetail({ projectId, selectedFirm, onBack }: Proje
     enabled: !!project,
   });
 
-  const { data: notes = [], isLoading: notesLoading } = useQuery({
+  const { data: notes = [], isLoading: notesLoading, error: notesError } = useQuery({
     queryKey: ['/api/projects', projectId, 'notes'],
     queryFn: async () => {
       const response = await apiRequest(`/api/projects/${projectId}/notes`, 'GET');
       return await response.json();
     },
     enabled: !!project,
+    refetchInterval: 3000, // Обновляем каждые 3 секунды для тестирования
   });
 
   const updateProjectStatusMutation = useMutation({
@@ -1194,6 +1195,15 @@ export default function ProjectDetail({ projectId, selectedFirm, onBack }: Proje
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
+                  {(() => {
+                    console.log('Notes render - состояние:', {
+                      notesLoading,
+                      notesLength: notes.length,
+                      notes,
+                      notesError
+                    });
+                    return null;
+                  })()}
                   {notesLoading ? (
                     <div className="text-center py-4">Загрузка примечаний...</div>
                   ) : notes.length === 0 ? (
