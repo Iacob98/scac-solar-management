@@ -5,9 +5,27 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Separator } from '@/components/ui/separator';
-import { Calendar, CheckCircle, XCircle, ExternalLink, AlertCircle, Clock, Users } from 'lucide-react';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { Textarea } from '@/components/ui/textarea';
+import { Calendar, CheckCircle, XCircle, ExternalLink, AlertCircle, Clock, Users, Settings, Key } from 'lucide-react';
 import { MainLayout } from '@/components/Layout/MainLayout';
 import { apiRequest } from '@/lib/queryClient';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
+
+// Схема для настроек Google Calendar API
+const googleApiSettingsSchema = z.object({
+  clientId: z.string().min(1, 'Client ID обязательно для заполнения'),
+  clientSecret: z.string().min(1, 'Client Secret обязательно для заполнения'),
+  redirectUri: z.string().min(1, 'Redirect URI обязательно для заполнения'),
+  masterCalendarId: z.string().optional(),
+});
+
+type GoogleApiSettings = z.infer<typeof googleApiSettingsSchema>;
 
 interface GoogleCalendarStatus {
   isConnected: boolean;
@@ -40,6 +58,32 @@ export default function GoogleCalendar() {
   const [selectedFirmId, setSelectedFirmId] = useState<string>('');
   const queryClient = useQueryClient();
   const [authMessage, setAuthMessage] = useState<string>('');
+  const [isSettingsDialogOpen, setIsSettingsDialogOpen] = useState(false);
+
+  const form = useForm<GoogleApiSettings>({
+    resolver: zodResolver(googleApiSettingsSchema),
+    defaultValues: {
+      clientId: '',
+      clientSecret: '',
+      redirectUri: window.location.origin + '/calendar',
+      masterCalendarId: '',
+    },
+  });
+
+  // Загружаем существующие настройки API для фирмы
+  const { data: apiSettings } = useQuery({
+    queryKey: ['google-api-settings', selectedFirmId],
+    enabled: !!selectedFirmId,
+  });
+
+  // Обновляем форму при загрузке настроек
+  useEffect(() => {
+    if (apiSettings?.configured) {
+      form.setValue('clientId', apiSettings.clientId || '');
+      form.setValue('redirectUri', apiSettings.redirectUri || window.location.origin + '/calendar');
+      form.setValue('masterCalendarId', apiSettings.masterCalendarId || '');
+    }
+  }, [apiSettings, form]);
 
   useEffect(() => {
     const firmId = localStorage.getItem('selectedFirmId');
@@ -132,6 +176,29 @@ export default function GoogleCalendar() {
     }
   });
 
+  // Мутация для сохранения настроек API
+  const saveApiSettingsMutation = useMutation({
+    mutationFn: (settings: GoogleApiSettings) => apiRequest('/api/google/settings', {
+      method: 'POST',
+      body: JSON.stringify({ ...settings, firmId: selectedFirmId }),
+      headers: { 'Content-Type': 'application/json' }
+    }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['google-calendar-status', selectedFirmId] });
+      setAuthMessage('Настройки API успешно сохранены!');
+      setIsSettingsDialogOpen(false);
+      form.reset();
+    },
+    onError: (error) => {
+      console.error('Ошибка сохранения настроек API:', error);
+      setAuthMessage('Ошибка сохранения настроек API');
+    }
+  });
+
+  const onSubmitSettings = (values: GoogleApiSettings) => {
+    saveApiSettingsMutation.mutate(values);
+  };
+
   if (!selectedFirmId) {
     return (
       <div className="container mx-auto p-6">
@@ -188,12 +255,152 @@ export default function GoogleCalendar() {
             Интеграция с календарем для управления проектами и бригадами
           </p>
         </div>
+        
+        <Dialog open={isSettingsDialogOpen} onOpenChange={setIsSettingsDialogOpen}>
+          <DialogTrigger asChild>
+            <Button variant="outline" className="flex items-center gap-2">
+              <Settings className="h-4 w-4" />
+              Настройки API
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="sm:max-w-[425px]">
+            <DialogHeader>
+              <DialogTitle>Настройки Google Calendar API</DialogTitle>
+              <DialogDescription>
+                Введите данные из Google Cloud Console для подключения к API
+              </DialogDescription>
+            </DialogHeader>
+            
+            <Form {...form}>
+              <form onSubmit={form.handleSubmit(onSubmitSettings)} className="space-y-4">
+                <FormField
+                  control={form.control}
+                  name="clientId"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Client ID</FormLabel>
+                      <FormControl>
+                        <Input placeholder="Введите Client ID" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField
+                  control={form.control}
+                  name="clientSecret"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Client Secret</FormLabel>
+                      <FormControl>
+                        <Input type="password" placeholder="Введите Client Secret" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField
+                  control={form.control}
+                  name="redirectUri"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Redirect URI</FormLabel>
+                      <FormControl>
+                        <Input placeholder="Redirect URI" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField
+                  control={form.control}
+                  name="masterCalendarId"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>ID корпоративного календаря (опционально)</FormLabel>
+                      <FormControl>
+                        <Input placeholder="calendar@company.com" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <div className="flex justify-end gap-2">
+                  <Button type="button" variant="outline" onClick={() => setIsSettingsDialogOpen(false)}>
+                    Отмена
+                  </Button>
+                  <Button type="submit" disabled={saveApiSettingsMutation.isPending}>
+                    {saveApiSettingsMutation.isPending ? 'Сохранение...' : 'Сохранить'}
+                  </Button>
+                </div>
+              </form>
+            </Form>
+          </DialogContent>
+        </Dialog>
       </div>
 
       {authMessage && (
         <Alert className={authMessage.includes('успешно') ? 'border-green-500' : 'border-red-500'}>
           <AlertDescription>{authMessage}</AlertDescription>
         </Alert>
+      )}
+
+      {/* Инструкции по настройке */}
+      {!status?.hasTokens && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Key className="h-5 w-5" />
+              Настройка Google Calendar API
+            </CardTitle>
+            <CardDescription>
+              Для подключения к Google Calendar необходимо создать проект в Google Cloud Console
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4 text-sm">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <h4 className="font-medium mb-2">1. Создайте проект в Google Cloud Console</h4>
+                  <p className="text-muted-foreground">
+                    Перейдите в <a href="https://console.cloud.google.com/" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">Google Cloud Console</a> и создайте новый проект
+                  </p>
+                </div>
+                
+                <div>
+                  <h4 className="font-medium mb-2">2. Включите Google Calendar API</h4>
+                  <p className="text-muted-foreground">
+                    В разделе "APIs & Services" найдите и включите Google Calendar API
+                  </p>
+                </div>
+                
+                <div>
+                  <h4 className="font-medium mb-2">3. Создайте OAuth 2.0 учетные данные</h4>
+                  <p className="text-muted-foreground">
+                    В разделе "Credentials" создайте OAuth 2.0 Client ID для веб-приложения
+                  </p>
+                </div>
+                
+                <div>
+                  <h4 className="font-medium mb-2">4. Настройте Redirect URI</h4>
+                  <p className="text-muted-foreground">
+                    Добавьте <code className="bg-muted px-1 rounded">{window.location.origin + '/calendar'}</code> в список разрешенных URI
+                  </p>
+                </div>
+              </div>
+              
+              <div className="pt-4 border-t">
+                <p className="text-muted-foreground">
+                  После создания учетных данных нажмите кнопку "Настройки API" выше и введите полученные Client ID и Client Secret.
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
       )}
 
       {/* Статус подключения */}

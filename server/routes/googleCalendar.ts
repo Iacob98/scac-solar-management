@@ -1,12 +1,101 @@
 import { Router } from 'express';
 import { db } from '../db';
-import { firms, crews, projects, clients, crewMembers, googleTokens, calendarLogs } from '@shared/schema';
+import { firms, crews, projects, clients, crewMembers, googleTokens, calendarLogs, googleCalendarSettings } from '@shared/schema';
 import { eq, and } from 'drizzle-orm';
 import { googleCalendarService, type CalendarEvent } from '../services/googleCalendar';
 import { requireAuth } from '../middleware/auth';
 import { z } from 'zod';
 
 const router = Router();
+
+/**
+ * Сохранить настройки Google Calendar API
+ */
+router.post('/settings', requireAuth, async (req, res) => {
+  try {
+    const data = apiSettingsSchema.parse(req.body);
+    
+    // Проверяем права доступа
+    const user = req.user!;
+    if (user.role !== 'admin') {
+      return res.status(403).json({ message: 'Доступ запрещен' });
+    }
+
+    // Проверяем что фирма существует
+    const [firm] = await db.select().from(firms).where(eq(firms.id, data.firmId));
+    if (!firm) {
+      return res.status(404).json({ message: 'Фирма не найдена' });
+    }
+
+    // Сохраняем настройки в базу (пока используем таблицу google_calendar_settings)
+    await db
+      .insert(googleCalendarSettings)
+      .values({
+        firmId: data.firmId,
+        clientId: data.clientId,
+        clientSecret: data.clientSecret,
+        redirectUri: data.redirectUri,
+        masterCalendarId: data.masterCalendarId || null,
+      })
+      .onConflictDoUpdate({
+        target: googleCalendarSettings.firmId,
+        set: {
+          clientId: data.clientId,
+          clientSecret: data.clientSecret,
+          redirectUri: data.redirectUri,
+          masterCalendarId: data.masterCalendarId || null,
+          updatedAt: new Date(),
+        },
+      });
+
+    // Инициализируем Google Calendar Service с новыми настройками
+    googleCalendarService.updateCredentials(data.firmId, {
+      client_id: data.clientId,
+      client_secret: data.clientSecret,
+      redirect_uri: data.redirectUri,
+    });
+
+    res.json({ success: true, message: 'Настройки сохранены успешно' });
+  } catch (error) {
+    console.error('Error saving API settings:', error);
+    res.status(500).json({ message: 'Ошибка сохранения настроек' });
+  }
+});
+
+/**
+ * Получить настройки Google Calendar API для фирмы
+ */
+router.get('/settings/:firmId', requireAuth, async (req, res) => {
+  try {
+    const { firmId } = connectGoogleSchema.parse(req.params);
+    
+    // Проверяем права доступа
+    const user = req.user!;
+    if (user.role !== 'admin') {
+      return res.status(403).json({ message: 'Доступ запрещен' });
+    }
+
+    const [settings] = await db
+      .select()
+      .from(googleCalendarSettings)
+      .where(eq(googleCalendarSettings.firmId, firmId));
+
+    if (!settings) {
+      return res.json({ configured: false });
+    }
+
+    // Возвращаем настройки без секретных данных
+    res.json({
+      configured: true,
+      clientId: settings.clientId,
+      redirectUri: settings.redirectUri,
+      masterCalendarId: settings.masterCalendarId,
+    });
+  } catch (error) {
+    console.error('Error getting API settings:', error);
+    res.status(500).json({ message: 'Ошибка получения настроек' });
+  }
+});
 
 // Схемы валидации
 const connectGoogleSchema = z.object({
@@ -37,6 +126,14 @@ const updateCrewMembersSchema = z.object({
     uniqueNumber: z.string().min(1),
     phone: z.string().optional()
   }))
+});
+
+const apiSettingsSchema = z.object({
+  firmId: z.string().uuid(),
+  clientId: z.string().min(1),
+  clientSecret: z.string().min(1),
+  redirectUri: z.string().url(),
+  masterCalendarId: z.string().optional()
 });
 
 /**

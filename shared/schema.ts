@@ -422,6 +422,18 @@ export const googleTokens = pgTable("google_tokens", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
+// Google Calendar Settings table - настройки API для каждой фирмы
+export const googleCalendarSettings = pgTable("google_calendar_settings", {
+  id: serial("id").primaryKey(),
+  firmId: uuid("firm_id").notNull().references(() => firms.id).unique(),
+  clientId: varchar("client_id").notNull(),
+  clientSecret: varchar("client_secret").notNull(),
+  redirectUri: varchar("redirect_uri").notNull(),
+  masterCalendarId: varchar("master_calendar_id"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
 // Calendar Logs table - аудит всех операций с Google API
 export const calendarLogs = pgTable("calendar_logs", {
   id: serial("id").primaryKey(),
@@ -442,6 +454,14 @@ export const insertGoogleTokenSchema = createInsertSchema(googleTokens).omit({
 });
 export type InsertGoogleToken = z.infer<typeof insertGoogleTokenSchema>;
 export type GoogleToken = typeof googleTokens.$inferSelect;
+
+export const insertGoogleCalendarSettingsSchema = createInsertSchema(googleCalendarSettings).omit({ 
+  id: true, 
+  createdAt: true,
+  updatedAt: true 
+});
+export type InsertGoogleCalendarSettings = z.infer<typeof insertGoogleCalendarSettingsSchema>;
+export type GoogleCalendarSettings = typeof googleCalendarSettings.$inferSelect;
 
 export const insertCalendarLogSchema = createInsertSchema(calendarLogs).omit({ 
   id: true, 
