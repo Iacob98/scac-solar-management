@@ -210,6 +210,9 @@ export const projectNotes = pgTable("project_notes", {
   projectId: integer("project_id").notNull().references(() => projects.id),
   userId: varchar("user_id").notNull().references(() => users.id),
   content: text("content").notNull(),
+  priority: varchar("priority", { 
+    enum: ['normal', 'important', 'urgent', 'critical'] 
+  }).default('normal'),
   createdAt: timestamp("created_at").defaultNow(),
 });
 

@@ -53,6 +53,20 @@ const statusColors = {
   paid: 'bg-gray-100 text-gray-800'
 };
 
+const priorityLabels = {
+  normal: 'Обычное',
+  important: 'Важное',
+  urgent: 'Срочное',
+  critical: 'Критическое'
+};
+
+const priorityColors = {
+  normal: 'bg-gray-100 text-gray-800',
+  important: 'bg-blue-100 text-blue-800',
+  urgent: 'bg-orange-100 text-orange-800',
+  critical: 'bg-red-100 text-red-800'
+};
+
 // Reports schemas
 const reportFormSchema = insertProjectReportSchema.extend({
   rating: z.number().min(1, "Оценка обязательна").max(5, "Максимальная оценка 5"),
@@ -214,6 +228,7 @@ export default function ProjectDetail({ projectId, selectedFirm, onBack }: Proje
       projectId: projectId || 0,
       content: '',
       userId: user?.id || '',
+      priority: 'normal' as const,
     },
   });
 
@@ -1141,6 +1156,30 @@ export default function ProjectDetail({ projectId, selectedFirm, onBack }: Proje
                       <form onSubmit={noteForm.handleSubmit(onSubmitNote)} className="space-y-4">
                         <FormField
                           control={noteForm.control}
+                          name="priority"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Приоритет</FormLabel>
+                              <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                <FormControl>
+                                  <SelectTrigger>
+                                    <SelectValue placeholder="Выберите приоритет" />
+                                  </SelectTrigger>
+                                </FormControl>
+                                <SelectContent>
+                                  <SelectItem value="normal">Обычное</SelectItem>
+                                  <SelectItem value="important">Важное</SelectItem>
+                                  <SelectItem value="urgent">Срочное</SelectItem>
+                                  <SelectItem value="critical">Критическое</SelectItem>
+                                </SelectContent>
+                              </Select>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+
+                        <FormField
+                          control={noteForm.control}
                           name="content"
                           render={({ field }) => (
                             <FormItem>
@@ -1216,6 +1255,11 @@ export default function ProjectDetail({ projectId, selectedFirm, onBack }: Proje
                             <div className="text-sm text-gray-600">
                               Добавлено {note.createdAt ? format(new Date(note.createdAt), 'dd.MM.yyyy в HH:mm', { locale: ru }) : 'Не указано'}
                             </div>
+                            {note.priority && note.priority !== 'normal' && (
+                              <Badge className={priorityColors[note.priority as keyof typeof priorityColors]}>
+                                {priorityLabels[note.priority as keyof typeof priorityLabels]}
+                              </Badge>
+                            )}
                           </div>
                           <div className="text-gray-900 whitespace-pre-wrap">
                             {note.content}
