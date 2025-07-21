@@ -79,6 +79,29 @@ const changeTypeLabels = {
   'note_added': 'Примечание добавлено',
 };
 
+// Функция для определения приоритета из описания примечания
+const extractNotePriority = (description: string): 'normal' | 'important' | 'urgent' | 'critical' => {
+  if (description.includes('(Важное)')) return 'important';
+  if (description.includes('(Срочное)')) return 'urgent';
+  if (description.includes('(Критическое)')) return 'critical';
+  return 'normal';
+};
+
+// Цвета для приоритетов примечаний
+const priorityStyles = {
+  normal: 'bg-white border-gray-200',
+  important: 'bg-blue-50 border-blue-200',
+  urgent: 'bg-orange-50 border-orange-200',
+  critical: 'bg-red-50 border-red-200',
+};
+
+const priorityBadgeStyles = {
+  normal: '',
+  important: 'bg-blue-100 text-blue-700 border-blue-300',
+  urgent: 'bg-orange-100 text-orange-700 border-orange-300',
+  critical: 'bg-red-100 text-red-700 border-red-300',
+};
+
 export default function ProjectHistory({ projectId, onBack, embedded = false, limit }: ProjectHistoryProps) {
   const { data: history = [], isLoading, error } = useQuery({
     queryKey: ['/api/projects', projectId, 'history'],
@@ -126,11 +149,13 @@ export default function ProjectHistory({ projectId, onBack, embedded = false, li
           displayHistory.map((entry, index) => {
             const IconComponent = changeTypeIcons[entry.changeType] || FileText;
             const isFirst = index === 0;
+            const priority = entry.changeType === 'note_added' ? extractNotePriority(entry.description) : 'normal';
+            const cardStyle = entry.changeType === 'note_added' ? priorityStyles[priority] : 'bg-white border-gray-200';
             
             return (
               <div key={entry.id} className="relative">
                 
-                <div className="flex items-start space-x-3 p-3 bg-white hover:bg-gray-50 rounded-lg transition-colors shadow-sm border border-gray-100">
+                <div className={`flex items-start space-x-3 p-3 hover:bg-gray-50 rounded-lg transition-colors shadow-sm border ${cardStyle}`}>
                   {/* Icon */}
                   <div className={`p-2 rounded-full ${changeTypeColors[entry.changeType]} flex-shrink-0`}>
                     <IconComponent className="h-3 w-3" />
@@ -139,9 +164,19 @@ export default function ProjectHistory({ projectId, onBack, embedded = false, li
                   {/* Content */}
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between mb-1">
-                      <Badge variant="secondary" className="text-xs px-2 py-0.5 font-medium">
-                        {changeTypeLabels[entry.changeType]}
-                      </Badge>
+                      <div className="flex items-center space-x-2">
+                        <Badge variant="secondary" className="text-xs px-2 py-0.5 font-medium">
+                          {changeTypeLabels[entry.changeType]}
+                        </Badge>
+                        {/* Показываем приоритет только для примечаний и если он не normal */}
+                        {entry.changeType === 'note_added' && priority !== 'normal' && (
+                          <Badge className={`text-xs px-2 py-0.5 font-medium border ${priorityBadgeStyles[priority]}`}>
+                            {priority === 'important' ? 'Важное' : 
+                             priority === 'urgent' ? 'Срочное' : 
+                             priority === 'critical' ? 'Критическое' : ''}
+                          </Badge>
+                        )}
+                      </div>
                       <div className="text-xs text-gray-500 font-mono">
                         {format(new Date(entry.createdAt), 'dd.MM HH:mm', { locale: ru })}
                       </div>
@@ -213,6 +248,11 @@ export default function ProjectHistory({ projectId, onBack, embedded = false, li
             history.map((entry, index) => {
               const IconComponent = changeTypeIcons[entry.changeType] || FileText;
               const isFirst = index === 0;
+              const priority = entry.changeType === 'note_added' ? extractNotePriority(entry.description) : 'normal';
+              const cardBgStyle = entry.changeType === 'note_added' && priority !== 'normal' ? 
+                `${priority === 'important' ? 'bg-blue-50 border-blue-200' : 
+                  priority === 'urgent' ? 'bg-orange-50 border-orange-200' : 
+                  priority === 'critical' ? 'bg-red-50 border-red-200' : ''}` : '';
               
               return (
                 <div key={entry.id} className="relative">
@@ -221,7 +261,7 @@ export default function ProjectHistory({ projectId, onBack, embedded = false, li
                     <div className="absolute left-6 -top-4 bottom-0 w-0.5 bg-gray-200"></div>
                   )}
                   
-                  <Card className="ml-0">
+                  <Card className={`ml-0 ${cardBgStyle}`}>
                     <CardContent className="p-6">
                       <div className="flex items-start space-x-4">
                         {/* Icon */}
@@ -236,6 +276,14 @@ export default function ProjectHistory({ projectId, onBack, embedded = false, li
                               <Badge variant="secondary" className="text-xs">
                                 {changeTypeLabels[entry.changeType]}
                               </Badge>
+                              {/* Показываем приоритет только для примечаний и если он не normal */}
+                              {entry.changeType === 'note_added' && priority !== 'normal' && (
+                                <Badge className={`text-xs px-2 py-0.5 font-medium border ${priorityBadgeStyles[priority]}`}>
+                                  {priority === 'important' ? 'Важное' : 
+                                   priority === 'urgent' ? 'Срочное' : 
+                                   priority === 'critical' ? 'Критическое' : ''}
+                                </Badge>
+                              )}
                               <div className="flex items-center text-sm text-gray-500">
                                 <User className="h-3 w-3 mr-1" />
                                 {entry.userFirstName && entry.userLastName 
