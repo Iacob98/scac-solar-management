@@ -1656,11 +1656,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log('Создано примечание:', note);
       
       // Добавляем запись в историю
+      const priorityText = note.priority === 'normal' ? '' : ` (${
+        note.priority === 'important' ? 'Важное' :
+        note.priority === 'urgent' ? 'Срочное' :
+        note.priority === 'critical' ? 'Критическое' : ''
+      })`;
+      
       const historyEntry = {
         projectId,
         userId,
         changeType: 'note_added' as const,
-        description: `Добавлено примечание: ${note.content.substring(0, 50)}${note.content.length > 50 ? '...' : ''}`
+        description: `Добавлено примечание${priorityText}: ${note.content.substring(0, 50)}${note.content.length > 50 ? '...' : ''}`
       };
       console.log('Добавляем в историю:', historyEntry);
       
