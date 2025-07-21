@@ -16,7 +16,7 @@ router.post('/settings', requireAuth, async (req, res) => {
     const data = apiSettingsSchema.parse(req.body);
     
     // Проверяем права доступа
-    const user = req.user!;
+    const user = req.user! as any as any;
     if (user.role !== 'admin') {
       return res.status(403).json({ message: 'Доступ запрещен' });
     }
@@ -48,12 +48,7 @@ router.post('/settings', requireAuth, async (req, res) => {
         },
       });
 
-    // Инициализируем Google Calendar Service с новыми настройками
-    googleCalendarService.updateCredentials(data.firmId, {
-      client_id: data.clientId,
-      client_secret: data.clientSecret,
-      redirect_uri: data.redirectUri,
-    });
+    // Настройки сохранены, Google Calendar Service будет загружать их из базы при необходимости
 
     res.json({ success: true, message: 'Настройки сохранены успешно' });
   } catch (error) {
@@ -70,7 +65,7 @@ router.get('/settings/:firmId', requireAuth, async (req, res) => {
     const { firmId } = connectGoogleSchema.parse(req.params);
     
     // Проверяем права доступа
-    const user = req.user!;
+    const user = req.user! as any;
     if (user.role !== 'admin') {
       return res.status(403).json({ message: 'Доступ запрещен' });
     }
@@ -144,7 +139,7 @@ router.get('/connect/:firmId', requireAuth, async (req, res) => {
     const { firmId } = connectGoogleSchema.parse(req.params);
     
     // Проверяем права доступа
-    const user = req.user!;
+    const user = req.user! as any;
     if (user.role !== 'admin') {
       return res.status(403).json({ message: 'Доступ запрещен' });
     }
@@ -184,7 +179,7 @@ router.get('/callback', async (req, res) => {
 router.post('/firm/create-master-calendar', requireAuth, async (req, res) => {
   try {
     const { firmId } = createMasterCalendarSchema.parse(req.body);
-    const user = req.user!;
+    const user = req.user! as any;
     
     if (user.role !== 'admin') {
       return res.status(403).json({ message: 'Доступ запрещен' });
@@ -254,7 +249,7 @@ router.post('/firm/create-master-calendar', requireAuth, async (req, res) => {
 router.post('/crew/create-calendar', requireAuth, async (req, res) => {
   try {
     const { crewId } = createCrewCalendarSchema.parse(req.body);
-    const user = req.user!;
+    const user = req.user! as any;
 
     // Получаем информацию о бригаде
     const [crew] = await db.select()
@@ -353,7 +348,7 @@ router.post('/crew/create-calendar', requireAuth, async (req, res) => {
 router.post('/sync-project', requireAuth, async (req, res) => {
   try {
     const { projectId } = syncProjectSchema.parse(req.body);
-    const user = req.user!;
+    const user = req.user! as any;
 
     // Получаем полную информацию о проекте
     const [project] = await db.select()
@@ -449,7 +444,7 @@ router.post('/sync-project', requireAuth, async (req, res) => {
 router.put('/crew/update-members', requireAuth, async (req, res) => {
   try {
     const { crewId, members } = updateCrewMembersSchema.parse(req.body);
-    const user = req.user!;
+    const user = req.user! as any;
 
     // Получаем информацию о бригаде
     const [crew] = await db.select()
