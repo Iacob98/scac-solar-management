@@ -381,16 +381,45 @@ export default function GoogleCalendar() {
                 
                 <div>
                   <h4 className="font-medium mb-2">4. Настройте Redirect URI</h4>
-                  <p className="text-muted-foreground">
-                    Добавьте <code className="bg-muted px-1 rounded">{window.location.origin + '/api/google/callback'}</code> в список разрешенных URI
-                  </p>
+                  <div className="space-y-2">
+                    <p className="text-muted-foreground">
+                      В настройках OAuth 2.0 Client ID добавьте этот URI в "Authorized redirect URIs":
+                    </p>
+                    <div className="flex items-center gap-2">
+                      <div className="bg-muted p-2 rounded font-mono text-sm break-all flex-1">
+                        {window.location.origin + '/api/google/callback'}
+                      </div>
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => {
+                          navigator.clipboard.writeText(window.location.origin + '/api/google/callback');
+                          setAuthMessage('Redirect URI скопирован в буфер обмена!');
+                        }}
+                        className="shrink-0"
+                      >
+                        Копировать
+                      </Button>
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      ⚠️ Важно: URI должен точно соответствовать, включая https и путь /api/google/callback
+                    </p>
+                  </div>
                 </div>
               </div>
               
-              <div className="pt-4 border-t">
+              <div className="pt-4 border-t space-y-2">
                 <p className="text-muted-foreground">
                   После создания учетных данных нажмите кнопку "Настройки API" выше и введите полученные Client ID и Client Secret.
                 </p>
+                <div className="bg-yellow-50 border border-yellow-200 p-3 rounded text-sm">
+                  <p className="font-medium text-yellow-800">Частые ошибки:</p>
+                  <ul className="text-yellow-700 mt-1 space-y-1 list-disc list-inside">
+                    <li>Redirect URI не добавлен в Google Cloud Console</li>
+                    <li>Неточное соответствие URL (проверьте https и путь)</li>
+                    <li>Проект не находится в режиме "In production" для внешних пользователей</li>
+                  </ul>
+                </div>
               </div>
             </div>
           </CardContent>
