@@ -79,12 +79,20 @@ const changeTypeLabels = {
   'note_added': 'Примечание добавлено',
 };
 
-// Функция для определения приоритета из описания примечания
+// Функция для определения приоритета из описания примечания (для обратной совместимости со старыми записями)
 const extractNotePriority = (description: string): 'normal' | 'important' | 'urgent' | 'critical' => {
   if (description.includes('(Важное)')) return 'important';
   if (description.includes('(Срочное)')) return 'urgent';
   if (description.includes('(Критическое)')) return 'critical';
   return 'normal';
+};
+
+// Функция для очистки описания от приоритета в скобках
+const cleanDescription = (description: string): string => {
+  return description
+    .replace(' (Важное)', '')
+    .replace(' (Срочное)', '')
+    .replace(' (Критическое)', '');
 };
 
 // Цвета для приоритетов примечаний
@@ -182,7 +190,7 @@ export default function ProjectHistory({ projectId, onBack, embedded = false, li
                       </div>
                     </div>
                     
-                    <p className="text-sm text-gray-800 leading-relaxed">{entry.description}</p>
+                    <p className="text-sm text-gray-800 leading-relaxed">{cleanDescription(entry.description)}</p>
                     
                     {/* Show old/new values if available - hide technical status codes */}
                     {entry.oldValue && entry.newValue && entry.oldValue !== entry.newValue && 
@@ -297,7 +305,7 @@ export default function ProjectHistory({ projectId, onBack, embedded = false, li
                             </div>
                           </div>
                           
-                          <p className="text-gray-900 mb-2">{entry.description}</p>
+                          <p className="text-gray-900 mb-2">{cleanDescription(entry.description)}</p>
                           
                           {/* Show old/new values if available - hide technical status codes */}
                           {entry.oldValue && entry.newValue && entry.oldValue !== entry.newValue && 
