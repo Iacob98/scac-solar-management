@@ -4,13 +4,13 @@ import { ru } from 'date-fns/locale';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, Clock, User, FileText, AlertCircle, Calendar, Package, Phone, Users, Upload, Trash2, Star, Share2 } from 'lucide-react';
+import { ArrowLeft, Clock, User, FileText, AlertCircle, Calendar, Package, Phone, Users, Upload, Trash2, Star, Share2, MessageSquare } from 'lucide-react';
 
 interface ProjectHistoryEntry {
   id: number;
   projectId: number;
   userId: string;
-  changeType: 'status_change' | 'date_update' | 'info_update' | 'created' | 'equipment_update' | 'call_update' | 'assignment_change' | 'shared' | 'file_added' | 'file_deleted' | 'report_added' | 'report_updated' | 'report_deleted';
+  changeType: 'status_change' | 'date_update' | 'info_update' | 'created' | 'equipment_update' | 'call_update' | 'assignment_change' | 'shared' | 'file_added' | 'file_deleted' | 'report_added' | 'report_updated' | 'report_deleted' | 'note_added';
   fieldName?: string;
   oldValue?: string;
   newValue?: string;
@@ -42,6 +42,7 @@ const changeTypeIcons = {
   'report_added': Star,
   'report_updated': Star,
   'report_deleted': Trash2,
+  'note_added': MessageSquare,
 };
 
 const changeTypeColors = {
@@ -58,6 +59,7 @@ const changeTypeColors = {
   'report_added': 'bg-amber-100 text-amber-700',
   'report_updated': 'bg-amber-100 text-amber-700',
   'report_deleted': 'bg-rose-100 text-rose-700',
+  'note_added': 'bg-blue-100 text-blue-700',
 };
 
 const changeTypeLabels = {
@@ -74,6 +76,7 @@ const changeTypeLabels = {
   'report_added': 'Отчет создан',
   'report_updated': 'Отчет обновлен',
   'report_deleted': 'Отчет удален',
+  'note_added': 'Примечание добавлено',
 };
 
 export default function ProjectHistory({ projectId, onBack, embedded = false, limit }: ProjectHistoryProps) {
