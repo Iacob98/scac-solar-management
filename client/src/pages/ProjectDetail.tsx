@@ -371,13 +371,16 @@ export default function ProjectDetail({ projectId, selectedFirm, onBack }: Proje
   };
 
   const onSubmitNote = (data: any) => {
-    console.log('onSubmitNote вызвана с данными:', data);
-    console.log('createNoteMutation статус:', {
+    console.log('🔥 onSubmitNote вызвана!');
+    console.log('📝 Данные формы:', data);
+    console.log('🚦 createNoteMutation статус до вызова:', {
       isPending: createNoteMutation.isPending,
       isError: createNoteMutation.isError,
       error: createNoteMutation.error
     });
+    console.log('🎯 Вызываем createNoteMutation.mutate()...');
     createNoteMutation.mutate(data);
+    console.log('✅ createNoteMutation.mutate() вызван');
   };
 
   const handleEditReport = (report: ProjectReport) => {
