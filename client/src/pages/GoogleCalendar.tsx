@@ -72,16 +72,17 @@ export default function GoogleCalendar() {
 
   // Загружаем существующие настройки API для фирмы
   const { data: apiSettings } = useQuery({
-    queryKey: ['google-api-settings', selectedFirmId],
+    queryKey: ['/api/google/settings', selectedFirmId],
     enabled: !!selectedFirmId,
   });
 
   // Обновляем форму при загрузке настроек
   useEffect(() => {
-    if (apiSettings?.configured) {
-      form.setValue('clientId', apiSettings.clientId || '');
-      form.setValue('redirectUri', apiSettings.redirectUri || window.location.origin + '/calendar');
-      form.setValue('masterCalendarId', apiSettings.masterCalendarId || '');
+    const settings = apiSettings as any;
+    if (settings?.configured) {
+      form.setValue('clientId', settings.clientId || '');
+      form.setValue('redirectUri', settings.redirectUri || window.location.origin + '/calendar');
+      form.setValue('masterCalendarId', settings.masterCalendarId || '');
     }
   }, [apiSettings, form]);
 
@@ -110,28 +111,28 @@ export default function GoogleCalendar() {
   }, [selectedFirmId, queryClient]);
 
   // Загружаем статус Google Calendar
-  const { data: status, isLoading: statusLoading, error: statusError } = useQuery<GoogleCalendarStatus>({
-    queryKey: ['google-calendar-status', selectedFirmId],
-    queryFn: () => apiRequest(`/api/google/status/${selectedFirmId}`),
+  const { data: status, isLoading: statusLoading, error: statusError } = useQuery({
+    queryKey: ['/api/google/status', selectedFirmId],
     enabled: !!selectedFirmId,
   });
 
   // Загружаем бригады
-  const { data: crews = [], isLoading: crewsLoading } = useQuery<Crew[]>({
-    queryKey: ['crews', selectedFirmId],
-    queryFn: () => apiRequest(`/api/crews`),
+  const { data: crews = [], isLoading: crewsLoading } = useQuery({
+    queryKey: ['/api/crews', `?firm_id=${selectedFirmId}`],
     enabled: !!selectedFirmId,
   });
 
   // Загружаем логи календаря
-  const { data: logs = [], isLoading: logsLoading } = useQuery<CalendarLog[]>({
-    queryKey: ['calendar-logs'],
-    queryFn: () => apiRequest('/api/google/logs'),
+  const { data: logs = [], isLoading: logsLoading } = useQuery({
+    queryKey: ['/api/google/logs'],
   });
 
   // Мутация для подключения Google Calendar
   const connectGoogleMutation = useMutation({
-    mutationFn: () => apiRequest(`/api/google/connect/${selectedFirmId}`),
+    mutationFn: async () => {
+      const response = await apiRequest(`/api/google/connect/${selectedFirmId}`, 'GET');
+      return response.json();
+    },
     onSuccess: (data) => {
       // Открываем окно авторизации
       window.location.href = data.authUrl;
@@ -144,13 +145,9 @@ export default function GoogleCalendar() {
 
   // Мутация для создания корпоративного календаря
   const createMasterCalendarMutation = useMutation({
-    mutationFn: () => apiRequest('/api/google/firm/create-master-calendar', {
-      method: 'POST',
-      body: JSON.stringify({ firmId: selectedFirmId }),
-      headers: { 'Content-Type': 'application/json' }
-    }),
+    mutationFn: () => apiRequest('/api/google/firm/create-master-calendar', 'POST', { firmId: selectedFirmId }),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['google-calendar-status', selectedFirmId] });
+      queryClient.invalidateQueries({ queryKey: ['/api/google/status', selectedFirmId] });
       setAuthMessage('Корпоративный календарь успешно создан!');
     },
     onError: (error) => {
@@ -161,13 +158,9 @@ export default function GoogleCalendar() {
 
   // Мутация для создания календаря бригады
   const createCrewCalendarMutation = useMutation({
-    mutationFn: (crewId: number) => apiRequest('/api/google/crew/create-calendar', {
-      method: 'POST',
-      body: JSON.stringify({ crewId }),
-      headers: { 'Content-Type': 'application/json' }
-    }),
+    mutationFn: (crewId: number) => apiRequest('/api/google/crew/create-calendar', 'POST', { crewId }),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['crews', selectedFirmId] });
+      queryClient.invalidateQueries({ queryKey: ['/api/crews'] });
       setAuthMessage('Календарь бригады успешно создан!');
     },
     onError: (error) => {
@@ -178,13 +171,14 @@ export default function GoogleCalendar() {
 
   // Мутация для сохранения настроек API
   const saveApiSettingsMutation = useMutation({
-    mutationFn: (settings: GoogleApiSettings) => apiRequest('/api/google/settings', {
-      method: 'POST',
-      body: JSON.stringify({ ...settings, firmId: selectedFirmId }),
-      headers: { 'Content-Type': 'application/json' }
-    }),
+    mutationFn: (settings: GoogleApiSettings) => apiRequest(
+      '/api/google/settings',
+      'POST',
+      { ...settings, firmId: selectedFirmId }
+    ),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['google-calendar-status', selectedFirmId] });
+      queryClient.invalidateQueries({ queryKey: ['/api/google/status', selectedFirmId] });
+      queryClient.invalidateQueries({ queryKey: ['/api/google/settings', selectedFirmId] });
       setAuthMessage('Настройки API успешно сохранены!');
       setIsSettingsDialogOpen(false);
       form.reset();
@@ -350,7 +344,7 @@ export default function GoogleCalendar() {
       )}
 
       {/* Инструкции по настройке */}
-      {!status?.hasTokens && (
+      {!(status as any)?.hasTokens && (
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
@@ -414,15 +408,15 @@ export default function GoogleCalendar() {
         <CardContent className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             <div className="flex items-center gap-2">
-              <div className={getStatusColor(status?.hasTokens || false)}>
-                {getStatusIcon(status?.hasTokens || false)}
+              <div className={getStatusColor((status as any)?.hasTokens || false)}>
+                {getStatusIcon((status as any)?.hasTokens || false)}
               </div>
               <span className="text-sm">OAuth подключение</span>
             </div>
             
             <div className="flex items-center gap-2">
-              <div className={getStatusColor(status?.hasMasterCalendar || false)}>
-                {getStatusIcon(status?.hasMasterCalendar || false)}
+              <div className={getStatusColor((status as any)?.hasMasterCalendar || false)}>
+                {getStatusIcon((status as any)?.hasMasterCalendar || false)}
               </div>
               <span className="text-sm">Корпоративный календарь</span>
             </div>
@@ -430,8 +424,8 @@ export default function GoogleCalendar() {
             <div className="flex items-center gap-2">
               <Clock className="h-4 w-4 text-muted-foreground" />
               <span className="text-sm text-muted-foreground">
-                {status?.tokenExpiry 
-                  ? `Токен до ${new Date(status.tokenExpiry).toLocaleDateString()}`
+                {(status as any)?.tokenExpiry 
+                  ? `Токен до ${new Date((status as any).tokenExpiry).toLocaleDateString()}`
                   : 'Токены отсутствуют'
                 }
               </span>
@@ -440,12 +434,12 @@ export default function GoogleCalendar() {
             <div className="flex items-center gap-2">
               <Users className="h-4 w-4 text-muted-foreground" />
               <span className="text-sm text-muted-foreground">
-                {crews.filter(crew => crew.gcalId).length} из {crews.length} бригад
+                {(crews as any[])?.filter((crew: any) => crew.gcalId)?.length || 0} из {(crews as any[])?.length || 0} бригад
               </span>
             </div>
           </div>
 
-          {!status?.hasTokens && (
+          {!(status as any)?.hasTokens && (
             <div className="pt-4">
               <Button 
                 onClick={() => connectGoogleMutation.mutate()} 
@@ -458,7 +452,7 @@ export default function GoogleCalendar() {
             </div>
           )}
 
-          {status?.hasTokens && !status?.hasMasterCalendar && (
+          {(status as any)?.hasTokens && !(status as any)?.hasMasterCalendar && (
             <div className="pt-4">
               <Button 
                 onClick={() => createMasterCalendarMutation.mutate()} 
@@ -471,14 +465,14 @@ export default function GoogleCalendar() {
             </div>
           )}
 
-          {status?.masterCalendarUrl && (
+          {(status as any)?.masterCalendarUrl && (
             <div className="pt-4">
               <Button 
                 variant="outline" 
                 asChild
                 className="flex items-center gap-2"
               >
-                <a href={status.masterCalendarUrl} target="_blank" rel="noopener noreferrer">
+                <a href={(status as any).masterCalendarUrl} target="_blank" rel="noopener noreferrer">
                   <ExternalLink className="h-4 w-4" />
                   Открыть корпоративный календарь
                 </a>
@@ -489,7 +483,7 @@ export default function GoogleCalendar() {
       </Card>
 
       {/* Календари бригад */}
-      {status?.hasTokens && (
+      {(status as any)?.hasTokens && (
         <Card>
           <CardHeader>
             <CardTitle>Календари бригад</CardTitle>
@@ -499,7 +493,7 @@ export default function GoogleCalendar() {
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              {crews.map((crew) => (
+              {(crews as any[])?.map((crew: any) => (
                 <div key={crew.id} className="flex items-center justify-between p-4 border rounded-lg">
                   <div className="flex items-center gap-3">
                     <div className={getStatusColor(!!crew.gcalId)}>
@@ -534,7 +528,7 @@ export default function GoogleCalendar() {
                 </div>
               ))}
               
-              {crews.length === 0 && (
+              {(crews as any[])?.length === 0 && (
                 <div className="text-center text-muted-foreground py-8">
                   Нет созданных бригад
                 </div>
@@ -545,7 +539,7 @@ export default function GoogleCalendar() {
       )}
 
       {/* Логи операций */}
-      {logs.length > 0 && (
+      {(logs as any[])?.length > 0 && (
         <Card>
           <CardHeader>
             <CardTitle>Последние операции</CardTitle>
@@ -555,7 +549,7 @@ export default function GoogleCalendar() {
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
-              {logs.slice(0, 10).map((log) => (
+              {(logs as any[])?.slice(0, 10)?.map((log: any) => (
                 <div key={log.id} className="flex items-center justify-between p-3 border rounded-lg text-sm">
                   <div className="flex items-center gap-3">
                     <div className={getStatusColor(log.status === 'success')}>
