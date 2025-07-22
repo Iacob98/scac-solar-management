@@ -226,10 +226,26 @@ export function FileList({ projectId }: FileListProps) {
 
               <div className="flex items-center gap-2">
                 <button
-                  onClick={() => {
+                  onClick={async () => {
                     console.log('Opening file:', { fileId: file.id, fileName: file.fileName });
-                    // Открываем файл в новой вкладке, используя window.open для правильной передачи cookies
-                    window.open(`/api/files/${file.id}`, '_blank');
+                    try {
+                      // Сначала проверим, что файл доступен
+                      const response = await fetch(`/api/files/${file.id}`, {
+                        method: 'HEAD',
+                        credentials: 'same-origin'
+                      });
+                      
+                      if (response.ok) {
+                        // Если файл доступен, открываем его
+                        window.open(`/api/files/${file.id}`, '_blank');
+                      } else {
+                        console.error('File access failed:', response.status, response.statusText);
+                        alert('Ошибка доступа к файлу: ' + response.status);
+                      }
+                    } catch (error) {
+                      console.error('Error accessing file:', error);
+                      alert('Ошибка при открытии файла');
+                    }
                   }}
                   title="Открыть файл"
                   className="p-1 hover:bg-gray-200 rounded z-10 relative"

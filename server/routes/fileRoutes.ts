@@ -188,7 +188,7 @@ router.get('/:fileId', isAuthenticated, async (req, res) => {
     
     try {
       // Путь к файлу в папке uploads
-      const filePath = path.join(process.cwd(), 'uploads', legacyFile.fileName);
+      const filePath = path.join(process.cwd(), 'uploads', legacyFile.fileName || '');
       
       // Проверяем существует ли файл
       if (!fs.existsSync(filePath)) {
@@ -198,14 +198,14 @@ router.get('/:fileId', isAuthenticated, async (req, res) => {
       const fileBuffer = fs.readFileSync(filePath);
       
       // Определяем правильный MIME-тип по расширению файла
-      const mimeType = getMimeTypeFromExtension(legacyFile.fileName);
+      const mimeType = getMimeTypeFromExtension(legacyFile.fileName || '');
       
       console.log(`📄 Отправляем файл: ${legacyFile.fileName}, MIME: ${mimeType}, размер: ${fileBuffer.length} байт`);
       
       res.set({
         'Content-Type': mimeType,
         'Content-Length': fileBuffer.length.toString(),
-        'Content-Disposition': `inline; filename="${encodeURIComponent(legacyFile.fileName)}"`,
+        'Content-Disposition': `inline; filename="${encodeURIComponent(legacyFile.fileName || 'file')}"`,
         'Cache-Control': 'no-cache, no-store, must-revalidate',
         'Pragma': 'no-cache',
         'Expires': '0'
