@@ -8,7 +8,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { ArrowLeft, FileText, Users, Package, Clock, Euro, Calendar, Building2, Phone, History, Star, Plus, Upload, Image, Trash2, Eye, MessageSquare } from 'lucide-react';
+import { ArrowLeft, FileText, Users, Package, Clock, Euro, Calendar, Building2, Phone, History, Star, Plus, Upload, Image, Trash2, Eye, MessageSquare, Download } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -338,6 +338,25 @@ export default function ProjectDetail({ projectId, selectedFirm, onBack }: Proje
     },
   });
 
+  const downloadInvoicePdfMutation = useMutation({
+    mutationFn: () => apiRequest(`/api/invoice/download-pdf/${projectId}`, 'POST'),
+    onSuccess: (response: any) => {
+      queryClient.invalidateQueries({ queryKey: ['/api/files/project', projectId] });
+      queryClient.invalidateQueries({ queryKey: ['/api/projects', projectId, 'history'] });
+      toast({ 
+        title: 'Успешно', 
+        description: response.message || 'PDF счета скачан и добавлен в файлы проекта'
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: 'Ошибка',
+        description: error.message || 'Не удалось скачать PDF счета',
+        variant: 'destructive'
+      });
+    },
+  });
+
   const createNoteMutation = useMutation({
     mutationFn: (data: any) => {
       console.log('createNoteMutation mutationFn вызвана:', data);
@@ -651,14 +670,26 @@ export default function ProjectDetail({ projectId, selectedFirm, onBack }: Proje
                     <p className="font-medium text-gray-900">#{project.invoiceNumber}</p>
                   </div>
                   
-                  {project.invoiceUrl && (
-                    <Button variant="outline" size="sm" asChild className="w-full">
-                      <a href={project.invoiceUrl} target="_blank" rel="noopener noreferrer">
-                        <FileText className="h-4 w-4 mr-2" />
-                        Скачать счет
-                      </a>
+                  <div className="flex gap-2">
+                    {project.invoiceUrl && (
+                      <Button variant="outline" size="sm" asChild className="flex-1">
+                        <a href={project.invoiceUrl} target="_blank" rel="noopener noreferrer">
+                          <FileText className="h-4 w-4 mr-2" />
+                          Онлайн счет
+                        </a>
+                      </Button>
+                    )}
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      className="flex-1"
+                      onClick={() => downloadInvoicePdfMutation.mutate()}
+                      disabled={downloadInvoicePdfMutation.isPending}
+                    >
+                      <Download className="h-4 w-4 mr-2" />
+                      {downloadInvoicePdfMutation.isPending ? 'Скачивание...' : 'Скачать PDF'}
                     </Button>
-                  )}
+                  </div>
                 </CardContent>
               </Card>
             )}

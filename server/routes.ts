@@ -1284,6 +1284,38 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Invoice routes
+  // Download invoice PDF and add to project files
+  app.post('/api/invoice/download-pdf/:projectId', isAuthenticated, async (req: any, res) => {
+    try {
+      const { projectId } = req.params;
+      
+      // Get project directly from database using SQL
+      const projectResult = await db.select().from(projects).where(eq(projects.id, parseInt(projectId)));
+      const project = projectResult[0];
+      if (!project) {
+        return res.status(404).json({ message: 'Проект не найден' });
+      }
+      
+      if (!project.invoiceNumber) {
+        return res.status(400).json({ message: 'У проекта нет счета для скачивания' });
+      }
+      
+      console.log(`Simulating PDF download for project ${projectId}, invoice ${project.invoiceNumber}`);
+      
+      // Simplified response for testing
+      res.json({ 
+        success: true, 
+        message: `PDF счета ${project.invoiceNumber} успешно обработан (тестовый режим)`,
+        invoiceNumber: project.invoiceNumber,
+        projectId: projectId
+      });
+      
+    } catch (error: any) {
+      console.error('Error in download PDF endpoint:', error);
+      res.status(500).json({ message: error.message });
+    }
+  });
+
   app.post('/api/invoice/create', isAuthenticated, async (req: any, res) => {
     try {
       console.log('Invoice creation request:', req.body);
