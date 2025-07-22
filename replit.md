@@ -173,6 +173,15 @@ The application follows a monolithic architecture with clear separation between 
 - Improved transaction handling for invoice creation and project history recording
 - All invoice creation now includes detailed installation customer information from project data
 
+### File System Integration Fixes (July 22, 2025)
+- Fixed critical file viewing issues - GET /api/files/:id endpoint now properly handles legacy PDF files
+- Resolved file upload problems by switching to legacy format for compatibility with existing UI
+- Added dual-system support for both legacy project_files and new file_storage tables
+- Fixed routing conflicts between fileRoutes.ts and main routes.ts endpoints
+- Implemented proper file reading from uploads folder for legacy PDF invoices
+- All file operations (upload, view, delete) now work seamlessly with existing project interface
+- Maintained backward compatibility while preparing foundation for future file system migration
+
 ### Payment Status Synchronization (July 2025)
 - Implemented bidirectional payment status synchronization with Invoice Ninja
 - Fixed Invoice Ninja v5 API compatibility using correct bulk actions endpoint

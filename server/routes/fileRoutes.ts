@@ -3,7 +3,7 @@ import multer from 'multer';
 import { storage } from '../storage';
 import { fileStorage as fileStorageService } from '../storage/fileStorage';
 import { isAuthenticated } from '../replitAuth';
-import type { InsertFileStorage } from '@shared/schema';
+import type { InsertFileStorage, InsertProjectFile } from '@shared/schema';
 import { z } from 'zod';
 
 const router = express.Router();
@@ -42,7 +42,7 @@ const uploadFileSchema = z.object({
   projectId: z.string().optional().transform(val => val ? parseInt(val) : undefined)
 });
 
-// Загрузка файла
+// Загрузка файла (используем legacy формат для совместимости)
 router.post('/upload', isAuthenticated, upload.single('file'), async (req, res) => {
   try {
     if (!req.file) {
@@ -50,52 +50,62 @@ router.post('/upload', isAuthenticated, upload.single('file'), async (req, res) 
     }
 
     const validatedData = uploadFileSchema.parse(req.body);
-    
-    // Сохраняем файл на диск
-    const fileMetadata = await fileStorageService.saveFile(
-      req.file.buffer,
-      req.file.originalname,
-      req.file.mimetype,
-      validatedData.category,
-      validatedData.projectId
-    );
-
-    // Получаем ID пользователя из аутентификации
     const userId = (req.user as any)?.claims?.sub || (req.user as any)?.id;
     
-    // Сохраняем метаданные в базу данных
-    const fileRecord: InsertFileStorage = {
-      fileId: fileMetadata.id,
-      originalName: fileMetadata.originalName,
-      fileName: fileMetadata.fileName,
-      mimeType: fileMetadata.mimeType,
-      size: fileMetadata.size,
-      category: validatedData.category,
-      projectId: validatedData.projectId,
-      uploadedBy: parseInt(userId)
+    // Сохраняем файл в папку uploads (legacy формат)
+    const fs = await import('fs');
+    const path = await import('path');
+    
+    // Создаем уникальное имя файла
+    const timestamp = Date.now();
+    const fileExtension = path.extname(req.file.originalname);
+    const fileName = `${path.basename(req.file.originalname, fileExtension)}_${timestamp}${fileExtension}`;
+    const uploadsDir = path.join(process.cwd(), 'uploads');
+    const filePath = path.join(uploadsDir, fileName);
+
+    // Создаем папку uploads если не существует
+    if (!fs.existsSync(uploadsDir)) {
+      fs.mkdirSync(uploadsDir, { recursive: true });
+    }
+
+    // Сохраняем файл
+    fs.writeFileSync(filePath, req.file.buffer);
+
+    // Создаем запись в legacy таблице project_files
+    const fileRecord: InsertProjectFile = {
+      projectId: validatedData.projectId!,
+      fileName: fileName,
+      fileUrl: `/uploads/${fileName}`,
+      fileType: req.file.mimetype
     };
 
-    const savedFile = await storage.createFileRecord(fileRecord);
+    const savedFile = await storage.createFile(fileRecord);
 
-    // Добавляем запись в историю проекта, если файл связан с проектом
+    // Добавляем запись в историю проекта
     if (validatedData.projectId) {
       await storage.addProjectHistory({
         projectId: validatedData.projectId,
-        userId: parseInt(userId),
+        userId: userId,
         changeType: 'file_added',
         fieldName: 'file',
         oldValue: null,
-        newValue: fileMetadata.originalName,
-        description: `Добавлен файл: ${fileMetadata.originalName}`
+        newValue: req.file.originalname,
+        description: `Добавлен файл: ${req.file.originalname}`
       });
     }
 
+    console.log('File uploaded successfully (legacy):', {
+      id: savedFile.id,
+      fileName: savedFile.fileName,
+      projectId: savedFile.projectId
+    });
+
     res.json({
       id: savedFile.id,
-      fileId: savedFile.fileId,
-      originalName: savedFile.originalName,
-      size: savedFile.size,
-      category: savedFile.category,
+      projectId: savedFile.projectId,
+      fileName: savedFile.fileName,
+      fileUrl: savedFile.fileUrl,
+      fileType: savedFile.fileType,
       uploadedAt: savedFile.uploadedAt
     });
 
