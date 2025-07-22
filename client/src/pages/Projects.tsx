@@ -20,6 +20,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { apiRequest } from '@/lib/queryClient';
 import { MainLayout } from '@/components/Layout/MainLayout';
 import ProjectsWrapper from './ProjectsWrapper';
+import { useProjectParams } from '@/shared/routing';
 
 const projectFormSchema = insertProjectSchema.extend({
   startDate: z.string(),
@@ -525,6 +526,7 @@ function ProjectsList({ selectedFirm, onViewProject, onManageServices }: Project
 
 export default function Projects() {
   const [selectedFirmId, setSelectedFirmId] = useState<string>('');
+  const { projectId } = useProjectParams();
 
   useEffect(() => {
     const firmId = localStorage.getItem('selectedFirmId');
@@ -536,7 +538,7 @@ export default function Projects() {
   return (
     <MainLayout>
       <div className="p-6">
-        <ProjectsWrapper selectedFirm={selectedFirmId} />
+        <ProjectsWrapper selectedFirm={selectedFirmId} initialProjectId={projectId} />
       </div>
     </MainLayout>
   );

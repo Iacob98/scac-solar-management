@@ -252,7 +252,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Mark invoice as paid in Invoice Ninja first
       try {
-        const invoiceNinja = new InvoiceNinjaService(firm.invoiceNinjaUrl, firm.token);
+        const invoiceNinja = new InvoiceNinjaService(firm.token, firm.invoiceNinjaUrl);
         await invoiceNinja.markInvoiceAsPaid(invoice.invoiceId);
         console.log(`Successfully marked invoice ${invoice.invoiceId} as paid in Invoice Ninja`);
       } catch (ninjaError) {
@@ -298,7 +298,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Firm not found" });
       }
 
-      const ninjaService = new InvoiceNinjaService(firm.invoiceNinjaUrl, firm.token);
+      const ninjaService = new InvoiceNinjaService(firm.token, firm.invoiceNinjaUrl);
       const products = await ninjaService.getProducts();
       
       res.json(products);
@@ -320,7 +320,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(500).json({ message: "Invoice Ninja API credentials not configured" });
       }
 
-      const ninjaService = new InvoiceNinjaService(baseUrl, apiKey);
+      const ninjaService = new InvoiceNinjaService(apiKey, baseUrl);
       const products = await ninjaService.getProducts();
       
       console.log('Raw products from Invoice Ninja:', products.length);
@@ -435,7 +435,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       try {
         // Get clients from Invoice Ninja
-        const invoiceNinja = new InvoiceNinjaService(firm.invoiceNinjaUrl, firm.token);
+        const invoiceNinja = new InvoiceNinjaService(firm.token, firm.invoiceNinjaUrl);
         const ninjaClients = await invoiceNinja.getClients();
         
         // Sync with local database
@@ -491,7 +491,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       try {
         // Create client in Invoice Ninja first
-        const invoiceNinja = new InvoiceNinjaService(firm.invoiceNinjaUrl, firm.token);
+        const invoiceNinja = new InvoiceNinjaService(firm.token, firm.invoiceNinjaUrl);
         
         // Parse address for Invoice Ninja
         const addressParts = clientData.address ? clientData.address.split(',').map(part => part.trim()) : [];
@@ -1459,7 +1459,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Client not found" });
       }
 
-      const invoiceNinja = new InvoiceNinjaService(firm.invoiceNinjaUrl, firm.token);
+      const invoiceNinja = new InvoiceNinjaService(firm.token, firm.invoiceNinjaUrl);
       
       // Create invoice in Invoice Ninja with installation person details
       const installationPerson = {
@@ -1589,7 +1589,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Firm not found" });
       }
 
-      const invoiceNinja = new InvoiceNinjaService(firm.invoiceNinjaUrl, firm.token);
+      const invoiceNinja = new InvoiceNinjaService(firm.token, firm.invoiceNinjaUrl);
       const products = await invoiceNinja.getProducts();
       
       res.json(products);
@@ -2019,7 +2019,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Check payment status in Invoice Ninja
-      const invoiceNinja = new InvoiceNinjaService(firm.invoiceNinjaUrl, firm.token);
+      const invoiceNinja = new InvoiceNinjaService(firm.token, firm.invoiceNinjaUrl);
       const paymentStatus = await invoiceNinja.checkInvoicePaymentStatus(invoice.invoiceId);
 
       console.log(`Invoice ${invoiceNumber} payment status in Invoice Ninja:`, paymentStatus);
@@ -2075,7 +2075,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const invoices = await storage.getInvoicesByFirmId(firmId);
-      const invoiceNinja = new InvoiceNinjaService(firm.invoiceNinjaUrl, firm.token);
+      const invoiceNinja = new InvoiceNinjaService(firm.token, firm.invoiceNinjaUrl);
       
       let updatedCount = 0;
       const results = [];

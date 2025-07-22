@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
+import { useLocation } from 'wouter';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -84,6 +85,7 @@ const noteFormSchema = insertProjectNoteSchema.extend({
 });
 
 export default function ProjectDetail({ projectId, selectedFirm, onBack }: ProjectDetailProps) {
+  const [, setLocation] = useLocation();
   const [activeTab, setActiveTab] = useState('services');
   const [showAllHistory, setShowAllHistory] = useState(false);
   const [isReportDialogOpen, setIsReportDialogOpen] = useState(false);
@@ -473,7 +475,7 @@ export default function ProjectDetail({ projectId, selectedFirm, onBack }: Proje
         <div className="bg-white rounded-xl shadow-sm border p-6">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center space-x-4">
-              <Button variant="ghost" onClick={onBack} className="hover:bg-blue-50">
+              <Button variant="ghost" onClick={() => setLocation('/projects')} className="hover:bg-blue-50">
                 <ArrowLeft className="h-4 w-4 mr-2" />
                 Назад к проектам
               </Button>

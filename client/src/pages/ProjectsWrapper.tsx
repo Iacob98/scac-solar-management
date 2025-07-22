@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
+import { useLocation } from 'wouter';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
@@ -25,11 +26,12 @@ import Services from './Services';
 
 interface ProjectsWrapperProps {
   selectedFirm: string;
+  initialProjectId?: number | null;
 }
 
 type ViewMode = 'list' | 'detail' | 'services';
 
-const projectFormSchema = insertProjectSchema.omit({ firmId: true, leiterId: true }).extend({
+const projectFormSchema = insertProjectSchema.omit({ id: true, firmId: true, leiterId: true, createdAt: true, updatedAt: true }).extend({
   startDate: z.string().min(1, 'Дата начала обязательна'),
   equipmentExpectedDate: z.string().min(1, 'Ожидаемая дата поставки обязательна'),
   workStartDate: z.string().optional(),
@@ -116,12 +118,13 @@ function ProjectsList({ selectedFirm, onViewProject, onManageServices }: { selec
       installationPersonFirstName: '',
       installationPersonLastName: '',
       installationPersonAddress: '',
+      installationPersonPhone: '',
       installationPersonUniqueId: '',
     },
   });
 
   const createProjectMutation = useMutation({
-    mutationFn: (data: z.infer<typeof projectFormSchema>) => {
+    mutationFn: (data: z.infer<typeof projectFormSchema> & { firmId: string; leiterId: string }) => {
       console.log('Sending data to API:', data);
       return apiRequest('/api/projects', 'POST', data);
     },
@@ -213,7 +216,7 @@ function ProjectsList({ selectedFirm, onViewProject, onManageServices }: { selec
     console.log('Submitting project data...');
     createProjectMutation.mutate({
       ...data,
-      leiterId: user?.id || data.leiterId,
+      leiterId: user?.id || '',
       firmId: selectedFirm,
     });
   };
@@ -752,25 +755,34 @@ function ProjectsList({ selectedFirm, onViewProject, onManageServices }: { selec
   );
 }
 
-export default function ProjectsWrapper({ selectedFirm }: ProjectsWrapperProps) {
+export default function ProjectsWrapper({ selectedFirm, initialProjectId }: ProjectsWrapperProps) {
   const [viewMode, setViewMode] = useState<ViewMode>('list');
   const [selectedProjectId, setSelectedProjectId] = useState<number | null>(null);
 
-  // Проверяем localStorage при загрузке для автоматического выбора проекта из календаря
+  // Handle URL-based project selection and localStorage fallback
   useEffect(() => {
-    const savedProjectId = localStorage.getItem('selectedProjectId');
-    if (savedProjectId) {
-      const projectId = parseInt(savedProjectId);
-      setSelectedProjectId(projectId);
+    if (initialProjectId) {
+      // URL has project ID, use it directly
+      setSelectedProjectId(initialProjectId);
       setViewMode('detail');
-      // Очищаем localStorage после использования
-      localStorage.removeItem('selectedProjectId');
+    } else {
+      // Check localStorage for backward compatibility (calendar navigation)
+      const savedProjectId = localStorage.getItem('selectedProjectId');
+      if (savedProjectId) {
+        const projectId = parseInt(savedProjectId);
+        setSelectedProjectId(projectId);
+        setViewMode('detail');
+        // Clear localStorage after use
+        localStorage.removeItem('selectedProjectId');
+      }
     }
-  }, []);
+  }, [initialProjectId]);
+
+  const [, setLocation] = useLocation();
 
   const handleViewProject = (projectId: number) => {
-    setSelectedProjectId(projectId);
-    setViewMode('detail');
+    // Use URL routing instead of internal state
+    setLocation(`/projects/${projectId}`);
   };
 
   const handleManageServices = (projectId: number) => {
@@ -781,8 +793,8 @@ export default function ProjectsWrapper({ selectedFirm }: ProjectsWrapperProps) 
 
 
   const handleBackToList = () => {
-    setViewMode('list');
-    setSelectedProjectId(null);
+    // Navigate back to projects list using URL routing
+    setLocation('/projects');
   };
 
   if (viewMode === 'detail' && selectedProjectId) {

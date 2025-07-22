@@ -50,6 +50,7 @@ function Router() {
     <Switch>
       <Route path="/" component={() => <ProtectedRoute component={Home} />} />
       <Route path="/projects" component={() => <ProtectedRoute component={Projects} />} />
+      <Route path="/projects/:id" component={() => <ProtectedRoute component={Projects} />} />
       <Route path="/clients" component={() => <ProtectedRoute component={Clients} />} />
       <Route path="/crews" component={() => <ProtectedRoute component={CrewsNew} />} />
       <Route path="/invoices" component={() => <ProtectedRoute component={Invoices} />} />

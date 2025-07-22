@@ -1,0 +1,203 @@
+Ниже — конкретные рекомендации для **Vue 3 + Nuxt 3** и **React + Next.js (App Router)** на TypeScript: как разнести маршруты, разделить код и удерживать модули изолированными.
+
+---
+
+## 0. Общие принципы
+
+* **Feature-sliced структура**: фича = UI + логика + API-клиенты внутри одной папки.
+* **Публичные API модулей**: наружу экспортируйте только из `index.ts`.
+* **Lazy-load по роутам**: каждый роут грузит только свою «фичу».
+* **Границы импорта**: контролируйте их ESLint’ом и алиасами в TS.
+
+---
+
+## 1. Структура проекта
+
+### Вариант для обоих стеков (монорепо или один репо)
+
+```
+/src
+  /shared          # переиспользуемое (ui, lib, config)
+    /ui
+    /lib
+    /config
+  /entities        # базовые доменные сущности (User, Product)
+  /features        # законченые пользовательские сценарии (Auth, Checkout)
+    /auth
+      index.ts
+      ui/
+      model/
+      api/
+    /checkout
+  /widgets         # составные блоки страниц
+  /pages|app       # корневые маршруты фреймворка
+```
+
+---
+
+## 2. Nuxt 3 (Vue 3, file-based routing)
+
+### 2.1. Роутинг
+
+* Файлы в `pages/` формируют маршруты автоматически:
+  `pages/catalog/[id].vue` → `/catalog/:id`
+* Группы и middleware:
+
+  * `pages/(auth)/login.vue` (Nuxt 3.7+) группирует роуты без сегмента в URL.
+  * Глобальный middleware — `middleware/auth.global.ts`.
+
+### 2.2. Код-сплиттинг
+
+* Отложенная загрузка компонентов:
+
+  ```vue
+  <script setup lang="ts">
+  const ProductCard = defineAsyncComponent(() => import('@/features/catalog/ui/ProductCard.vue'))
+  </script>
+  ```
+* В Nuxt 3 страницы и компоненты уже lazy по умолчанию. Для тяжелых модулей используйте `import.meta.glob`.
+
+### 2.3. Типы и алиасы
+
+* `tsconfig.json`:
+
+  ```json
+  {
+    "compilerOptions": {
+      "baseUrl": ".",
+      "paths": {
+        "@shared/*": ["src/shared/*"],
+        "@features/*": ["src/features/*"],
+        "@entities/*": ["src/entities/*"]
+      }
+    }
+  }
+  ```
+* ESLint: `eslint-plugin-boundaries` или `dependency-cruiser`.
+
+### 2.4. API-слой
+
+* Серверные роуты в `server/api/*.ts`:
+
+  ```ts
+  // server/api/products/[id].get.ts
+  export default defineEventHandler(async (event) => { /* ... */ })
+  ```
+* Каждая фича — свой клиент в `features/<name>/api/`.
+
+---
+
+## 3. Next.js 14+ (App Router, React 18)
+
+### 3.1. Роутинг
+
+* Папка `app/` формирует маршруты:
+  `app/catalog/[id]/page.tsx` → `/catalog/:id`
+* **Route groups** для логической группировки без влияния на URL:
+  `app/(auth)/login/page.tsx`, `app/(shop)/catalog/page.tsx`.
+
+### 3.2. Server/Client components
+
+* По умолчанию компоненты — **Server Components**.
+* UI-фичи с интерактивностью помечайте `'use client'`.
+* Держите бизнес-логику на сервере (фетч данных в серверных компонентов или в `app/api/*`).
+
+### 3.3. Код-сплиттинг
+
+* App Router делает route-level code splitting автоматически.
+* Дополнительно:
+
+  ```tsx
+  import dynamic from 'next/dynamic';
+
+  const HeavyChart = dynamic(() => import('@/features/analytics/ui/HeavyChart'), {
+    ssr: false, // если только в браузере
+    loading: () => <Spinner />
+  });
+  ```
+* Для нескольких частей фичи — экспортируйте подмодули отдельно (chunk splitting по import()).
+
+### 3.4. Типы и алиасы
+
+* `tsconfig.json` аналогично:
+
+  ```json
+  {
+    "compilerOptions": {
+      "baseUrl": ".",
+      "paths": {
+        "@shared/*": ["src/shared/*"],
+        "@features/*": ["src/features/*"],
+        "@entities/*": ["src/entities/*"]
+      }
+    }
+  }
+  ```
+
+### 3.5. API-роуты
+
+* В `app/api/.../route.ts`:
+
+  ```ts
+  // app/api/products/[id]/route.ts
+  import { NextRequest, NextResponse } from 'next/server'
+
+  export async function GET(req: NextRequest, { params }: { params: { id: string }}) {
+    // ...
+    return NextResponse.json(data)
+  }
+  ```
+
+---
+
+## 4. Ограничение зависимостей и импортов
+
+### ESLint пример (оба стека)
+
+`.eslintrc.cjs`:
+
+```js
+module.exports = {
+  plugins: ['boundaries'],
+  rules: {
+    'boundaries/element-types': [2, {
+      default: 'disallow',
+      rules: [
+        { from: ['features/*'], allow: ['shared/*', 'entities/*'] },
+        { from: ['widgets/*'], allow: ['features/*', 'shared/*', 'entities/*'] },
+        { from: ['pages/*', 'app/*'], allow: ['widgets/*', 'features/*', 'shared/*', 'entities/*'] }
+      ]
+    }]
+  },
+  settings: {
+    'boundaries/elements': [
+      { type: 'features', pattern: 'src/features/*' },
+      { type: 'entities', pattern: 'src/entities/*' },
+      { type: 'shared', pattern: 'src/shared/*' },
+      { type: 'widgets', pattern: 'src/widgets/*' }
+    ]
+  }
+}
+```
+
+---
+
+## 5. Миграция монолита
+
+1. **Зафиксируйте текущие маршруты.**
+2. **Выберите одну фичу** и вынесите её в `features/<name>`.
+3. **Сделайте фасад**: старый путь проксирует к новому компоненту/странице.
+4. **Постепенно переносите** остальные части, закрывая прямые импорты.
+5. **Удаляйте «общие свалки»** (utils/index.ts с сотнями функций) — раскладывайте по shared/lib.
+
+---
+
+## 6. Проверка качества
+
+* **CI**: запускайте тесты и линты только по изменённым пакетам (Turborepo/Nx).
+* **Бандл-метрики**: `next build --analyze`, `nuxt build --analyze`.
+* **Архитектура в коде**: ADR-файлы на ключевые решения.
+
+---
+
+Нужно показать пример репозитория, шаблон Turborepo/Nx или конкретные конфиги — скажите, пришлю «скелет».
