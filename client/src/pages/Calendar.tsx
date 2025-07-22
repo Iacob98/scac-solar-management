@@ -4,6 +4,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Calendar as CalendarIcon, Users, MapPin, Clock, Phone, AlertCircle } from 'lucide-react';
 import { useState } from 'react';
+import { MainLayout } from '@/components/Layout/MainLayout';
 
 interface Project {
   id: number;
@@ -35,12 +36,17 @@ interface CalendarEvent {
 export default function Calendar() {
   const [currentWeek, setCurrentWeek] = useState(new Date());
 
+  // Получаем firm ID из localStorage для запросов
+  const selectedFirmId = localStorage.getItem('selectedFirmId');
+  
   const { data: projects = [], isLoading: projectsLoading } = useQuery({
-    queryKey: ['/api/projects']
+    queryKey: ['/api/projects', selectedFirmId],
+    enabled: !!selectedFirmId
   });
 
   const { data: crews = [], isLoading: crewsLoading } = useQuery({
-    queryKey: ['/api/crews']
+    queryKey: ['/api/crews', selectedFirmId],  
+    enabled: !!selectedFirmId
   });
 
   // Создаем события календаря из проектов
@@ -129,18 +135,21 @@ export default function Calendar() {
 
   if (projectsLoading || crewsLoading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p>Загрузка календаря...</p>
+      <MainLayout>
+        <div className="flex items-center justify-center h-64">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
+            <p>Загрузка календаря...</p>
+          </div>
         </div>
-      </div>
+      </MainLayout>
     );
   }
 
   return (
-    <div className="container mx-auto p-6">
-      <div className="flex items-center justify-between mb-6">
+    <MainLayout>
+      <div className="p-6">
+        <div className="flex items-center justify-between mb-6">
         <div className="flex items-center space-x-3">
           <CalendarIcon className="h-8 w-8 text-blue-600" />
           <h1 className="text-3xl font-bold">Календарь проектов</h1>
@@ -157,9 +166,9 @@ export default function Calendar() {
             Следующая неделя →
           </Button>
         </div>
-      </div>
+        </div>
 
-      <Card className="mb-6">
+        <Card className="mb-6">
         <CardHeader>
           <CardTitle className="text-center">
             Календарь проектов - текущая неделя
@@ -272,7 +281,8 @@ export default function Calendar() {
             <p className="text-xs text-muted-foreground">Требуют внимания</p>
           </CardContent>
         </Card>
+        </div>
       </div>
-    </div>
+    </MainLayout>
   );
 }
