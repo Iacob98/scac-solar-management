@@ -4,6 +4,7 @@ import { MainLayout } from '@/components/Layout/MainLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Link } from 'wouter';
+import { GoogleCalendarWidget } from '@/components/GoogleCalendarWidget';
 import { 
   FolderOpen, 
   Users, 
@@ -243,6 +244,17 @@ export default function Home() {
             });
           }}
         />
+
+        {/* Интегрированный Google Calendar виджет */}
+        {selectedFirmId && (
+          <div className="mt-8">
+            <GoogleCalendarWidget 
+              firmId={selectedFirmId} 
+              className="w-full"
+              maxEvents={5}
+            />
+          </div>
+        )}
       </div>
     </MainLayout>
   );

@@ -626,4 +626,46 @@ router.get('/logs/:projectId?', requireAuth, async (req, res) => {
   }
 });
 
+// Получить события календаря для фирмы
+router.get('/events/:firmId', async (req, res) => {
+  if (!req.user) {
+    return res.status(401).json({ message: 'Unauthorized' });
+  }
+
+  try {
+    const { firmId } = req.params;
+    const { date, calendarId } = req.query;
+
+    // Получаем фирму
+    const [firm] = await db.select()
+      .from(firms)
+      .where(eq(firms.id, firmId));
+
+    if (!firm) {
+      return res.status(404).json({ message: 'Firm not found' });
+    }
+
+    // Устанавливаем токены в OAuth клиент
+    await googleCalendarService.setFirmCredentials(firmId);
+
+    // Определяем календарь для получения событий
+    const targetCalendarId = (calendarId as string) || firm.gcalMasterId;
+    
+    if (!targetCalendarId) {
+      return res.status(400).json({ message: 'Master calendar not configured' });
+    }
+
+    // Получаем события
+    const events = await googleCalendarService.getCalendarEvents(
+      targetCalendarId,
+      date as string || new Date().toISOString().split('T')[0]
+    );
+
+    res.json(events);
+  } catch (error) {
+    console.error('Error fetching calendar events:', error);
+    res.status(500).json({ message: 'Failed to fetch calendar events' });
+  }
+});
+
 export default router;

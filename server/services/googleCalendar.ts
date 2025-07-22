@@ -13,6 +13,7 @@ export interface CalendarEvent {
 }
 
 export class GoogleCalendarService {
+  private oauth2Client: any = null;
   
   /**
    * Получить OAuth2 клиента для фирмы
@@ -329,6 +330,31 @@ export class GoogleCalendarService {
       console.error('Error logging calendar operation:', error);
       // Не бросаем ошибку, чтобы не прерывать основную операцию
     }
+  }
+
+  /**
+   * Получить события календаря за указанную дату
+   */
+  async getCalendarEvents(calendarId: string, date: string) {
+    const calendar = google.calendar('v3');
+    
+    // Начало и конец дня для указанной даты
+    const startOfDay = new Date(date);
+    startOfDay.setHours(0, 0, 0, 0);
+    
+    const endOfDay = new Date(date);
+    endOfDay.setHours(23, 59, 59, 999);
+
+    const response = await calendar.events.list({
+      calendarId,
+      timeMin: startOfDay.toISOString(),
+      timeMax: endOfDay.toISOString(),
+      singleEvents: true,
+      orderBy: 'startTime',
+      maxResults: 50,
+    });
+
+    return response.data.items || [];
   }
 
   /**
