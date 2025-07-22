@@ -126,12 +126,10 @@ export function FileList({ projectId }: FileListProps) {
   };
 
   const handleDownload = (fileId: number, fileName: string) => {
-    // Используем новый API endpoint для доступа к файлам
-    const link = document.createElement('a');
-    link.href = `/api/files/${fileId}`;
-    link.download = fileName;
-    link.target = '_blank'; // Открываем в новой вкладке для просмотра
-    link.click();
+    console.log('Открываем файл:', { fileId, fileName, url: `/api/files/${fileId}` });
+    
+    // Прямое открытие в новой вкладке
+    window.open(`/api/files/${fileId}`, '_blank');
   };
 
   const handleDelete = (fileId: number) => {

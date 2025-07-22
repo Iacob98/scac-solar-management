@@ -122,6 +122,7 @@ router.post('/upload', isAuthenticated, upload.single('file'), async (req, res) 
 router.get('/:fileId', isAuthenticated, async (req, res) => {
   try {
     const fileId = parseInt(req.params.fileId);
+    console.log(`🔍 GET /api/files/${fileId} - пользователь запрашивает файл`);
     
     // Сначала пытаемся найти в новой системе файлов
     const fileRecord = await storage.getFileRecord(req.params.fileId);
