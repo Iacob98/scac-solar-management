@@ -20,7 +20,9 @@ import {
 import { z } from "zod";
 import fileRoutes from "./routes/fileRoutes";
 import googleCalendarRoutes from "./routes/googleCalendar";
+import emailNotificationRoutes from "./routes/emailNotifications";
 import { fileStorageService } from "./storage/fileStorage";
+import { emailNotificationService } from "./services/emailNotifications";
 
 // Admin role check middleware
 const isAdmin = async (req: any, res: any, next: any) => {
@@ -79,6 +81,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   // Google Calendar routes
   app.use('/api/google', googleCalendarRoutes);
+  
+  // Email notification routes
+  app.use('/api/notifications', emailNotificationRoutes);
 
   // Test endpoint for history entries
   app.get('/api/test-history', isAuthenticated, async (req: any, res) => {
@@ -972,11 +977,41 @@ export async function registerRoutes(app: Express): Promise<Server> {
             description = key === 'equipmentExpectedDate' 
               ? `Дата ожидания оборудования изменена на ${new Date(newValue).toLocaleDateString('ru-RU')}`
               : `Дата поступления оборудования изменена на ${new Date(newValue).toLocaleDateString('ru-RU')}`;
+            
+            // Отправляем email уведомление о готовности оборудования
+            if (key === 'equipmentArrivedDate' && newValue && currentProject?.crewId) {
+              try {
+                await emailNotificationService.sendEquipmentReadyNotification(projectId, currentProject.crewId);
+                console.log(`Email notification sent for equipment ready: project ${projectId}`);
+              } catch (emailError) {
+                console.warn(`Failed to send email notification for equipment ready:`, emailError);
+              }
+            }
+            
+            // Отправляем email уведомление об изменении сроков оборудования
+            if (key === 'equipmentExpectedDate' && currentProject?.crewId && newValue !== oldValue) {
+              try {
+                await emailNotificationService.sendProjectDateUpdateNotification(projectId, currentProject.crewId, 'equipment_date');
+                console.log(`Email notification sent for equipment date update: project ${projectId}`);
+              } catch (emailError) {
+                console.warn(`Failed to send email notification for equipment date update:`, emailError);
+              }
+            }
           } else if (key === 'workStartDate' || key === 'workEndDate') {
             changeType = 'date_update';
             description = key === 'workStartDate'
               ? `Дата начала работ изменена на ${new Date(newValue).toLocaleDateString('ru-RU')}`
               : `Дата окончания работ изменена на ${new Date(newValue).toLocaleDateString('ru-RU')}`;
+            
+            // Отправляем email уведомление о изменении дат работ
+            if (currentProject?.crewId && newValue !== oldValue) {
+              try {
+                await emailNotificationService.sendProjectDateUpdateNotification(projectId, currentProject.crewId, 'work_date');
+                console.log(`Email notification sent for work date update: project ${projectId}`);
+              } catch (emailError) {
+                console.warn(`Failed to send email notification for work date update:`, emailError);
+              }
+            }
           } else if (key === 'needsCallForEquipmentDelay' || key === 'needsCallForCrewDelay' || key === 'needsCallForDateChange') {
             changeType = 'call_update';
             description = newValue 
@@ -985,6 +1020,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
           } else if (key === 'crewId') {
             changeType = 'assignment_change';
             description = `Команда изменена`;
+            
+            // Отправляем email уведомление новой бригаде
+            if (newValue && newValue !== oldValue) {
+              try {
+                await emailNotificationService.sendProjectAssignmentNotification(projectId, newValue);
+                console.log(`Email notification sent for project assignment: project ${projectId} to crew ${newValue}`);
+              } catch (emailError) {
+                console.warn(`Failed to send email notification for project assignment:`, emailError);
+              }
+            }
           } else {
             description = `Поле "${key}" изменено`;
           }

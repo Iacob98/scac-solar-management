@@ -43,6 +43,7 @@ function EditCrewForm({ crew, onUpdate }: { crew: Crew, onUpdate: any }) {
     address: z.string().min(1, 'Адрес обязателен'),
     uniqueNumber: z.string().min(1, 'Уникальный номер обязателен'),
     phone: z.string().optional(),
+    memberEmail: z.string().email('Неверный формат email').optional().or(z.literal('')),
     role: z.enum(['leader', 'worker', 'specialist']).default('worker'),
   });
 
@@ -54,6 +55,7 @@ function EditCrewForm({ crew, onUpdate }: { crew: Crew, onUpdate: any }) {
       address: '',
       uniqueNumber: `WRK-${Date.now().toString().slice(-4)}`,
       phone: '',
+      memberEmail: '',
       role: 'worker',
     },
   });
@@ -343,6 +345,27 @@ function EditCrewForm({ crew, onUpdate }: { crew: Crew, onUpdate: any }) {
                 
                 <FormField
                   control={memberForm.control}
+                  name="memberEmail"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Email для уведомлений</FormLabel>
+                      <FormControl>
+                        <Input 
+                          type="email" 
+                          placeholder="user@example.com" 
+                          {...field} 
+                        />
+                      </FormControl>
+                      <FormMessage />
+                      <p className="text-xs text-gray-500">
+                        На этот email будут приходить уведомления о проектах
+                      </p>
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField
+                  control={memberForm.control}
                   name="role"
                   render={({ field }) => (
                     <FormItem>
@@ -423,6 +446,7 @@ function EditCrewForm({ crew, onUpdate }: { crew: Crew, onUpdate: any }) {
                     <div>Номер: {member.uniqueNumber}</div>
                     <div>Роль: {member.role === 'leader' ? 'Руководитель' : member.role === 'specialist' ? 'Специалист' : 'Рабочий'}</div>
                     {member.phone && <div>Телефон: {member.phone}</div>}
+                    {member.memberEmail && <div>Email: {member.memberEmail}</div>}
                     <div>Адрес: {member.address}</div>
                   </div>
                 </div>
@@ -438,6 +462,7 @@ function EditCrewForm({ crew, onUpdate }: { crew: Crew, onUpdate: any }) {
                         address: member.address,
                         uniqueNumber: member.uniqueNumber,
                         phone: member.phone || '',
+                        memberEmail: member.memberEmail || '',
                         role: member.role,
                       });
                       setShowAddMemberForm(true);
@@ -481,6 +506,7 @@ const extendedCrewSchema = insertCrewSchema.extend({
     address: z.string().min(1, 'Адрес обязателен'),
     uniqueNumber: z.string().min(1, 'Уникальный номер обязателен'),
     phone: z.string().optional(),
+    memberEmail: z.string().email('Неверный формат email').optional().or(z.literal('')),
     role: z.enum(['leader', 'worker', 'specialist']).default('worker'),
   })).min(1, 'Нужен хотя бы один участник'),
 });

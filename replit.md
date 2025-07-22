@@ -201,3 +201,18 @@ The application follows a monolithic architecture with clear separation between 
 - Added proper error handling for missing refresh_token scenarios
 - Ensured all variable names and code structure follow consistent TypeScript standards
 - Prepared foundation for bilingual site functionality with complete text extraction
+
+### Email Notification System for Brigade Members (July 2025)
+- Implemented comprehensive email notification service using SendGrid for team communication
+- Added memberEmail field to crew members schema for receiving project notifications
+- Created automated email notifications for:
+  - Project assignments with detailed project information (location, dates, contacts)
+  - Work date changes with updated scheduling information
+  - Equipment arrival notifications when ready for installation
+  - Equipment delivery date updates
+- All notifications include complete project details except billing information
+- German-language email templates with professional formatting and complete installation details
+- Automatic email sending integrated into project assignment and status update workflows
+- Email notifications sent to all crew members with valid email addresses
+- Enhanced crew member management forms to include email field for notifications
+- API endpoints for manual email notification triggers if needed
