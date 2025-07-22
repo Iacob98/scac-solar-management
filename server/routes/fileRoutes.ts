@@ -6,6 +6,26 @@ import { isAuthenticated } from '../replitAuth';
 import type { InsertFileStorage, InsertProjectFile } from '@shared/schema';
 import { z } from 'zod';
 
+// Функция для определения MIME-типа по расширению файла
+function getMimeTypeFromExtension(filename: string): string {
+  const extension = filename.toLowerCase().split('.').pop();
+  const mimeTypes: Record<string, string> = {
+    'pdf': 'application/pdf',
+    'jpg': 'image/jpeg',
+    'jpeg': 'image/jpeg',
+    'png': 'image/png',
+    'gif': 'image/gif',
+    'webp': 'image/webp',
+    'txt': 'text/plain',
+    'doc': 'application/msword',
+    'docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    'xls': 'application/vnd.ms-excel',
+    'xlsx': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+  };
+  
+  return mimeTypes[extension || ''] || 'application/octet-stream';
+}
+
 const router = express.Router();
 
 // Настройка multer для загрузки файлов в память
@@ -177,8 +197,13 @@ router.get('/:fileId', isAuthenticated, async (req, res) => {
 
       const fileBuffer = fs.readFileSync(filePath);
       
+      // Определяем правильный MIME-тип по расширению файла
+      const mimeType = getMimeTypeFromExtension(legacyFile.fileName);
+      
+      console.log(`📄 Отправляем файл: ${legacyFile.fileName}, MIME: ${mimeType}, размер: ${fileBuffer.length} байт`);
+      
       res.set({
-        'Content-Type': legacyFile.fileType,
+        'Content-Type': mimeType,
         'Content-Length': fileBuffer.length.toString(),
         'Content-Disposition': `inline; filename="${encodeURIComponent(legacyFile.fileName)}"`,
         'Cache-Control': 'no-cache, no-store, must-revalidate',
