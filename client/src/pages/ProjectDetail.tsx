@@ -440,9 +440,9 @@ export default function ProjectDetail({ projectId, selectedFirm, onBack }: Proje
   };
 
   const photoFiles = files.filter((file: any) => 
-    file.category === 'project_file' && file.mimeType && file.mimeType.startsWith('image/')
+    file.fileType && file.fileType.startsWith('image/')
   );
-  const allFiles = files.filter((file: any) => file.category === 'project_file');
+  const allFiles = files; // Показываем все файлы из legacy таблицы
 
   if (projectLoading) {
     return (
@@ -1052,10 +1052,10 @@ export default function ProjectDetail({ projectId, selectedFirm, onBack }: Proje
                     <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                       {allFiles.map((file: any) => (
                         <div key={file.id} className="relative group cursor-pointer">
-                          {file.mimeType && file.mimeType.startsWith('image/') ? (
+                          {file.fileType && file.fileType.startsWith('image/') ? (
                             <img
-                              src={`/api/files/${file.fileId}`}
-                              alt={file.originalName || 'Фото отчет'}
+                              src={file.fileUrl}
+                              alt={file.fileName || 'Фото отчет'}
                               className="w-full h-40 object-cover rounded-lg"
                               onError={(e) => {
                                 (e.target as HTMLImageElement).src = '/placeholder-image.svg';
@@ -1070,22 +1070,20 @@ export default function ProjectDetail({ projectId, selectedFirm, onBack }: Proje
                             <Button
                               size="sm"
                               variant="secondary"
-                              onClick={() => window.open(`/api/files/${file.fileId}`, '_blank')}
+                              onClick={() => window.open(file.fileUrl, '_blank')}
                             >
                               <Eye className="h-4 w-4" />
                             </Button>
                             <Button
                               size="sm"
                               variant="destructive"
-                              onClick={() => deleteFileMutation.mutate(file.fileId)}
+                              onClick={() => deleteFileMutation.mutate(file.id.toString())}
                               disabled={deleteFileMutation.isPending}
                             >
                               <Trash2 className="h-4 w-4" />
                             </Button>
                           </div>
-                          {file.originalName && (
-                            <p className="text-xs text-gray-600 mt-2 truncate">{file.originalName}</p>
-                          )}
+                          <p className="text-xs text-gray-600 mt-2 truncate">{file.fileName}</p>
                         </div>
                       ))}
                       {allFiles.length === 0 && (
