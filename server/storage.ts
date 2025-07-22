@@ -483,11 +483,17 @@ export class DatabaseStorage implements IStorage {
 
   // File operations
   async getFilesByProjectId(projectId: number): Promise<ProjectFile[]> {
-    return await db
+    const files = await db
       .select()
       .from(projectFiles)
       .where(eq(projectFiles.projectId, projectId))
       .orderBy(desc(projectFiles.uploadedAt));
+    
+    // Исправляем URL для всех файлов - используем API вместо прямых ссылок
+    return files.map(file => ({
+      ...file,
+      fileUrl: `/api/files/${file.id}` // Всегда используем API URL
+    }));
   }
 
   async createFile(file: InsertProjectFile): Promise<ProjectFile> {
