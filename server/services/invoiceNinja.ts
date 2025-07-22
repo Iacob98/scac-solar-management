@@ -387,6 +387,39 @@ export class InvoiceNinjaService {
     }
   }
 
+  async getInvoiceById(invoiceId: string): Promise<InvoiceNinjaInvoice | null> {
+    try {
+      const response = await axios.get(
+        `${this.baseUrl}/api/v1/invoices/${invoiceId}`,
+        { headers: this.getHeaders() }
+      );
+      return response.data.data;
+    } catch (error: any) {
+      console.error('Error fetching invoice from Invoice Ninja:', error.response?.data || error.message);
+      return null;
+    }
+  }
+
+  async checkInvoicePaymentStatus(invoiceId: string): Promise<{ isPaid: boolean; statusId: string }> {
+    try {
+      const invoice = await this.getInvoiceById(invoiceId);
+      if (!invoice) {
+        throw new Error('Invoice not found in Invoice Ninja');
+      }
+
+      // Status ID 4 = Paid in Invoice Ninja
+      const isPaid = invoice.status_id === '4' || invoice.balance <= 0;
+      
+      return {
+        isPaid,
+        statusId: invoice.status_id
+      };
+    } catch (error: any) {
+      console.error('Error checking invoice payment status:', error);
+      throw error;
+    }
+  }
+
   async downloadInvoicePDF(invoiceId: string): Promise<Buffer> {
     try {
       console.log(`Downloading PDF for invoice: ${invoiceId}`);

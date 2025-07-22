@@ -1879,6 +1879,162 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Синхронизация статуса платежа из Invoice Ninja
+  app.post('/api/invoices/sync-payment-status', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const user = await storage.getUser(userId);
+      
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      const { invoiceNumber } = z.object({
+        invoiceNumber: z.string(),
+      }).parse(req.body);
+
+      // Find invoice in our database across all accessible firms
+      let invoice;
+      let firm;
+      const userFirms = await storage.getFirmsByUserId(userId);
+      
+      for (const userFirm of userFirms) {
+        const firmInvoices = await storage.getInvoicesByFirmId(userFirm.id);
+        const foundInvoice = firmInvoices.find(inv => inv.invoiceNumber === invoiceNumber);
+        if (foundInvoice) {
+          invoice = foundInvoice;
+          firm = userFirm;
+          break;
+        }
+      }
+      
+      if (!invoice || !firm || !invoice.invoiceId) {
+        return res.status(404).json({ message: "Invoice not found or no Invoice Ninja ID" });
+      }
+
+      // Check payment status in Invoice Ninja
+      const invoiceNinja = new InvoiceNinjaService(firm.invoiceNinjaUrl, firm.token);
+      const paymentStatus = await invoiceNinja.checkInvoicePaymentStatus(invoice.invoiceId);
+
+      console.log(`Invoice ${invoiceNumber} payment status in Invoice Ninja:`, paymentStatus);
+
+      // Update our database if status has changed
+      if (paymentStatus.isPaid !== invoice.isPaid) {
+        await storage.updateInvoice(invoice.id, { isPaid: paymentStatus.isPaid });
+
+        if (paymentStatus.isPaid) {
+          // Update project status to paid
+          await storage.updateProject(invoice.projectId, { status: 'paid' });
+
+          // Add history entry
+          await storage.createProjectHistoryEntry({
+            projectId: invoice.projectId,
+            userId,
+            changeType: 'status_change',
+            fieldName: 'status',
+            oldValue: 'invoiced',
+            newValue: 'paid',
+            description: `Счет №${invoiceNumber} помечен как оплаченный (синхронизация из Invoice Ninja)`,
+          });
+        }
+
+        console.log(`Updated invoice ${invoiceNumber} payment status: ${paymentStatus.isPaid ? 'paid' : 'unpaid'}`);
+      }
+
+      res.json({ 
+        success: true, 
+        updated: paymentStatus.isPaid !== invoice.isPaid,
+        isPaid: paymentStatus.isPaid,
+        statusId: paymentStatus.statusId
+      });
+
+    } catch (error) {
+      console.error("Error syncing invoice payment status:", error);
+      res.status(500).json({ message: "Failed to sync payment status", error: error.message });
+    }
+  });
+
+  // Синхронизация всех счетов фирмы с Invoice Ninja
+  app.post('/api/invoices/sync-all-payment-status/:firmId', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const { firmId } = req.params;
+      
+      // Verify user has access to this firm
+      const userFirms = await storage.getFirmsByUserId(userId);
+      const firm = userFirms.find(f => f.id === firmId);
+      
+      if (!firm) {
+        return res.status(403).json({ message: "Access denied to this firm" });
+      }
+
+      const invoices = await storage.getInvoicesByFirmId(firmId);
+      const invoiceNinja = new InvoiceNinjaService(firm.invoiceNinjaUrl, firm.token);
+      
+      let updatedCount = 0;
+      const results = [];
+
+      for (const invoice of invoices) {
+        if (!invoice.invoiceId) {
+          results.push({ invoiceNumber: invoice.invoiceNumber, status: 'no_ninja_id' });
+          continue;
+        }
+
+        try {
+          const paymentStatus = await invoiceNinja.checkInvoicePaymentStatus(invoice.invoiceId);
+          
+          if (paymentStatus.isPaid !== invoice.isPaid) {
+            await storage.updateInvoice(invoice.id, { isPaid: paymentStatus.isPaid });
+            
+            if (paymentStatus.isPaid) {
+              await storage.updateProject(invoice.projectId, { status: 'paid' });
+              await storage.createProjectHistoryEntry({
+                projectId: invoice.projectId,
+                userId,
+                changeType: 'status_change',
+                fieldName: 'status',
+                oldValue: 'invoiced',
+                newValue: 'paid',
+                description: `Счет №${invoice.invoiceNumber} помечен как оплаченный (автосинхронизация)`,
+              });
+            }
+            
+            updatedCount++;
+            results.push({ 
+              invoiceNumber: invoice.invoiceNumber, 
+              status: 'updated', 
+              isPaid: paymentStatus.isPaid 
+            });
+          } else {
+            results.push({ 
+              invoiceNumber: invoice.invoiceNumber, 
+              status: 'no_change', 
+              isPaid: invoice.isPaid 
+            });
+          }
+        } catch (error) {
+          console.error(`Error checking invoice ${invoice.invoiceNumber}:`, error);
+          results.push({ 
+            invoiceNumber: invoice.invoiceNumber, 
+            status: 'error', 
+            error: error.message 
+          });
+        }
+      }
+
+      res.json({
+        success: true,
+        totalInvoices: invoices.length,
+        updatedCount,
+        results
+      });
+
+    } catch (error) {
+      console.error("Error syncing all invoices:", error);
+      res.status(500).json({ message: "Failed to sync invoices", error: error.message });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }

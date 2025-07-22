@@ -21,7 +21,11 @@ import {
   CheckCircle,
   Clock,
   AlertCircle,
-  Shield
+  Shield,
+  RefreshCcw,
+  Check,
+  Eye,
+  RotateCw
 } from 'lucide-react';
 
 export default function Invoices() {
@@ -115,6 +119,59 @@ export default function Invoices() {
     },
   });
 
+  const syncPaymentMutation = useMutation({
+    mutationFn: async ({ invoiceNumber }: { invoiceNumber: string }) => {
+      const response = await apiRequest('/api/invoices/sync-payment-status', 'POST', { invoiceNumber });
+      return response.json();
+    },
+    onSuccess: (data) => {
+      if (data.updated) {
+        toast({
+          title: 'Синхронизация завершена',
+          description: `Статус счета обновлен: ${data.isPaid ? 'оплачен' : 'не оплачен'}`,
+        });
+        queryClient.invalidateQueries({ queryKey: ['/api/invoices'] });
+        queryClient.invalidateQueries({ queryKey: ['/api/projects'] });
+        queryClient.refetchQueries({ queryKey: ['/api/invoices', selectedFirmId] });
+      } else {
+        toast({
+          title: 'Синхронизация завершена',
+          description: 'Статус счета не изменился',
+        });
+      }
+    },
+    onError: (error) => {
+      toast({
+        title: 'Ошибка синхронизации',
+        description: 'Не удалось проверить статус счета в Invoice Ninja',
+        variant: 'destructive',
+      });
+    },
+  });
+
+  const syncAllPaymentsMutation = useMutation({
+    mutationFn: async () => {
+      const response = await apiRequest(`/api/invoices/sync-all-payment-status/${selectedFirmId}`, 'POST');
+      return response.json();
+    },
+    onSuccess: (data) => {
+      toast({
+        title: 'Синхронизация завершена',
+        description: `Проверено счетов: ${data.totalInvoices}, обновлено: ${data.updatedCount}`,
+      });
+      queryClient.invalidateQueries({ queryKey: ['/api/invoices'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/projects'] });
+      queryClient.refetchQueries({ queryKey: ['/api/invoices', selectedFirmId] });
+    },
+    onError: (error) => {
+      toast({
+        title: 'Ошибка синхронизации',
+        description: 'Не удалось синхронизировать все счета',
+        variant: 'destructive',
+      });
+    },
+  });
+
   const getProject = (projectId: number) => {
     return projects.find((p) => p.id === projectId);
   };
@@ -203,6 +260,14 @@ export default function Invoices() {
             <h1 className="text-2xl font-semibold text-gray-900">Счета</h1>
             <p className="text-gray-600 mt-1">Управляйте своими счетами и платежами</p>
           </div>
+          <Button
+            onClick={() => syncAllPaymentsMutation.mutate()}
+            disabled={syncAllPaymentsMutation.isPending}
+            variant="outline"
+          >
+            <RefreshCcw className={`w-4 h-4 mr-2 ${syncAllPaymentsMutation.isPending ? 'animate-spin' : ''}`} />
+            Синхронизировать все платежи
+          </Button>
         </div>
 
         {/* Summary Cards */}
@@ -366,6 +431,15 @@ export default function Invoices() {
                               Отметить как оплаченный
                             </Button>
                           )}
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => syncPaymentMutation.mutate({ invoiceNumber: invoice.invoiceNumber })}
+                            disabled={syncPaymentMutation.isPending}
+                            title="Проверить статус оплаты в Invoice Ninja"
+                          >
+                            <RotateCw className={`w-4 h-4 ${syncPaymentMutation.isPending ? 'animate-spin' : ''}`} />
+                          </Button>
                           <Button
                             variant="ghost"
                             size="sm"
