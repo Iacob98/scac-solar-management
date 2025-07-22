@@ -49,6 +49,7 @@ export class GoogleCalendarService {
       access_type: 'offline',
       scope: scopes,
       state: firmId, // передаем ID фирмы в state
+      prompt: 'consent' // принудительно запрашиваем consent для получения refresh_token
     });
   }
 
@@ -59,6 +60,11 @@ export class GoogleCalendarService {
     try {
       const oauth2Client = await this.getOAuth2Client(firmId);
       const { tokens } = await oauth2Client.getToken(code);
+      
+      // Проверяем что получили refresh_token
+      if (!tokens.refresh_token) {
+        throw new Error('No refresh token received. Please try again with prompt=consent.');
+      }
       
       // Сохраняем токены в базу данных
       const [savedToken] = await db.insert(googleTokens)

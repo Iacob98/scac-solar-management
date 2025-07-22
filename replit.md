@@ -191,3 +191,13 @@ The application follows a monolithic architecture with clear separation between 
 - Integrated file storage into project workflow with categorization system
 - Added file management to main navigation with dedicated storage interface
 - Implemented secure file access with user authentication and project association
+
+### Internationalization and Code Standardization (July 2025)
+- Created comprehensive localization system with shared/locales.ts file supporting Russian and English
+- Implemented useLocale hook for easy language switching throughout the application
+- Standardized all text strings into centralized locale files for consistent translation management
+- Fixed Google OAuth integration issues: added prompt: 'consent' for proper refresh_token handling
+- Resolved database constraints errors for google_tokens table with proper unique constraints
+- Added proper error handling for missing refresh_token scenarios
+- Ensured all variable names and code structure follow consistent TypeScript standards
+- Prepared foundation for bilingual site functionality with complete text extraction
