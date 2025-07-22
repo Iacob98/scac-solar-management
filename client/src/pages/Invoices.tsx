@@ -47,14 +47,15 @@ export default function Invoices() {
     }
   }, []);
 
-  const { data: invoices = [], isLoading, error } = useQuery<Invoice[]>({
+  const { data: invoices = [], isLoading, error, refetch } = useQuery<Invoice[]>({
     queryKey: ['/api/invoices', selectedFirmId],
     queryFn: async () => {
-      const response = await apiRequest(`/api/invoices/${selectedFirmId}`, 'GET');
+      const response = await apiRequest(`/api/invoices/${selectedFirmId}?_t=${Date.now()}`, 'GET');
       return response.json();
     },
     enabled: !!selectedFirmId && user?.role === 'admin',
     retry: false,
+    staleTime: 0,
   });
 
   // Show access denied message for non-admin users
@@ -264,14 +265,24 @@ export default function Invoices() {
             <h1 className="text-2xl font-semibold text-gray-900">Счета</h1>
             <p className="text-gray-600 mt-1">Управляйте своими счетами и платежами</p>
           </div>
-          <Button
-            onClick={() => syncAllPaymentsMutation.mutate()}
-            disabled={syncAllPaymentsMutation.isPending}
-            variant="outline"
-          >
-            <RefreshCcw className={`w-4 h-4 mr-2 ${syncAllPaymentsMutation.isPending ? 'animate-spin' : ''}`} />
-            Синхронизировать все платежи
-          </Button>
+          <div className="flex gap-2">
+            <Button
+              onClick={() => refetch()}
+              variant="ghost"
+              size="sm"
+            >
+              <RotateCw className="w-4 h-4 mr-2" />
+              Обновить
+            </Button>
+            <Button
+              onClick={() => syncAllPaymentsMutation.mutate()}
+              disabled={syncAllPaymentsMutation.isPending}
+              variant="outline"
+            >
+              <RefreshCcw className={`w-4 h-4 mr-2 ${syncAllPaymentsMutation.isPending ? 'animate-spin' : ''}`} />
+              Синхронизировать все платежи
+            </Button>
+          </div>
         </div>
 
         {/* Summary Cards */}
