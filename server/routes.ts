@@ -1669,25 +1669,39 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(403).json({ message: "Access denied" });
       }
 
-      const { token, fromEmail, messageStream } = req.body;
+      const { token, fromEmail, messageStream, testEmail } = req.body;
       
       if (!token || !fromEmail) {
         return res.status(400).json({ message: "Token and from email are required" });
       }
 
+      // Use testEmail if provided, otherwise use user's email or sender's email
+      const recipientEmail = testEmail || user.email || fromEmail;
+      
       const postmark = new PostmarkService(token);
-      await postmark.sendTestEmail(fromEmail, user.email || fromEmail);
+      await postmark.sendTestEmail(fromEmail, recipientEmail);
       
       res.json({ 
         success: true, 
-        email: user.email || fromEmail,
-        message: `Тестовое письмо отправлено на ${user.email || fromEmail}` 
+        email: recipientEmail,
+        message: `Тестовое письмо отправлено на ${recipientEmail}` 
       });
     } catch (error: any) {
       console.error("Error testing Postmark:", error);
-      res.status(400).json({ 
-        message: error.message || "Failed to send test email" 
-      });
+      
+      // Check if it's a sandbox domain restriction error
+      if (error.message && error.message.includes('pending approval')) {
+        const fromDomain = fromEmail.split('@')[1];
+        res.status(400).json({ 
+          message: `Ваш Postmark аккаунт находится в режиме песочницы. Вы можете отправлять письма только на адреса с доменом @${fromDomain}. Для снятия ограничений необходимо подать заявку на активацию аккаунта в Postmark.`,
+          sandboxMode: true,
+          allowedDomain: fromDomain
+        });
+      } else {
+        res.status(400).json({ 
+          message: error.message || "Failed to send test email" 
+        });
+      }
     }
   });
 

@@ -14,6 +14,7 @@ import { ArrowLeft, Save, TestTube } from 'lucide-react';
 import { apiRequest } from '@/lib/queryClient';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 
 const firmEditSchema = z.object({
   name: z.string().min(1, 'Название обязательно'),
@@ -102,8 +103,12 @@ export default function FirmEdit() {
   });
 
   const testPostmarkMutation = useMutation({
-    mutationFn: async (data: { token: string; fromEmail: string; messageStream: string }) => {
+    mutationFn: async (data: { token: string; fromEmail: string; messageStream: string; testEmail?: string }) => {
       const response = await apiRequest('/api/postmark/test', 'POST', data);
+      if (!response.ok) {
+        const error = await response.json();
+        throw error;
+      }
       return await response.json();
     },
     onSuccess: (data) => {
@@ -113,17 +118,29 @@ export default function FirmEdit() {
       });
     },
     onError: (error: any) => {
-      toast({
-        title: 'Ошибка теста',
-        description: error.message || 'Не удалось отправить тестовое письмо',
-        variant: 'destructive',
-      });
+      // Handle sandbox mode errors specially
+      if (error.sandboxMode) {
+        toast({
+          title: 'Postmark в режиме песочницы',
+          description: error.message,
+          variant: 'destructive',
+        });
+      } else {
+        toast({
+          title: 'Ошибка теста',
+          description: error.message || 'Не удалось отправить тестовое письмо',
+          variant: 'destructive',
+        });
+      }
     },
   });
 
   const onSubmit = (data: z.infer<typeof firmEditSchema>) => {
     updateFirmMutation.mutate(data);
   };
+
+  const [testEmailAddress, setTestEmailAddress] = useState('');
+  const [showTestEmailDialog, setShowTestEmailDialog] = useState(false);
 
   const handleTestPostmark = async () => {
     const values = form.getValues();
@@ -136,13 +153,22 @@ export default function FirmEdit() {
       return;
     }
 
+    // Show dialog to ask for test email address
+    setShowTestEmailDialog(true);
+  };
+
+  const sendTestEmail = async () => {
+    const values = form.getValues();
     setIsTestingPostmark(true);
     try {
       await testPostmarkMutation.mutateAsync({
         token: values.postmarkServerToken,
         fromEmail: values.postmarkFromEmail,
         messageStream: values.postmarkMessageStream || 'transactional',
+        testEmail: testEmailAddress || undefined,
       });
+      setShowTestEmailDialog(false);
+      setTestEmailAddress('');
     } finally {
       setIsTestingPostmark(false);
     }
@@ -168,6 +194,45 @@ export default function FirmEdit() {
   }
 
   return (
+    <>
+      <Dialog open={showTestEmailDialog} onOpenChange={setShowTestEmailDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Тестовая отправка Email</DialogTitle>
+            <DialogDescription>
+              {form.getValues('postmarkFromEmail') && (
+                <div className="mt-2 p-3 bg-yellow-50 border border-yellow-200 rounded-md">
+                  <p className="text-sm text-yellow-800">
+                    <strong>Внимание:</strong> Ваш Postmark аккаунт может находиться в режиме песочницы. 
+                    В этом случае вы можете отправлять письма только на адреса с доменом 
+                    <code className="bg-yellow-100 px-1 mx-1">@{form.getValues('postmarkFromEmail')?.split('@')[1]}</code>
+                  </p>
+                </div>
+              )}
+              <p className="mt-3">
+                Укажите email адрес для тестовой отправки. Если оставить поле пустым, 
+                письмо будет отправлено на ваш email ({user?.email || 'текущий пользователь'}).
+              </p>
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4">
+            <Input
+              type="email"
+              placeholder="test@example.com"
+              value={testEmailAddress}
+              onChange={(e) => setTestEmailAddress(e.target.value)}
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowTestEmailDialog(false)}>
+              Отмена
+            </Button>
+            <Button onClick={sendTestEmail} disabled={isTestingPostmark}>
+              {isTestingPostmark ? 'Отправка...' : 'Отправить тест'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-6">
       <div className="max-w-3xl mx-auto space-y-6">
         {/* Header */}
@@ -386,5 +451,6 @@ export default function FirmEdit() {
         </Card>
       </div>
     </div>
+    </>
   );
 }
