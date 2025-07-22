@@ -1749,18 +1749,50 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Try to get PDF file
       let pdfBase64: string | undefined;
       const files = await storage.getFilesByProjectId(parseInt(projectId));
-      const pdfFile = files.find(f => f.fileName?.includes('invoice') && f.fileName?.endsWith('.pdf'));
+      console.log(`Files in database for project ${projectId}:`, files);
+      
+      // First try to find in database
+      let pdfFile = files.find(f => f.fileName?.includes('invoice') && f.fileName?.endsWith('.pdf'));
+      
+      // If not found in database, try to find in uploads folder directly
+      if (!pdfFile && project.invoiceNumber) {
+        const uploadsDir = path.join(process.cwd(), 'uploads');
+        const possibleFileNames = [
+          `invoice_${project.invoiceNumber}_*.pdf`,
+          `invoice_${project.invoiceNumber}.pdf`
+        ];
+        
+        try {
+          const uploadFiles = fs.readdirSync(uploadsDir);
+          const invoiceFile = uploadFiles.find(file => 
+            file.includes(`invoice_${project.invoiceNumber}`) && file.endsWith('.pdf')
+          );
+          
+          if (invoiceFile) {
+            console.log(`Found invoice file in uploads folder: ${invoiceFile}`);
+            pdfFile = { fileName: invoiceFile };
+          }
+        } catch (error) {
+          console.error('Error searching for invoice file:', error);
+        }
+      }
       
       if (pdfFile && pdfFile.fileName) {
         try {
           const filePath = path.join(process.cwd(), 'uploads', pdfFile.fileName);
+          console.log(`Trying to read PDF from: ${filePath}`);
           if (fs.existsSync(filePath)) {
             const pdfBuffer = fs.readFileSync(filePath);
             pdfBase64 = pdfBuffer.toString('base64');
+            console.log(`Successfully read PDF file, size: ${pdfBuffer.length} bytes`);
+          } else {
+            console.error(`PDF file not found at: ${filePath}`);
           }
         } catch (error) {
           console.error('Error reading PDF file:', error);
         }
+      } else {
+        console.log('No PDF file found for invoice');
       }
 
       // Prepare template variables
