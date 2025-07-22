@@ -166,21 +166,21 @@ router.get('/callback', async (req, res) => {
     await googleCalendarService.exchangeCodeForTokens(code as string, firmId as string);
     
     // Получаем информацию о фирме для создания календаря  
-    const [firm] = await db.select().from(firms).where(eq(firms.id, firmId)).limit(1);
+    const [firm] = await db.select().from(firms).where(eq(firms.id, firmId as string)).limit(1);
     if (firm && !firm.gcalMasterId) {
       try {
         // Автоматически создаем корпоративный календарь после успешной авторизации
         const calendarId = await googleCalendarService.createCalendar(
           `Проекты – ${firm.name}`,
           `Корпоративный календарь проектов для ${firm.name}`,
-          firmId
+          firmId as string
         );
         
         // Обновляем фирму с ID корпоративного календаря
         await db
           .update(firms)
           .set({ gcalMasterId: calendarId })
-          .where(eq(firms.id, firmId));
+          .where(eq(firms.id, firmId as string));
           
       } catch (error) {
         console.error('Error creating master calendar after OAuth:', error);
@@ -188,11 +188,14 @@ router.get('/callback', async (req, res) => {
       }
     }
     
-    // Перенаправляем обратно в приложение с сообщением об успехе
-    res.redirect(`${process.env.FRONTEND_URL || 'http://localhost:5000'}/?google_auth=success`);
+    // Получаем правильный URL для redirect
+    const frontendUrl = process.env.FRONTEND_URL || req.get('origin') || `https://${req.get('host')}`;
+    res.redirect(`${frontendUrl}/google-calendar?google_auth=success`);
   } catch (error) {
     console.error('Error in OAuth callback:', error);
-    res.redirect(`${process.env.FRONTEND_URL || 'http://localhost:5000'}/?google_auth=error`);
+    // Получаем правильный URL для redirect
+    const frontendUrl = process.env.FRONTEND_URL || req.get('origin') || `https://${req.get('host')}`;
+    res.redirect(`${frontendUrl}/google-calendar?google_auth=error`);
   }
 });
 
@@ -234,7 +237,7 @@ router.post('/firm/create-master-calendar', requireAuth, async (req, res) => {
 
     // Логируем операцию
     await googleCalendarService.logOperation({
-      userId: user.id,
+      userId: user.id as string,
       action: 'create_master_calendar',
       projectId: null,
       eventId: null,
@@ -253,7 +256,7 @@ router.post('/firm/create-master-calendar', requireAuth, async (req, res) => {
     // Логируем ошибку
     if (req.user) {
       await googleCalendarService.logOperation({
-        userId: req.user.id,
+        userId: (req.user as any).id as string,
         action: 'create_master_calendar',
         projectId: null,
         eventId: null,
@@ -333,7 +336,7 @@ router.post('/crew/create-calendar', requireAuth, async (req, res) => {
 
     // Логируем операцию
     await googleCalendarService.logOperation({
-      userId: user.id,
+      userId: user.id as string,
       action: 'create_crew_calendar',
       projectId: null,
       eventId: null,
@@ -352,7 +355,7 @@ router.post('/crew/create-calendar', requireAuth, async (req, res) => {
     // Логируем ошибку
     if (req.user) {
       await googleCalendarService.logOperation({
-        userId: req.user.id,
+        userId: (req.user as any).id as string,
         action: 'create_crew_calendar',
         projectId: null,
         eventId: null,
@@ -422,7 +425,7 @@ router.post('/sync-project', requireAuth, async (req, res) => {
 
     // Логируем операцию
     await googleCalendarService.logOperation({
-      userId: user.id,
+      userId: user.id as string,
       action: 'sync_project',
       projectId: projectData.id,
       eventId: crewEventId,
@@ -448,7 +451,7 @@ router.post('/sync-project', requireAuth, async (req, res) => {
     // Логируем ошибку
     if (req.user) {
       await googleCalendarService.logOperation({
-        userId: req.user.id,
+        userId: (req.user as any).id as string,
         action: 'sync_project',
         projectId: req.body.projectId || null,
         eventId: null,
@@ -538,7 +541,7 @@ router.put('/crew/update-members', requireAuth, async (req, res) => {
 
     // Логируем операцию
     await googleCalendarService.logOperation({
-      userId: user.id,
+      userId: user.id as string,
       action: 'update_crew_members',
       projectId: null,
       eventId: null,
@@ -553,7 +556,7 @@ router.put('/crew/update-members', requireAuth, async (req, res) => {
     // Логируем ошибку
     if (req.user) {
       await googleCalendarService.logOperation({
-        userId: req.user.id,
+        userId: (req.user as any).id as string,
         action: 'update_crew_members',
         projectId: null,
         eventId: null,

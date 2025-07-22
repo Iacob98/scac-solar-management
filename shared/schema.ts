@@ -414,7 +414,7 @@ export type ProjectNote = typeof projectNotes.$inferSelect;
 // Google Tokens table - хранит OAuth токены фирмы
 export const googleTokens = pgTable("google_tokens", {
   id: serial("id").primaryKey(),
-  firmId: uuid("firm_id").notNull().references(() => firms.id),
+  firmId: uuid("firm_id").notNull().references(() => firms.id).unique(),
   accessToken: text("access_token").notNull(),
   refreshToken: text("refresh_token").notNull(),
   expiry: timestamp("expiry").notNull(),
