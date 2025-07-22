@@ -42,12 +42,12 @@ export default function Calendar() {
   const selectedFirmId = localStorage.getItem('selectedFirmId');
   
   const { data: projects = [], isLoading: projectsLoading } = useQuery({
-    queryKey: ['/api/projects', selectedFirmId],
+    queryKey: ['/api/projects'],
     enabled: !!selectedFirmId
   });
 
   const { data: crews = [], isLoading: crewsLoading } = useQuery({
-    queryKey: ['/api/crews', selectedFirmId],  
+    queryKey: ['/api/crews'],  
     enabled: !!selectedFirmId
   });
 
