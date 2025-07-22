@@ -125,10 +125,12 @@ export function FileList({ projectId }: FileListProps) {
     });
   };
 
-  const handleDownload = (fileUrl: string, fileName: string) => {
+  const handleDownload = (fileId: number, fileName: string) => {
+    // Используем новый API endpoint для доступа к файлам
     const link = document.createElement('a');
-    link.href = fileUrl;
+    link.href = `/api/files/${fileId}`;
     link.download = fileName;
+    link.target = '_blank'; // Открываем в новой вкладке для просмотра
     link.click();
   };
 
@@ -207,7 +209,7 @@ export function FileList({ projectId }: FileListProps) {
                 <Button
                   size="sm"
                   variant="ghost"
-                  onClick={() => handleDownload(file.fileUrl, file.fileName)}
+                  onClick={() => handleDownload(file.id, file.fileName)}
                 >
                   <Download className="w-4 h-4" />
                 </Button>
