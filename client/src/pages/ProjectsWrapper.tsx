@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -755,6 +755,18 @@ function ProjectsList({ selectedFirm, onViewProject, onManageServices }: { selec
 export default function ProjectsWrapper({ selectedFirm }: ProjectsWrapperProps) {
   const [viewMode, setViewMode] = useState<ViewMode>('list');
   const [selectedProjectId, setSelectedProjectId] = useState<number | null>(null);
+
+  // Проверяем localStorage при загрузке для автоматического выбора проекта из календаря
+  useEffect(() => {
+    const savedProjectId = localStorage.getItem('selectedProjectId');
+    if (savedProjectId) {
+      const projectId = parseInt(savedProjectId);
+      setSelectedProjectId(projectId);
+      setViewMode('detail');
+      // Очищаем localStorage после использования
+      localStorage.removeItem('selectedProjectId');
+    }
+  }, []);
 
   const handleViewProject = (projectId: number) => {
     setSelectedProjectId(projectId);

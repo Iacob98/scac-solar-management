@@ -221,7 +221,11 @@ export default function Calendar() {
                           event.type === 'end' ? 'border-l-blue-500 bg-blue-50 hover:bg-blue-100' :
                           'border-l-orange-500 bg-orange-50 hover:bg-orange-100'
                         }`}
-                        onClick={() => setLocation(`/projects/${event.project.id}`)}
+                        onClick={() => {
+                          // Сохраняем ID выбранного проекта и переходим на страницу проектов
+                          localStorage.setItem('selectedProjectId', event.project.id.toString());
+                          setLocation('/projects');
+                        }}
                       >
                         <div className="text-sm">
                           <div className="flex items-center justify-between mb-2">
