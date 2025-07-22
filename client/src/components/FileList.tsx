@@ -225,16 +225,17 @@ export function FileList({ projectId }: FileListProps) {
               </div>
 
               <div className="flex items-center gap-2">
-                <a
-                  href={`/api/files/${file.id}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
+                <button
+                  onClick={() => {
+                    console.log('Opening file:', { fileId: file.id, fileName: file.fileName });
+                    // Открываем файл в новой вкладке, используя window.open для правильной передачи cookies
+                    window.open(`/api/files/${file.id}`, '_blank');
+                  }}
                   title="Открыть файл"
-                  className="p-1 hover:bg-gray-200 rounded z-10 relative inline-block"
-                  onClick={() => console.log('Link clicked!', { fileId: file.id, fileName: file.fileName })}
+                  className="p-1 hover:bg-gray-200 rounded z-10 relative"
                 >
                   <Download className="w-4 h-4" />
-                </a>
+                </button>
                 
                 <Button
                   size="sm"
