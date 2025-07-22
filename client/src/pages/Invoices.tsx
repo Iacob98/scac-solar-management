@@ -162,6 +162,10 @@ export default function Invoices() {
       queryClient.invalidateQueries({ queryKey: ['/api/invoices'] });
       queryClient.invalidateQueries({ queryKey: ['/api/projects'] });
       queryClient.refetchQueries({ queryKey: ['/api/invoices', selectedFirmId] });
+      // Принудительно рефетчим все связанные запросы
+      setTimeout(() => {
+        queryClient.refetchQueries({ queryKey: ['/api/invoices'] });
+      }, 500);
     },
     onError: (error) => {
       toast({
