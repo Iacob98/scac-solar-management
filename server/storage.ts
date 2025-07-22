@@ -221,6 +221,8 @@ export class DatabaseStorage implements IStorage {
         postmarkServerToken: firms.postmarkServerToken,
         postmarkFromEmail: firms.postmarkFromEmail,
         postmarkMessageStream: firms.postmarkMessageStream,
+        emailSubjectTemplate: firms.emailSubjectTemplate,
+        emailBodyTemplate: firms.emailBodyTemplate,
       })
       .from(firms)
       .innerJoin(userFirms, eq(firms.id, userFirms.firmId))

@@ -54,6 +54,9 @@ export const firms = pgTable("firms", {
   postmarkServerToken: varchar("postmark_server_token"),
   postmarkFromEmail: varchar("postmark_from_email"),
   postmarkMessageStream: varchar("postmark_message_stream").default("transactional"),
+  // Email template fields
+  emailSubjectTemplate: varchar("email_subject_template").default("Счет №{{invoiceNumber}} от {{firmName}}"),
+  emailBodyTemplate: text("email_body_template").default("Уважаемый {{clientName}},\n\nВо вложении находится счет №{{invoiceNumber}} за установку солнечных панелей.\n\nС уважением,\n{{firmName}}"),
   createdAt: timestamp("created_at").defaultNow(),
 });
 

@@ -175,27 +175,19 @@ function ProjectsList({ selectedFirm, onViewProject, onManageServices }: { selec
       
       // Автоматически скачиваем PDF
       try {
-        const response = await apiRequest(`/api/invoice/download-pdf/${projectId}`, 'POST');
-        const result = await response.json();
-        
-        if (result.success) {
-          // Получаем файл и скачиваем его
-          const fileResponse = await fetch(`/api/files/${result.fileId}`);
-          const blob = await fileResponse.blob();
-          const url = window.URL.createObjectURL(blob);
-          const a = document.createElement('a');
-          a.href = url;
-          a.download = `invoice_${data.invoiceNumber}.pdf`;
-          a.click();
-          window.URL.revokeObjectURL(url);
-          
-          toast({
-            title: 'PDF загружен',
-            description: 'Счет автоматически сохранен в загрузки'
-          });
-        }
-      } catch (error) {
-        console.error('Ошибка при загрузке PDF:', error);
+        await apiRequest(`/api/invoice/download-pdf/${projectId}`, 'POST');
+        queryClient.invalidateQueries({ queryKey: ['/api/files/project', projectId] });
+        toast({ 
+          title: 'PDF скачан',
+          description: 'PDF счета добавлен в файлы проекта'
+        });
+      } catch (error: any) {
+        console.error('Failed to download PDF:', error);
+        toast({
+          title: 'Предупреждение',
+          description: 'Счет создан, но не удалось скачать PDF автоматически',
+          variant: 'destructive'
+        });
       }
     },
     onError: (error: any) => {

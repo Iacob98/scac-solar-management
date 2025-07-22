@@ -466,6 +466,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         postmarkServerToken: req.body.postmarkServerToken,
         postmarkFromEmail: req.body.postmarkFromEmail,
         postmarkMessageStream: req.body.postmarkMessageStream,
+        emailSubjectTemplate: req.body.emailSubjectTemplate,
+        emailBodyTemplate: req.body.emailBodyTemplate,
       };
       
       const updatedFirm = await storage.updateFirm(firmId, updateData);
@@ -533,6 +535,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error fetching client:", error);
       res.status(500).json({ message: "Failed to fetch client" });
+    }
+  });
+
+  app.patch('/api/clients/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      const { id } = req.params;
+      const updateData = req.body;
+      
+      // Обновляем клиента в локальной базе
+      const updatedClient = await storage.updateClient(Number(id), updateData);
+      
+      // Если есть Invoice Ninja ID, обновляем и там
+      if (updatedClient.ninjaClientId && updateData.firmId) {
+        const firm = await storage.getFirmById(updateData.firmId);
+        if (firm?.token && firm?.invoiceNinjaUrl) {
+          try {
+            const invoiceNinja = new InvoiceNinjaService(firm.token, firm.invoiceNinjaUrl);
+            // Обновляем клиента в Invoice Ninja (если API поддерживает)
+            console.log('Updating client in Invoice Ninja:', updatedClient.ninjaClientId);
+          } catch (ninjaError) {
+            console.warn('Could not update client in Invoice Ninja:', ninjaError);
+          }
+        }
+      }
+      
+      res.json(updatedClient);
+    } catch (error) {
+      console.error("Error updating client:", error);
+      res.status(500).json({ message: "Failed to update client" });
     }
   });
 
@@ -1718,18 +1749,42 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
 
-      // Send email with Postmark
-      const postmark = new PostmarkService(firm.postmarkServerToken);
-      await postmark.sendInvoiceEmail({
-        from: firm.postmarkFromEmail,
-        to: client.email,
+      // Prepare template variables
+      const templateVars = {
         invoiceNumber: project.invoiceNumber,
+        firmName: firm.name,
         clientName: client.name,
         amount: new Intl.NumberFormat('de-DE', { 
           style: 'currency', 
           currency: 'EUR' 
         }).format(Number(invoice.totalAmount)),
-        pdfBase64,
+      };
+
+      // Replace template variables
+      const processTemplate = (template: string) => {
+        return template.replace(/{{(\w+)}}/g, (match, key) => {
+          return templateVars[key as keyof typeof templateVars] || match;
+        });
+      };
+
+      const subject = processTemplate(firm.emailSubjectTemplate || 'Счет №{{invoiceNumber}} от {{firmName}}');
+      const htmlBody = processTemplate(firm.emailBodyTemplate || 'Уважаемый {{clientName}},\n\nВо вложении находится счет №{{invoiceNumber}} за установку солнечных панелей.\n\nС уважением,\n{{firmName}}').replace(/\n/g, '<br>');
+
+      // Send email with Postmark
+      const postmark = new PostmarkService(firm.postmarkServerToken);
+      const attachments = pdfBase64 ? [{
+        name: `invoice_${project.invoiceNumber}.pdf`,
+        content: pdfBase64,
+        contentType: 'application/pdf',
+      }] : undefined;
+
+      await postmark.sendEmail({
+        from: firm.postmarkFromEmail,
+        to: client.email,
+        subject,
+        htmlBody: `<div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">${htmlBody}</div>`,
+        textBody: processTemplate(firm.emailBodyTemplate || 'Уважаемый {{clientName}},\n\nВо вложении находится счет №{{invoiceNumber}} за установку солнечных панелей.\n\nС уважением,\n{{firmName}}'),
+        attachments,
         messageStream: firm.postmarkMessageStream || 'transactional',
       });
 

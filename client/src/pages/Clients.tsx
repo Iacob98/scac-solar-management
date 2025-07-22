@@ -57,7 +57,7 @@ export default function Clients() {
 
   const createClientMutation = useMutation({
     mutationFn: async (data: z.infer<typeof clientSchema>) => {
-      const response = await apiRequest('POST', '/api/clients', {
+      const response = await apiRequest('/api/clients', 'POST', {
         ...data,
         firmId: selectedFirmId,
       });
@@ -81,8 +81,37 @@ export default function Clients() {
     },
   });
 
+  const updateClientMutation = useMutation({
+    mutationFn: async (data: z.infer<typeof clientSchema>) => {
+      const response = await apiRequest(`/api/clients/${editingClient.id}`, 'PATCH', {
+        ...data,
+        firmId: selectedFirmId,
+      });
+      return response.json();
+    },
+    onSuccess: () => {
+      toast({
+        title: 'Успех',
+        description: 'Клиент успешно обновлен',
+      });
+      queryClient.invalidateQueries({ queryKey: ['/api/clients'] });
+      closeDialog();
+    },
+    onError: (error: any) => {
+      toast({
+        title: 'Ошибка',
+        description: error.message || 'Ошибка при обновлении клиента',
+        variant: 'destructive',
+      });
+    },
+  });
+
   const onSubmit = (data: z.infer<typeof clientSchema>) => {
-    createClientMutation.mutate(data);
+    if (editingClient) {
+      updateClientMutation.mutate(data);
+    } else {
+      createClientMutation.mutate(data);
+    }
   };
 
   const openEditDialog = (client: any) => {

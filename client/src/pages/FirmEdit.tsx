@@ -25,6 +25,9 @@ const firmEditSchema = z.object({
   postmarkServerToken: z.string().optional(),
   postmarkFromEmail: z.string().email('Неверный формат email').optional().or(z.literal('')),
   postmarkMessageStream: z.string().optional(),
+  // Email template fields
+  emailSubjectTemplate: z.string().optional(),
+  emailBodyTemplate: z.string().optional(),
 });
 
 export default function FirmEdit() {
@@ -55,6 +58,8 @@ export default function FirmEdit() {
       postmarkServerToken: '',
       postmarkFromEmail: '',
       postmarkMessageStream: 'transactional',
+      emailSubjectTemplate: 'Счет №{{invoiceNumber}} от {{firmName}}',
+      emailBodyTemplate: 'Уважаемый {{clientName}},\n\nВо вложении находится счет №{{invoiceNumber}} за установку солнечных панелей.\n\nС уважением,\n{{firmName}}',
     },
   });
 
@@ -69,6 +74,8 @@ export default function FirmEdit() {
         postmarkServerToken: firm.postmarkServerToken || '',
         postmarkFromEmail: firm.postmarkFromEmail || '',
         postmarkMessageStream: firm.postmarkMessageStream || 'transactional',
+        emailSubjectTemplate: firm.emailSubjectTemplate || 'Счет №{{invoiceNumber}} от {{firmName}}',
+        emailBodyTemplate: firm.emailBodyTemplate || 'Уважаемый {{clientName}},\n\nВо вложении находится счет №{{invoiceNumber}} за установку солнечных панелей.\n\nС уважением,\n{{firmName}}',
       });
     }
   }, [firm, form]);
@@ -315,6 +322,49 @@ export default function FirmEdit() {
                     <TestTube className="h-4 w-4 mr-2" />
                     {isTestingPostmark ? 'Тестирование...' : 'Тестировать отправку'}
                   </Button>
+                </div>
+
+                {/* Email Templates */}
+                <div className="space-y-4 pt-6 border-t">
+                  <h3 className="text-lg font-semibold">Шаблоны Email</h3>
+                  <p className="text-sm text-gray-600 mb-4">
+                    Настройте шаблоны для отправки счетов. Используйте переменные:
+                    <code className="bg-gray-100 px-1 mx-1">{"{{invoiceNumber}}"}</code>- номер счета,
+                    <code className="bg-gray-100 px-1 mx-1">{"{{firmName}}"}</code>- название фирмы,
+                    <code className="bg-gray-100 px-1 mx-1">{"{{clientName}}"}</code>- имя клиента
+                  </p>
+
+                  <FormField
+                    control={form.control}
+                    name="emailSubjectTemplate"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Тема письма</FormLabel>
+                        <FormControl>
+                          <Input {...field} placeholder="Счет №{{invoiceNumber}} от {{firmName}}" />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="emailBodyTemplate"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Текст письма</FormLabel>
+                        <FormControl>
+                          <Textarea 
+                            {...field} 
+                            rows={6}
+                            placeholder="Уважаемый {{clientName}},&#10;&#10;Во вложении находится счет №{{invoiceNumber}} за установку солнечных панелей.&#10;&#10;С уважением,&#10;{{firmName}}"
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
                 </div>
 
                 <div className="flex justify-end space-x-4 pt-6">
