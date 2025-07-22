@@ -41,9 +41,7 @@ function CalendarTest() {
   // Мутация для создания тестовых календарных событий
   const createCalendarEventsMutation = useMutation({
     mutationFn: async ({ projectId, crewId }: { projectId: number; crewId: number }) => {
-      return apiRequest(`/api/calendar-demo/create-demo-events/${projectId}/${crewId}`, {
-        method: 'POST'
-      });
+      return apiRequest(`/api/calendar-demo/create-demo-events/${projectId}/${crewId}`, 'POST');
     },
     onSuccess: (data) => {
       setTestResult(data);

@@ -29,9 +29,7 @@ export function GoogleCalendarWidget({ projectId, crewId, projectStatus }: Googl
 
     setLoading(true);
     try {
-      const result = await apiRequest(`/api/calendar-demo/create-demo-events/${projectId}/${crewId}`, {
-        method: 'POST'
-      });
+      const result = await apiRequest(`/api/calendar-demo/create-demo-events/${projectId}/${crewId}`, 'POST');
 
       setLastResult(result);
       toast({
