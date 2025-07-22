@@ -179,10 +179,11 @@ export class InvoiceNinjaService {
   private baseUrl: string;
   private token: string;
 
-  constructor(baseUrl: string, token: string) {
+  constructor(token: string, baseUrl: string) {
     // Remove trailing slash and ensure clean base URL
     this.baseUrl = baseUrl.replace(/\/$/, '').replace(/\/api\/v1$/, ''); 
     this.token = token;
+    console.log(`InvoiceNinjaService initialized with URL: ${this.baseUrl}, token: ${token ? token.substring(0,10) + '...' : 'missing'}`);
   }
 
   private getHeaders() {
@@ -434,22 +435,77 @@ export class InvoiceNinjaService {
     }
   }
 
+  async getInvoices(): Promise<InvoiceNinjaInvoice[]> {
+    try {
+      const url = `${this.baseUrl}/api/v1/invoices`;
+      console.log(`Fetching invoices from: ${url}`);
+      console.log(`Headers:`, this.getHeaders());
+      
+      const response = await axios.get(url, { headers: this.getHeaders() });
+      return response.data.data || [];
+    } catch (error: any) {
+      console.error('Error fetching invoices from Invoice Ninja:', error.response?.data || error.message);
+      console.error('URL attempted:', `${this.baseUrl}/api/v1/invoices`);
+      throw new Error(`Failed to fetch invoices: ${error.response?.data?.message || error.message}`);
+    }
+  }
+
   async downloadInvoicePDF(invoiceId: string): Promise<Buffer> {
     try {
-      console.log(`Downloading PDF for invoice: ${invoiceId}`);
+      console.log(`Downloading PDF for invoice ID: ${invoiceId}`);
       
+      // Сначала попробуем стандартный endpoint для скачивания PDF
       const response = await axios.get(
         `${this.baseUrl}/api/v1/invoices/${invoiceId}/download`,
         {
-          headers: this.getHeaders(),
+          headers: {
+            ...this.getHeaders(),
+            'Accept': 'application/pdf'
+          },
           responseType: 'arraybuffer'
         }
       );
-
+      
       return Buffer.from(response.data);
-    } catch (error: any) {
-      console.error('Error downloading invoice PDF:', error.response?.data || error.message);
-      throw new Error(`Failed to download invoice PDF: ${error.response?.data?.message || error.message}`);
+    } catch (downloadError: any) {
+      console.log('Standard download failed, trying alternative method:', downloadError.response?.data || downloadError.message);
+      
+      try {
+        // Альтернативный метод - через action
+        const response = await axios.get(
+          `${this.baseUrl}/api/v1/invoices/${invoiceId}?action=download`,
+          {
+            headers: {
+              ...this.getHeaders(),
+              'Accept': 'application/pdf'
+            },
+            responseType: 'arraybuffer'
+          }
+        );
+        
+        return Buffer.from(response.data);
+      } catch (actionError: any) {
+        console.log('Action download failed, trying PDF endpoint:', actionError.response?.data || actionError.message);
+        
+        try {
+          // Третий метод - прямой PDF endpoint
+          const response = await axios.get(
+            `${this.baseUrl}/api/v1/invoices/${invoiceId}/pdf`,
+            {
+              headers: {
+                ...this.getHeaders(),
+                'Accept': 'application/pdf'
+              },
+              responseType: 'arraybuffer'
+            }
+          );
+          
+          return Buffer.from(response.data);
+        } catch (pdfError: any) {
+          console.error('All PDF download methods failed:', pdfError.response?.data || pdfError.message);
+          throw new Error(`Failed to download invoice PDF: ${pdfError.response?.data?.message || pdfError.message}`);
+        }
+      }
     }
   }
 }

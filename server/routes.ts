@@ -1305,20 +1305,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       console.log(`Processing PDF download for project ${projectId}, invoice ${project.invoiceNumber}`);
       
-      // Get firm for Invoice Ninja credentials
-      const firmResult = await db.select().from(firms).where(eq(firms.id, project.firmId));
-      const firm = firmResult[0];
+      // Get firm for Invoice Ninja credentials  
+      const firm = await storage.getFirmById(project.firmId);
       
       if (!firm || !firm.token || !firm.invoiceNinjaUrl) {
         return res.status(400).json({ message: 'Настройки Invoice Ninja не найдены' });
       }
       
-      // Ensure the URL has the API path
-      const apiUrl = firm.invoiceNinjaUrl.endsWith('/api/v1') 
-        ? firm.invoiceNinjaUrl 
-        : `${firm.invoiceNinjaUrl}/api/v1`;
+      console.log(`Firm found: ${firm.name}, URL: ${firm.invoiceNinjaUrl}, token: ${firm.token ? 'present' : 'missing'}`);
       
-      const invoiceNinja = new InvoiceNinjaService(firm.token, apiUrl);
+      const invoiceNinja = new InvoiceNinjaService(firm.token, firm.invoiceNinjaUrl);
       
       // Create a test PDF file for demonstration
       
@@ -1328,72 +1324,44 @@ export async function registerRoutes(app: Express): Promise<Server> {
         fs.mkdirSync(uploadsDir, { recursive: true });
       }
       
-      // Create simple test PDF content
+      // Скачиваем реальный PDF из Invoice Ninja
       const fileName = `invoice_${project.invoiceNumber}_${Date.now()}.pdf`;
       const filePath = path.join(uploadsDir, fileName);
       
-      // Simple PDF content (this is a minimal PDF structure)
-      const pdfContent = `%PDF-1.4
-1 0 obj
-<<
-/Type /Catalog
-/Pages 2 0 R
->>
-endobj
-
-2 0 obj
-<<
-/Type /Pages
-/Kids [3 0 R]
-/Count 1
->>
-endobj
-
-3 0 obj
-<<
-/Type /Page
-/Parent 2 0 R
-/MediaBox [0 0 612 792]
-/Contents 4 0 R
->>
-endobj
-
-4 0 obj
-<<
-/Length 44
->>
-stream
-BT
-/F1 12 Tf
-100 700 Td
-(Invoice ${project.invoiceNumber}) Tj
-ET
-endstream
-endobj
-
-xref
-0 5
-0000000000 65535 f 
-0000000009 00000 n 
-0000000058 00000 n 
-0000000115 00000 n 
-0000000204 00000 n 
-trailer
-<<
-/Size 5
-/Root 1 0 R
->>
-startxref
-296
-%%EOF`;
+      console.log(`Attempting to download PDF for invoice: ${project.invoiceNumber}`);
       
-      fs.writeFileSync(filePath, pdfContent);
-      const fileSize = fs.statSync(filePath).size;
+      try {
+        // Получаем ID счета из Invoice Ninja
+        const invoices = await invoiceNinja.getInvoices();
+        const invoice = invoices.find((inv: any) => inv.number === project.invoiceNumber);
+        
+        if (!invoice) {
+          throw new Error(`Invoice ${project.invoiceNumber} not found in Invoice Ninja`);
+        }
+
+        console.log(`Found invoice in Invoice Ninja: ${invoice.id}, number: ${invoice.number}`);
+        
+        // Скачиваем PDF счета
+        const pdfBuffer = await invoiceNinja.downloadInvoicePDF(invoice.id);
+        
+        if (!pdfBuffer || pdfBuffer.length === 0) {
+          throw new Error('PDF download returned empty buffer');
+        }
+        
+        console.log(`Downloaded PDF buffer, size: ${pdfBuffer.length} bytes`);
+        
+        fs.writeFileSync(filePath, pdfBuffer);
+        const fileSize = fs.statSync(filePath).size;
+        console.log(`PDF file saved: ${filePath}, size: ${fileSize} bytes`);
+      } catch (downloadError: any) {
+        console.error('Failed to download PDF from Invoice Ninja:', downloadError.message);
+        throw new Error(`PDF download failed: ${downloadError.message}`);
+      }
       
       // Add to project files in database (legacy table with required fileUrl)
       const fileRecord = await storage.createFile({
         projectId: parseInt(projectId),
-        fileUrl: null, // Не используем прямые URL, только API
+        fileUrl: `/api/files/${fileName}`, // Используем API URL для совместимости
         fileName: fileName,
         fileType: 'application/pdf'
       });
