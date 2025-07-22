@@ -1303,6 +1303,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: 'У проекта нет счета для скачивания' });
       }
       
+      // Если у проекта есть прямая ссылка на Invoice Ninja, извлечем ID из неё
+      let invoiceId = null;
+      if (project.invoiceUrl && project.invoiceUrl.includes('invoices/')) {
+        const urlParts = project.invoiceUrl.split('invoices/');
+        if (urlParts.length > 1) {
+          invoiceId = urlParts[1]; // Получаем ID из URL
+          console.log(`Extracted invoice ID from URL: ${invoiceId}`);
+        }
+      }
+      
       console.log(`Processing PDF download for project ${projectId}, invoice ${project.invoiceNumber}`);
       
       // Get firm for Invoice Ninja credentials  
@@ -1331,15 +1341,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log(`Attempting to download PDF for invoice: ${project.invoiceNumber}`);
       
       try {
-        // Получаем ID счета из Invoice Ninja
-        const invoices = await invoiceNinja.getInvoices();
-        const invoice = invoices.find((inv: any) => inv.number === project.invoiceNumber);
+        let invoice = null;
         
-        if (!invoice) {
-          throw new Error(`Invoice ${project.invoiceNumber} not found in Invoice Ninja`);
+        // Если у нас есть ID из URL, используем его напрямую
+        if (invoiceId) {
+          console.log(`Using invoice ID from URL: ${invoiceId}`);
+          invoice = { id: invoiceId, number: project.invoiceNumber };
+        } else {
+          // Получаем ID счета из Invoice Ninja
+          const invoices = await invoiceNinja.getInvoices();
+          console.log(`Looking for invoice number: ${project.invoiceNumber}`);
+          
+          // Пробуем найти счет по разным полям
+          invoice = invoices.find((inv: any) => inv.number === project.invoiceNumber);
+          if (!invoice) {
+            invoice = invoices.find((inv: any) => inv.invoice_number === project.invoiceNumber);
+          }
+          if (!invoice) {
+            // Пробуем найти по частичному совпадению номера
+            invoice = invoices.find((inv: any) => 
+              (inv.number && inv.number.includes(project.invoiceNumber)) ||
+              (inv.invoice_number && inv.invoice_number.includes(project.invoiceNumber))
+            );
+          }
+          
+          if (!invoice) {
+            console.log('Available invoice numbers:', invoices.map((inv: any) => inv.number || inv.invoice_number).slice(0, 10));
+            throw new Error(`Invoice ${project.invoiceNumber} not found in Invoice Ninja. Available invoices: ${invoices.slice(0, 5).map((inv: any) => inv.number || inv.invoice_number).join(', ')}`);
+          }
         }
 
-        console.log(`Found invoice in Invoice Ninja: ${invoice.id}, number: ${invoice.number}`);
+        console.log(`Found invoice in Invoice Ninja: ${invoice.id}, number: ${invoice.number || project.invoiceNumber}`);
         
         // Скачиваем PDF счета
         const pdfBuffer = await invoiceNinja.downloadInvoicePDF(invoice.id);

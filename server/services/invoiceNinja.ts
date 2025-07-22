@@ -442,7 +442,12 @@ export class InvoiceNinjaService {
       console.log(`Headers:`, this.getHeaders());
       
       const response = await axios.get(url, { headers: this.getHeaders() });
-      return response.data.data || [];
+      const invoices = response.data.data || [];
+      console.log(`Found ${invoices.length} invoices in Invoice Ninja`);
+      if (invoices.length > 0) {
+        console.log('Invoice numbers found:', invoices.map((inv: any) => inv.number || inv.invoice_number).slice(0, 10));
+      }
+      return invoices;
     } catch (error: any) {
       console.error('Error fetching invoices from Invoice Ninja:', error.response?.data || error.message);
       console.error('URL attempted:', `${this.baseUrl}/api/v1/invoices`);
