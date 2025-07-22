@@ -1020,7 +1020,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
               
               // Обновляем Google Calendar события при изменении дат работ
               try {
-                const { googleCalendarService } = require('../services/googleCalendar');
                 await googleCalendarService.updateProjectDates(projectId, currentProject.crewId, {
                   workStartDate: key === 'workStartDate' ? newValue : currentProject.workStartDate,
                   workEndDate: key === 'workEndDate' ? newValue : currentProject.workEndDate
