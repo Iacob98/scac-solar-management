@@ -129,8 +129,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Set session
       if (req.session) {
-        req.session.userId = userId;
-        req.session.user = {
+        (req.session as any).userId = userId;
+        (req.session as any).user = {
           claims: {
             sub: userId,
             email: user.email,
@@ -433,7 +433,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       // Check if user has access to this firm
-      if (user.role !== 'admin') {
+      if (user && user.role !== 'admin') {
         const hasAccess = await storage.hasUserFirmAccess(userId, firmId);
         if (!hasAccess) {
           return res.status(403).json({ message: 'Access denied' });
@@ -1194,7 +1194,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           projectId: service.projectId,
           userId,
           changeType: 'info_update',
-          description: `Добавлена новая услуга: ${service.productName || service.productKey}`,
+          description: `Добавлена новая услуга: ${service.description || service.productKey}`,
         });
       }
       
@@ -1228,7 +1228,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           projectId: service.projectId,
           userId,
           changeType: 'info_update',
-          description: `Изменена услуга: ${service.productName || service.productKey}`,
+          description: `Изменена услуга: ${service.description || service.productKey}`,
         });
       }
       
@@ -1255,7 +1255,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           projectId: service.projectId,
           userId,
           changeType: 'info_update',
-          description: `Удалена услуга: ${service.productName || service.productKey}`,
+          description: `Удалена услуга: ${service.description || service.productKey}`,
         });
       }
       
@@ -1795,7 +1795,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       await storage.createProjectHistoryEntry({
         projectId: parseInt(projectId),
         userId,
-        changeType: 'status_changed',
+        changeType: 'status_change',
         description: `Счет отправлен на email ${client.email}`,
         oldValue: project.status,
         newValue: 'invoice_sent'
