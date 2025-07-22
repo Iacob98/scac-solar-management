@@ -97,6 +97,8 @@ export const crewMembers = pgTable("crew_members", {
   phone: varchar("phone"),
   role: varchar("role").default("worker"), // "leader", "worker", "specialist"
   memberEmail: varchar("member_email"), // Email для доступа к календарю
+  googleCalendarId: varchar("google_calendar_id"), // ID календаря Google участника
+  archived: boolean("archived").default(false),
   createdAt: timestamp("created_at").defaultNow(),
 });
 

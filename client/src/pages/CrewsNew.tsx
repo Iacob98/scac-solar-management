@@ -44,6 +44,7 @@ function EditCrewForm({ crew, onUpdate }: { crew: Crew, onUpdate: any }) {
     uniqueNumber: z.string().min(1, 'Уникальный номер обязателен'),
     phone: z.string().optional(),
     memberEmail: z.string().email('Неверный формат email').optional().or(z.literal('')),
+    googleCalendarId: z.string().optional(),
     role: z.enum(['leader', 'worker', 'specialist']).default('worker'),
   });
 
@@ -56,6 +57,7 @@ function EditCrewForm({ crew, onUpdate }: { crew: Crew, onUpdate: any }) {
       uniqueNumber: `WRK-${Date.now().toString().slice(-4)}`,
       phone: '',
       memberEmail: '',
+      googleCalendarId: '',
       role: 'worker',
     },
   });
@@ -134,6 +136,8 @@ function EditCrewForm({ crew, onUpdate }: { crew: Crew, onUpdate: any }) {
         address: '',
         uniqueNumber: `WRK-${Date.now().toString().slice(-4)}`,
         phone: '',
+        memberEmail: '',
+        googleCalendarId: '',
         role: 'worker',
       });
       setShowAddMemberForm(false);
@@ -348,17 +352,37 @@ function EditCrewForm({ crew, onUpdate }: { crew: Crew, onUpdate: any }) {
                   name="memberEmail"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Email для уведомлений</FormLabel>
+                      <FormLabel>Google Email для календаря</FormLabel>
                       <FormControl>
                         <Input 
                           type="email" 
-                          placeholder="user@example.com" 
+                          placeholder="user@gmail.com" 
                           {...field} 
                         />
                       </FormControl>
                       <FormMessage />
                       <p className="text-xs text-gray-500">
-                        На этот email будут приходить уведомления о проектах
+                        Email аккаунта Google для автоматического добавления событий в календарь
+                      </p>
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField
+                  control={memberForm.control}
+                  name="googleCalendarId"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>ID календаря Google (опционально)</FormLabel>
+                      <FormControl>
+                        <Input 
+                          placeholder="primary или calendar@group.calendar.google.com" 
+                          {...field} 
+                        />
+                      </FormControl>
+                      <FormMessage />
+                      <p className="text-xs text-gray-500">
+                        Используйте 'primary' для основного календаря или укажите ID конкретного календаря
                       </p>
                     </FormItem>
                   )}

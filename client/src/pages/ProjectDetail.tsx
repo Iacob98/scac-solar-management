@@ -24,6 +24,7 @@ import ServicesPage from './Services';
 import ProjectHistory from './ProjectHistory';
 import { ProjectShareButton } from '@/components/ProjectShareButton';
 import { ProjectStatusManager } from '@/components/Projects/ProjectStatusManager';
+import { GoogleCalendarWidget } from '@/components/GoogleCalendarWidget';
 
 interface ProjectDetailProps {
   projectId: number;
@@ -627,6 +628,13 @@ export default function ProjectDetail({ projectId, selectedFirm, onBack }: Proje
                 </div>
               </CardContent>
             </Card>
+
+            {/* Google Calendar Integration */}
+            <GoogleCalendarWidget 
+              projectId={project.id}
+              crewId={project.crewId || undefined}
+              projectStatus={project.status}
+            />
 
             {/* Финансовая информация */}
             {project.invoiceNumber && (

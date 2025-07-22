@@ -1,7 +1,7 @@
 import { google } from 'googleapis';
 import { db } from '../db';
-import { googleTokens, calendarLogs, googleCalendarSettings, type GoogleToken, type InsertCalendarLog } from '@shared/schema';
-import { eq, and } from 'drizzle-orm';
+import { googleTokens, calendarLogs, googleCalendarSettings, projects, crewMembers, type GoogleToken, type InsertCalendarLog } from '@shared/schema';
+import { eq, and, isNotNull } from 'drizzle-orm';
 
 export interface CalendarEvent {
   summary: string;
@@ -238,6 +238,109 @@ export class GoogleCalendarService {
       console.error('Error adding calendar user:', error);
       throw new Error('Failed to add user to calendar');
     }
+  }
+
+  /**
+   * Создать событие для участников бригады при назначении проекта
+   */
+  async createProjectEventForCrewMembers(projectId: number, crewId: number): Promise<void> {
+    try {
+      // Получаем данные проекта
+      const [project] = await db
+        .select()
+        .from(projects)
+        .where(eq(projects.id, projectId));
+
+      if (!project) {
+        throw new Error('Project not found');
+      }
+
+      // Получаем участников бригады с Google Calendar ID
+      const members = await db
+        .select()
+        .from(crewMembers)
+        .where(and(
+          eq(crewMembers.crewId, crewId),
+          isNotNull(crewMembers.googleCalendarId)
+        ));
+
+      if (members.length === 0) {
+        console.log('No crew members with Google Calendar access found');
+        return;
+      }
+
+      // Получаем OAuth2 клиента для фирмы
+      const oauth2Client = await this.getAuthenticatedClient(project.firmId);
+      const calendar = google.calendar({ version: 'v3', auth: oauth2Client });
+
+      // Создаем событие для каждого участника
+      for (const member of members) {
+        if (member.googleCalendarId) {
+          const eventData = {
+            summary: `Проект: ${project.id} - Установка солнечных панелей`,
+            location: project.installationPersonAddress || 'Адрес установки не указан',
+            description: this.buildProjectEventDescription(project),
+            start: {
+              date: project.workStartDate || project.startDate,
+              timeZone: 'Europe/Berlin'
+            },
+            end: {
+              date: project.workEndDate || project.endDate || project.workStartDate || project.startDate,
+              timeZone: 'Europe/Berlin'
+            },
+            colorId: '9', // Синий цвет для рабочих событий
+          };
+
+          try {
+            await calendar.events.insert({
+              calendarId: member.googleCalendarId,
+              requestBody: eventData,
+            });
+
+            console.log(`Event created for crew member ${member.firstName} ${member.lastName} (${member.googleCalendarId})`);
+          } catch (memberError) {
+            console.warn(`Failed to create event for member ${member.firstName} ${member.lastName}:`, memberError);
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Error creating project events for crew members:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Создать описание события для проекта
+   */
+  private buildProjectEventDescription(project: any): string {
+    const parts = [
+      `Проект ID: ${project.id}`,
+      `Статус: ${project.status}`,
+    ];
+
+    if (project.installationPersonFirstName || project.installationPersonLastName) {
+      const name = [project.installationPersonFirstName, project.installationPersonLastName]
+        .filter(Boolean).join(' ');
+      parts.push(`Клиент: ${name}`);
+    }
+
+    if (project.installationPersonPhone) {
+      parts.push(`Телефон: ${project.installationPersonPhone}`);
+    }
+
+    if (project.equipmentExpectedDate) {
+      parts.push(`Ожидание оборудования: ${project.equipmentExpectedDate}`);
+    }
+
+    if (project.equipmentArrivedDate) {
+      parts.push(`Оборудование поступило: ${project.equipmentArrivedDate}`);
+    }
+
+    if (project.notes) {
+      parts.push(`Примечания: ${project.notes}`);
+    }
+
+    return parts.join('\n');
   }
 
   /**

@@ -21,8 +21,10 @@ import { z } from "zod";
 import fileRoutes from "./routes/fileRoutes";
 import googleCalendarRoutes from "./routes/googleCalendar";
 import emailNotificationRoutes from "./routes/emailNotifications";
+import calendarDemoRoutes from "./routes/calendarDemo";
 import { fileStorageService } from "./storage/fileStorage";
 import { emailNotificationService } from "./services/emailNotifications";
+import { googleCalendarService } from "./services/googleCalendar";
 
 // Admin role check middleware
 const isAdmin = async (req: any, res: any, next: any) => {
@@ -84,6 +86,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   // Email notification routes
   app.use('/api/notifications', emailNotificationRoutes);
+  app.use('/api/calendar-demo', calendarDemoRoutes);
 
   // Test endpoint for history entries
   app.get('/api/test-history', isAuthenticated, async (req: any, res) => {
@@ -1021,13 +1024,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
             changeType = 'assignment_change';
             description = `Команда изменена`;
             
-            // Отправляем email уведомление новой бригаде
+            // Создаем события в Google Calendar для участников бригады
             if (newValue && newValue !== oldValue) {
               try {
-                await emailNotificationService.sendProjectAssignmentNotification(projectId, newValue);
-                console.log(`Email notification sent for project assignment: project ${projectId} to crew ${newValue}`);
-              } catch (emailError) {
-                console.warn(`Failed to send email notification for project assignment:`, emailError);
+                await googleCalendarService.createProjectEventForCrewMembers(projectId, newValue);
+                console.log(`Google Calendar events created for project assignment: project ${projectId} to crew ${newValue}`);
+              } catch (calendarError) {
+                console.warn(`Failed to create Google Calendar events for project assignment:`, calendarError);
               }
             }
           } else {
