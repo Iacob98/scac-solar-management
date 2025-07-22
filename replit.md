@@ -231,3 +231,18 @@ The application follows a monolithic architecture with clear separation between 
 - Added /google-setup page for OAuth configuration and status monitoring
 - Calendar widget component for project details page with real event creation
 - System successfully creates events in user's actual Google Calendar
+
+### Postmark Email Integration (July 2025)
+- Implemented Postmark email service integration for sending invoices to clients
+- Added Postmark configuration fields to firms schema (postmarkServerToken, postmarkFromEmail, postmarkMessageStream)
+- Created comprehensive FirmEdit.tsx component for managing firm settings including Postmark configuration
+- Added email sending functionality for invoices with PDF attachments
+- Created new project statuses: 'send_invoice' and 'invoice_sent' for email workflow
+- Implemented test email functionality to verify Postmark configuration
+- Added send invoice button in ProjectDetail page that appears when invoice is created and client has email
+- API endpoints created: /api/postmark/test for testing and /api/invoice/send-email/:projectId for sending invoices
+- Integrated with existing invoice PDF download functionality to attach PDFs to emails
+- Email templates created in German language with professional formatting
+- Automatic project status update and history tracking when invoices are sent
+- Fixed TypeScript errors in storage.ts by adding missing Postmark fields to getFirmsByUserId method
+- Added edit button to FirmsManagement page for easy access to firm configuration

@@ -217,6 +217,10 @@ export class DatabaseStorage implements IStorage {
         taxId: firms.taxId,
         logoUrl: firms.logoUrl,
         createdAt: firms.createdAt,
+        gcalMasterId: firms.gcalMasterId,
+        postmarkServerToken: firms.postmarkServerToken,
+        postmarkFromEmail: firms.postmarkFromEmail,
+        postmarkMessageStream: firms.postmarkMessageStream,
       })
       .from(firms)
       .innerJoin(userFirms, eq(firms.id, userFirms.firmId))
@@ -226,6 +230,20 @@ export class DatabaseStorage implements IStorage {
   async createFirm(firm: InsertFirm): Promise<Firm> {
     const [newFirm] = await db.insert(firms).values(firm).returning();
     return newFirm;
+  }
+
+  async updateFirm(firmId: string, firmData: Partial<InsertFirm>): Promise<Firm> {
+    const [updated] = await db
+      .update(firms)
+      .set(firmData)
+      .where(eq(firms.id, firmId))
+      .returning();
+    
+    if (!updated) {
+      throw new Error("Firm not found");
+    }
+    
+    return updated;
   }
 
   async assignUserToFirm(userId: string, firmId: string): Promise<void> {
@@ -710,14 +728,6 @@ export class DatabaseStorage implements IStorage {
       .from(users)
       .innerJoin(userFirms, eq(users.id, userFirms.userId))
       .where(eq(userFirms.firmId, firmId));
-  }
-
-  async createProjectHistoryEntry(entry: InsertProjectHistory): Promise<ProjectHistory> {
-    const [historyEntry] = await db
-      .insert(projectHistory)
-      .values(entry)
-      .returning();
-    return historyEntry;
   }
 
   // New File Storage methods

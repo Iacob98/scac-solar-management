@@ -50,6 +50,10 @@ export const firms = pgTable("firms", {
   taxId: varchar("tax_id"),
   logoUrl: varchar("logo_url"),
   gcalMasterId: varchar("gcal_master_id"), // ID корпоративного календаря фирмы
+  // Postmark integration fields
+  postmarkServerToken: varchar("postmark_server_token"),
+  postmarkFromEmail: varchar("postmark_from_email"),
+  postmarkMessageStream: varchar("postmark_message_stream").default("transactional"),
   createdAt: timestamp("created_at").defaultNow(),
 });
 
@@ -111,7 +115,7 @@ export const projects = pgTable("projects", {
   crewId: integer("crew_id").references(() => crews.id),
   startDate: date("start_date"),
   endDate: date("end_date"),
-  status: varchar("status", { enum: ["planning", "equipment_waiting", "equipment_arrived", "work_scheduled", "work_in_progress", "work_completed", "invoiced", "paid"] })
+  status: varchar("status", { enum: ["planning", "equipment_waiting", "equipment_arrived", "work_scheduled", "work_in_progress", "work_completed", "invoiced", "send_invoice", "invoice_sent", "paid"] })
     .notNull()
     .default("planning"),
   teamNumber: varchar("team_number"),

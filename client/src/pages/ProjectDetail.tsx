@@ -9,7 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { ArrowLeft, FileText, Users, Package, Clock, Euro, Calendar, Building2, Phone, History, Star, Plus, Upload, Image, Trash2, Eye, MessageSquare, Download } from 'lucide-react';
+import { ArrowLeft, FileText, Users, Package, Clock, Euro, Calendar, Building2, Phone, History, Star, Plus, Upload, Image, Trash2, Eye, MessageSquare, Download, Send } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -41,6 +41,8 @@ const statusLabels = {
   work_in_progress: 'Работы в процессе',
   work_completed: 'Работы завершены',
   invoiced: 'Счет выставлен',
+  send_invoice: 'Отправить счет',
+  invoice_sent: 'Счет отправлен',
   paid: 'Оплачен'
 };
 
@@ -52,6 +54,8 @@ const statusColors = {
   work_in_progress: 'bg-orange-100 text-orange-800',
   work_completed: 'bg-emerald-100 text-emerald-800',
   invoiced: 'bg-indigo-100 text-indigo-800',
+  send_invoice: 'bg-purple-100 text-purple-800',
+  invoice_sent: 'bg-cyan-100 text-cyan-800',
   paid: 'bg-gray-100 text-gray-800'
 };
 
@@ -354,6 +358,25 @@ export default function ProjectDetail({ projectId, selectedFirm, onBack }: Proje
       toast({
         title: 'Ошибка',
         description: error.message || 'Не удалось скачать PDF счета',
+        variant: 'destructive'
+      });
+    },
+  });
+
+  const sendInvoiceEmailMutation = useMutation({
+    mutationFn: () => apiRequest(`/api/invoice/send-email/${projectId}`, 'POST'),
+    onSuccess: (response: any) => {
+      queryClient.invalidateQueries({ queryKey: ['/api/projects', projectId] });
+      queryClient.invalidateQueries({ queryKey: ['/api/projects', projectId, 'history'] });
+      toast({ 
+        title: 'Успешно', 
+        description: response.message || 'Счет отправлен клиенту по email'
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: 'Ошибка',
+        description: error.message || 'Не удалось отправить счет',
         variant: 'destructive'
       });
     },
@@ -692,6 +715,25 @@ export default function ProjectDetail({ projectId, selectedFirm, onBack }: Proje
                       {downloadInvoicePdfMutation.isPending ? 'Скачивание...' : 'Скачать PDF'}
                     </Button>
                   </div>
+                  
+                  {project.status === 'invoiced' && client?.email && (
+                    <Button 
+                      variant="default" 
+                      size="sm" 
+                      className="w-full mt-2"
+                      onClick={() => sendInvoiceEmailMutation.mutate()}
+                      disabled={sendInvoiceEmailMutation.isPending}
+                    >
+                      <Send className="h-4 w-4 mr-2" />
+                      {sendInvoiceEmailMutation.isPending ? 'Отправка...' : 'Отправить счет клиенту'}
+                    </Button>
+                  )}
+                  
+                  {project.status === 'invoiced' && !client?.email && (
+                    <p className="text-sm text-amber-600 mt-2">
+                      У клиента не указан email адрес
+                    </p>
+                  )}
                 </CardContent>
               </Card>
             )}

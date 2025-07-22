@@ -32,9 +32,10 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Plus, Building, ExternalLink, Edit, Users, UserPlus, UserMinus } from 'lucide-react';
+import { Plus, Building, ExternalLink, Edit, Users, UserPlus, UserMinus, Pencil } from 'lucide-react';
 import type { Firm, User } from '@shared/schema';
 import { MainLayout } from '@/components/Layout/MainLayout';
+import { useLocation } from 'wouter';
 
 // Schema for creating a new firm
 const createFirmSchema = z.object({
@@ -50,6 +51,7 @@ type CreateFirmInput = z.infer<typeof createFirmSchema>;
 
 export default function FirmsManagement() {
   const { toast } = useToast();
+  const [, setLocation] = useLocation();
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [isTestingConnection, setIsTestingConnection] = useState(false);
   const [isUsersDialogOpen, setIsUsersDialogOpen] = useState(false);
@@ -451,14 +453,24 @@ export default function FirmsManagement() {
                 <p className="text-xs text-gray-500">
                   Создана: {new Date(firm.createdAt).toLocaleDateString('ru-RU')}
                 </p>
-                <Button 
-                  variant="outline" 
-                  size="sm"
-                  onClick={() => handleManageUsers(firm)}
-                >
-                  <Users className="h-4 w-4 mr-2" />
-                  Управление пользователями
-                </Button>
+                <div className="flex space-x-2">
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => setLocation(`/admin/firms/${firm.id}/edit`)}
+                  >
+                    <Pencil className="h-4 w-4 mr-2" />
+                    Редактировать
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => handleManageUsers(firm)}
+                  >
+                    <Users className="h-4 w-4 mr-2" />
+                    Пользователи
+                  </Button>
+                </div>
               </div>
             </CardContent>
           </Card>

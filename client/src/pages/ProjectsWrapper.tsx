@@ -166,12 +166,37 @@ function ProjectsList({ selectedFirm, onViewProject, onManageServices }: { selec
 
   const createInvoiceMutation = useMutation({
     mutationFn: (projectId: number) => apiRequest('/api/invoice/create', 'POST', { projectId }),
-    onSuccess: (data: any) => {
+    onSuccess: async (data: any, projectId: number) => {
       queryClient.invalidateQueries({ queryKey: ['/api/projects', selectedFirm] });
       toast({ 
         title: 'Счет создан успешно',
         description: `Счет №${data.invoiceNumber} создан в Invoice Ninja`
       });
+      
+      // Автоматически скачиваем PDF
+      try {
+        const response = await apiRequest(`/api/invoice/download-pdf/${projectId}`, 'POST');
+        const result = await response.json();
+        
+        if (result.success) {
+          // Получаем файл и скачиваем его
+          const fileResponse = await fetch(`/api/files/${result.fileId}`);
+          const blob = await fileResponse.blob();
+          const url = window.URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = `invoice_${data.invoiceNumber}.pdf`;
+          a.click();
+          window.URL.revokeObjectURL(url);
+          
+          toast({
+            title: 'PDF загружен',
+            description: 'Счет автоматически сохранен в загрузки'
+          });
+        }
+      } catch (error) {
+        console.error('Ошибка при загрузке PDF:', error);
+      }
     },
     onError: (error: any) => {
       toast({

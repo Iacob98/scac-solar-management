@@ -3,6 +3,7 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { setupAuth, isAuthenticated } from "./replitAuth";
 import { InvoiceNinjaService } from "./services/invoiceNinja";
+import { PostmarkService } from "./services/postmark";
 import { db } from "./db";
 import { firms, projects, projectHistory, projectNotes, fileStorage } from "@shared/schema";
 import { eq } from "drizzle-orm";
@@ -416,6 +417,62 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error creating firm:", error);
       res.status(500).json({ message: "Failed to create firm" });
+    }
+  });
+
+  app.get('/api/firms/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const user = await storage.getUser(userId);
+      const firmId = req.params.id;
+      
+      const firm = await storage.getFirmById(firmId);
+      
+      if (!firm) {
+        return res.status(404).json({ message: 'Firm not found' });
+      }
+      
+      // Check if user has access to this firm
+      if (user.role !== 'admin') {
+        const hasAccess = await storage.hasUserFirmAccess(userId, firmId);
+        if (!hasAccess) {
+          return res.status(403).json({ message: 'Access denied' });
+        }
+      }
+      
+      res.json(firm);
+    } catch (error) {
+      console.error('Error fetching firm:', error);
+      res.status(500).json({ message: 'Failed to fetch firm' });
+    }
+  });
+
+  app.patch('/api/firms/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const user = await storage.getUser(userId);
+      
+      if (!user || user.role !== 'admin') {
+        return res.status(403).json({ message: 'Only admins can update firms' });
+      }
+      
+      const firmId = req.params.id;
+      const updateData = {
+        name: req.body.name,
+        invoiceNinjaUrl: req.body.invoiceNinjaUrl,
+        token: req.body.token,
+        address: req.body.address,
+        taxId: req.body.taxId,
+        postmarkServerToken: req.body.postmarkServerToken,
+        postmarkFromEmail: req.body.postmarkFromEmail,
+        postmarkMessageStream: req.body.postmarkMessageStream,
+      };
+      
+      const updatedFirm = await storage.updateFirm(firmId, updateData);
+      res.json(updatedFirm);
+    } catch (error) {
+      console.error('Error updating firm:', error);
+      res.status(500).json({ message: 'Failed to update firm' });
     }
   });
 
@@ -1571,7 +1628,135 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Test Postmark connection
+  app.post('/api/postmark/test', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const user = await storage.getUser(userId);
+      
+      if (!user || user.role !== 'admin') {
+        return res.status(403).json({ message: "Access denied" });
+      }
 
+      const { token, fromEmail, messageStream } = req.body;
+      
+      if (!token || !fromEmail) {
+        return res.status(400).json({ message: "Token and from email are required" });
+      }
+
+      const postmark = new PostmarkService(token);
+      await postmark.sendTestEmail(fromEmail, user.email || fromEmail);
+      
+      res.json({ 
+        success: true, 
+        email: user.email || fromEmail,
+        message: `Тестовое письмо отправлено на ${user.email || fromEmail}` 
+      });
+    } catch (error: any) {
+      console.error("Error testing Postmark:", error);
+      res.status(400).json({ 
+        message: error.message || "Failed to send test email" 
+      });
+    }
+  });
+
+  // Send invoice by email
+  app.post('/api/invoice/send-email/:projectId', isAuthenticated, async (req: any, res) => {
+    try {
+      const { projectId } = req.params;
+      const userId = req.user.claims.sub;
+      
+      const project = await storage.getProjectById(parseInt(projectId));
+      if (!project) {
+        return res.status(404).json({ message: "Project not found" });
+      }
+
+      if (!project.invoiceNumber) {
+        return res.status(400).json({ message: "Project doesn't have an invoice" });
+      }
+
+      // Get firm details
+      const firm = await storage.getFirmById(project.firmId);
+      if (!firm) {
+        return res.status(404).json({ message: "Firm not found" });
+      }
+
+      if (!firm.postmarkServerToken || !firm.postmarkFromEmail) {
+        return res.status(400).json({ message: "Postmark не настроен для этой фирмы" });
+      }
+
+      // Get client details
+      const client = await storage.getClientById(project.clientId);
+      if (!client) {
+        return res.status(404).json({ message: "Client not found" });
+      }
+
+      if (!client.email) {
+        return res.status(400).json({ message: "У клиента не указан email" });
+      }
+
+      // Get invoice details
+      const invoice = await storage.getInvoiceByProjectId(parseInt(projectId));
+      if (!invoice) {
+        return res.status(404).json({ message: "Invoice not found in database" });
+      }
+
+      // Try to get PDF file
+      let pdfBase64: string | undefined;
+      const files = await storage.getFilesByProjectId(parseInt(projectId));
+      const pdfFile = files.find(f => f.fileName?.includes('invoice') && f.fileName?.endsWith('.pdf'));
+      
+      if (pdfFile && pdfFile.fileName) {
+        try {
+          const filePath = path.join(process.cwd(), 'uploads', pdfFile.fileName);
+          if (fs.existsSync(filePath)) {
+            const pdfBuffer = fs.readFileSync(filePath);
+            pdfBase64 = pdfBuffer.toString('base64');
+          }
+        } catch (error) {
+          console.error('Error reading PDF file:', error);
+        }
+      }
+
+      // Send email with Postmark
+      const postmark = new PostmarkService(firm.postmarkServerToken);
+      await postmark.sendInvoiceEmail({
+        from: firm.postmarkFromEmail,
+        to: client.email,
+        invoiceNumber: project.invoiceNumber,
+        clientName: client.name,
+        amount: new Intl.NumberFormat('de-DE', { 
+          style: 'currency', 
+          currency: 'EUR' 
+        }).format(Number(invoice.totalAmount)),
+        pdfBase64,
+        messageStream: firm.postmarkMessageStream || 'transactional',
+      });
+
+      // Update project status
+      await storage.updateProjectStatus(parseInt(projectId), 'invoice_sent');
+
+      // Add history entry
+      await storage.createProjectHistoryEntry({
+        projectId: parseInt(projectId),
+        userId,
+        changeType: 'status_changed',
+        description: `Счет отправлен на email ${client.email}`,
+        oldValue: project.status,
+        newValue: 'invoice_sent'
+      });
+
+      res.json({ 
+        success: true, 
+        message: `Счет успешно отправлен на ${client.email}` 
+      });
+    } catch (error: any) {
+      console.error("Error sending invoice email:", error);
+      res.status(500).json({ 
+        message: error.message || "Failed to send invoice email" 
+      });
+    }
+  });
 
   // Invoice Ninja catalog routes
   app.get('/api/catalog/products', isAuthenticated, async (req: any, res) => {

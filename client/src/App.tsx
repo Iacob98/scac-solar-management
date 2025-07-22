@@ -19,6 +19,7 @@ import CrewsNew from "@/pages/CrewsNew";
 import Invoices from "@/pages/Invoices";
 import Users from "@/pages/admin/Users";
 import FirmsManagement from "@/pages/admin/FirmsManagement";
+import FirmEdit from "@/pages/FirmEdit";
 import Settings from "@/pages/Settings";
 import Calendar from "@/pages/Calendar";
 import CalendarTest from "@/pages/CalendarTest";
@@ -61,6 +62,7 @@ function Router() {
       <Route path="/settings" component={() => <ProtectedRoute component={Settings} />} />
       <Route path="/calendar-test" component={() => <ProtectedRoute component={CalendarTest} />} />
       <Route path="/admin/firms" component={() => <ProtectedRoute component={FirmsManagement} />} />
+      <Route path="/admin/firms/:id/edit" component={() => <ProtectedRoute component={FirmEdit} />} />
       <Route path="/admin/users" component={() => <ProtectedRoute component={Users} />} />
       <Route component={NotFound} />
     </Switch>
