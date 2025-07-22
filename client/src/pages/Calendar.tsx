@@ -2,9 +2,10 @@ import { useQuery } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Calendar as CalendarIcon, Users, MapPin, Clock, Phone, AlertCircle } from 'lucide-react';
+import { Calendar as CalendarIcon, Users, MapPin, Clock, Phone, AlertCircle, ExternalLink } from 'lucide-react';
 import { useState } from 'react';
 import { MainLayout } from '@/components/Layout/MainLayout';
+import { useLocation } from 'wouter';
 
 interface Project {
   id: number;
@@ -35,6 +36,7 @@ interface CalendarEvent {
 
 export default function Calendar() {
   const [currentWeek, setCurrentWeek] = useState(new Date());
+  const [, setLocation] = useLocation();
 
   // Получаем firm ID из localStorage для запросов
   const selectedFirmId = localStorage.getItem('selectedFirmId');
@@ -183,7 +185,7 @@ export default function Calendar() {
               return (
                 <div
                   key={index}
-                  className={`min-h-[200px] border rounded-lg p-3 ${
+                  className={`min-h-[250px] border rounded-lg p-3 ${
                     isToday ? 'bg-blue-50 border-blue-200' : 'bg-white border-gray-200'
                   }`}
                 >
@@ -198,18 +200,27 @@ export default function Calendar() {
                   
                   <div className="space-y-2">
                     {events.map((event, eventIndex) => (
-                      <Card key={eventIndex} className="p-2 bg-white shadow-sm border-l-4 border-blue-500">
-                        <div className="text-xs">
-                          <div className="flex items-center justify-between mb-1">
-                            <span className="font-semibold">
+                      <Card 
+                        key={eventIndex} 
+                        className={`p-3 cursor-pointer hover:shadow-md transition-shadow border-l-4 ${
+                          event.type === 'start' ? 'border-l-green-500 bg-green-50 hover:bg-green-100' :
+                          event.type === 'end' ? 'border-l-blue-500 bg-blue-50 hover:bg-blue-100' :
+                          'border-l-orange-500 bg-orange-50 hover:bg-orange-100'
+                        }`}
+                        onClick={() => setLocation(`/projects/${event.project.id}`)}
+                      >
+                        <div className="text-sm">
+                          <div className="flex items-center justify-between mb-2">
+                            <span className="font-semibold text-gray-900 truncate">
                               {getEventTypeIcon(event.type)} Проект #{event.project.id}
                             </span>
-                            <Badge className={getStatusColor(event.project.status)} variant="secondary">
-                              {event.project.status === 'planning' && 'Планирование'}
-                              {event.project.status === 'work_in_progress' && 'В работе'}
-                              {event.project.status === 'equipment_ready' && 'Готово'}
-                              {event.project.status === 'equipment_delayed' && 'Задержка'}
-                            </Badge>
+                            <div className="flex items-center space-x-1">
+                              <Badge variant="outline" className="text-xs">
+                                {event.type === 'start' ? 'Начало' :
+                                 event.type === 'end' ? 'Конец' : 'Работа'}
+                              </Badge>
+                              <ExternalLink className="h-3 w-3 text-gray-400" />
+                            </div>
                           </div>
                           
                           <div className="flex items-center text-gray-600 mb-1">
