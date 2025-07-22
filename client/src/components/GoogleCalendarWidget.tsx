@@ -29,19 +29,19 @@ export function GoogleCalendarWidget({ projectId, crewId, projectStatus }: Googl
 
     setLoading(true);
     try {
-      const result = await apiRequest(`/api/calendar-demo/create-demo-events/${projectId}/${crewId}`, 'POST');
+      const result = await apiRequest(`/api/calendar-demo/create-real-events/${projectId}/${crewId}`, 'POST');
 
       setLastResult(result);
       toast({
         title: "Успешно",
-        description: result.message,
+        description: result.message || "Календарные события созданы в Google Calendar",
         variant: "default"
       });
     } catch (error) {
       console.error('Error creating calendar events:', error);
       toast({
         title: "Ошибка",
-        description: "Не удалось создать календарные события",
+        description: "Не удалось создать календарные события в Google Calendar",
         variant: "destructive"
       });
     } finally {

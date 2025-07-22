@@ -270,7 +270,23 @@ export class GoogleCalendarService {
       }
 
       // Получаем OAuth2 клиента для фирмы
-      const oauth2Client = await this.getAuthenticatedClient(project.firmId);
+      const oauth2Client = await this.getOAuth2Client(project.firmId);
+      
+      // Получаем токены для аутентификации
+      const [token] = await db
+        .select()
+        .from(googleTokens)
+        .where(eq(googleTokens.firmId, project.firmId));
+      
+      if (!token) {
+        throw new Error('Google Calendar not authorized for this firm');
+      }
+      
+      oauth2Client.setCredentials({
+        access_token: token.accessToken,
+        refresh_token: token.refreshToken
+      });
+      
       const calendar = google.calendar({ version: 'v3', auth: oauth2Client });
 
       // Создаем событие для каждого участника

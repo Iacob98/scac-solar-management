@@ -23,6 +23,7 @@ import Settings from "@/pages/Settings";
 import CalendarTest from "@/pages/CalendarTest";
 import { FileStorage } from "@/pages/FileStorage";
 import GoogleCalendar from "@/pages/GoogleCalendar";
+import GoogleCalendarSetup from "@/pages/GoogleCalendarSetup";
 import NotFound from "@/pages/not-found";
 
 function ProtectedRoute({ component: Component, ...props }: any) {
@@ -54,6 +55,7 @@ function Router() {
       <Route path="/files" component={() => <ProtectedRoute component={FileStorage} />} />
       <Route path="/calendar" component={() => <ProtectedRoute component={GoogleCalendar} />} />
       <Route path="/google-calendar" component={() => <ProtectedRoute component={GoogleCalendar} />} />
+      <Route path="/google-setup" component={() => <ProtectedRoute component={GoogleCalendarSetup} />} />
       <Route path="/settings" component={() => <ProtectedRoute component={Settings} />} />
       <Route path="/calendar-test" component={() => <ProtectedRoute component={CalendarTest} />} />
       <Route path="/admin/firms" component={() => <ProtectedRoute component={FirmsManagement} />} />

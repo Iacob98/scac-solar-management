@@ -22,6 +22,7 @@ import fileRoutes from "./routes/fileRoutes";
 import googleCalendarRoutes from "./routes/googleCalendar";
 import emailNotificationRoutes from "./routes/emailNotifications";
 import calendarDemoRoutes from "./routes/calendarDemo";
+import googleRoutes from "./routes/google";
 import { fileStorageService } from "./storage/fileStorage";
 import { emailNotificationService } from "./services/emailNotifications";
 import { googleCalendarService } from "./services/googleCalendar";
@@ -82,7 +83,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.use('/api/files', fileRoutes);
   
   // Google Calendar routes
-  app.use('/api/google', googleCalendarRoutes);
+  app.use('/api/google-calendar', googleCalendarRoutes);
+  app.use('/api/google', googleRoutes);
   
   // Email notification routes
   app.use('/api/notifications', emailNotificationRoutes);
@@ -104,7 +106,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json({ success: true, historyId: result.id });
     } catch (error) {
       console.error('Test history error:', error);
-      res.status(500).json({ error: error.message });
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      res.status(500).json({ error: errorMessage });
     }
   });
 

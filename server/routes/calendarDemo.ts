@@ -1,6 +1,8 @@
 import { Router } from 'express';
 import { requireAuth } from '../middleware/auth';
+import { isAuthenticated } from '../replitAuth';
 import { storage } from '../storage';
+import { googleCalendarService } from '../services/googleCalendar';
 
 const router = Router();
 
@@ -67,6 +69,31 @@ router.post('/create-demo-events/:projectId/:crewId', requireAuth, async (req, r
   } catch (error) {
     console.error('Error creating demo calendar events:', error);
     res.status(500).json({ message: 'Failed to create demo events' });
+  }
+});
+
+// Создать реальные календарные события для проекта и бригады
+router.post('/create-real-events/:projectId/:crewId', isAuthenticated, async (req, res) => {
+  try {
+    const { projectId, crewId } = req.params;
+    
+    const result = await googleCalendarService.createProjectEventForCrewMembers(
+      parseInt(projectId), 
+      parseInt(crewId)
+    );
+    
+    res.json({ 
+      success: true, 
+      message: 'Календарные события успешно созданы в Google Calendar',
+      result 
+    });
+  } catch (error) {
+    console.error('Error creating real calendar events:', error);
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    res.status(500).json({ 
+      success: false, 
+      message: `Ошибка создания календарных событий: ${errorMessage}` 
+    });
   }
 });
 
