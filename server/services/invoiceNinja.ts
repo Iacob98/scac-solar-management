@@ -407,8 +407,22 @@ export class InvoiceNinjaService {
         throw new Error('Invoice not found in Invoice Ninja');
       }
 
-      // Status ID 4 = Paid in Invoice Ninja
-      const isPaid = invoice.status_id === '4' || invoice.balance <= 0;
+      console.log(`Invoice ${invoiceId} status in Invoice Ninja:`, { 
+        status_id: invoice.status_id, 
+        balance: invoice.balance,
+        amount: invoice.amount 
+      });
+
+      // Invoice Ninja v1 статусы:
+      // 1 = Draft (Черновик) - НЕ оплачен
+      // 2 = Sent (Отправлен) - НЕ оплачен  
+      // 3 = Viewed (Просмотрен) - НЕ оплачен
+      // 4 = Paid (Оплачен) - ОПЛАЧЕН
+      // 5 = Partial (Частично оплачен) - НЕ оплачен
+      // 6 = Cancelled (Отменен) - НЕ оплачен
+      
+      // ТОЛЬКО статус 4 означает оплаченный счет в Invoice Ninja
+      const isPaid = invoice.status_id === '4';
       
       return {
         isPaid,
