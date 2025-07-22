@@ -1799,7 +1799,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         htmlBody: `<div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">${htmlBody}</div>`,
         textBody: processTemplate(firm.emailBodyTemplate || 'Уважаемый {{clientName}},\n\nВо вложении находится счет №{{invoiceNumber}} за установку солнечных панелей.\n\nС уважением,\n{{firmName}}'),
         attachments,
-        messageStream: firm.postmarkMessageStream || 'transactional',
+        messageStream: firm.postmarkMessageStream || 'outbound',
       });
 
       // Update project status

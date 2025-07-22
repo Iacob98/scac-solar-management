@@ -58,7 +58,7 @@ export default function FirmEdit() {
       taxId: '',
       postmarkServerToken: '',
       postmarkFromEmail: '',
-      postmarkMessageStream: 'transactional',
+      postmarkMessageStream: 'outbound',
       emailSubjectTemplate: 'Счет №{{invoiceNumber}} от {{firmName}}',
       emailBodyTemplate: 'Уважаемый {{clientName}},\n\nВо вложении находится счет №{{invoiceNumber}} за установку солнечных панелей.\n\nС уважением,\n{{firmName}}',
     },
@@ -74,7 +74,7 @@ export default function FirmEdit() {
         taxId: firm.taxId || '',
         postmarkServerToken: firm.postmarkServerToken || '',
         postmarkFromEmail: firm.postmarkFromEmail || '',
-        postmarkMessageStream: firm.postmarkMessageStream || 'transactional',
+        postmarkMessageStream: firm.postmarkMessageStream || 'outbound',
         emailSubjectTemplate: firm.emailSubjectTemplate || 'Счет №{{invoiceNumber}} от {{firmName}}',
         emailBodyTemplate: firm.emailBodyTemplate || 'Уважаемый {{clientName}},\n\nВо вложении находится счет №{{invoiceNumber}} за установку солнечных панелей.\n\nС уважением,\n{{firmName}}',
       });
@@ -164,7 +164,7 @@ export default function FirmEdit() {
       await testPostmarkMutation.mutateAsync({
         token: values.postmarkServerToken,
         fromEmail: values.postmarkFromEmail,
-        messageStream: values.postmarkMessageStream || 'transactional',
+        messageStream: values.postmarkMessageStream || 'outbound',
         testEmail: testEmailAddress || undefined,
       });
       setShowTestEmailDialog(false);
@@ -371,7 +371,7 @@ export default function FirmEdit() {
                       <FormItem>
                         <FormLabel>Message Stream</FormLabel>
                         <FormControl>
-                          <Input {...field} placeholder="transactional" />
+                          <Input {...field} placeholder="outbound" />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
