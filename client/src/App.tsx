@@ -52,6 +52,7 @@ function Router() {
       <Route path="/invoices" component={() => <ProtectedRoute component={Invoices} />} />
       <Route path="/files" component={() => <ProtectedRoute component={FileStorage} />} />
       <Route path="/calendar" component={() => <ProtectedRoute component={GoogleCalendar} />} />
+      <Route path="/google-calendar" component={() => <ProtectedRoute component={GoogleCalendar} />} />
       <Route path="/settings" component={() => <ProtectedRoute component={Settings} />} />
       <Route path="/admin/firms" component={() => <ProtectedRoute component={FirmsManagement} />} />
       <Route path="/admin/users" component={() => <ProtectedRoute component={Users} />} />
