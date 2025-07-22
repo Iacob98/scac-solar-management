@@ -128,8 +128,29 @@ export function FileList({ projectId }: FileListProps) {
   const handleDownload = (fileId: number, fileName: string) => {
     console.log('Открываем файл:', { fileId, fileName, url: `/api/files/${fileId}` });
     
-    // Прямое открытие в новой вкладке
-    window.open(`/api/files/${fileId}`, '_blank');
+    // Создаем ссылку для навигации к файлу
+    const url = `/api/files/${fileId}`;
+    
+    // Пробуем разные методы открытия
+    try {
+      // Метод 1: window.open
+      const newWindow = window.open(url, '_blank');
+      if (!newWindow || newWindow.closed) {
+        console.log('Popup blocked, trying location.href');
+        // Метод 2: прямая навигация в той же вкладке
+        window.location.href = url;
+      }
+    } catch (error) {
+      console.error('Error opening file:', error);
+      // Метод 3: создание и клик по ссылке
+      const link = document.createElement('a');
+      link.href = url;
+      link.target = '_blank';
+      link.rel = 'noopener noreferrer';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
   };
 
   const handleDelete = (fileId: number) => {

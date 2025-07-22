@@ -180,7 +180,10 @@ router.get('/:fileId', isAuthenticated, async (req, res) => {
       res.set({
         'Content-Type': legacyFile.fileType,
         'Content-Length': fileBuffer.length.toString(),
-        'Content-Disposition': `inline; filename="${encodeURIComponent(legacyFile.fileName)}"`
+        'Content-Disposition': `inline; filename="${encodeURIComponent(legacyFile.fileName)}"`,
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
+        'Pragma': 'no-cache',
+        'Expires': '0'
       });
 
       res.send(fileBuffer);
