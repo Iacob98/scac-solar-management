@@ -20,6 +20,7 @@ import Invoices from "@/pages/Invoices";
 import Users from "@/pages/admin/Users";
 import FirmsManagement from "@/pages/admin/FirmsManagement";
 import Settings from "@/pages/Settings";
+import Calendar from "@/pages/Calendar";
 import CalendarTest from "@/pages/CalendarTest";
 import { FileStorage } from "@/pages/FileStorage";
 import GoogleCalendar from "@/pages/GoogleCalendar";
@@ -53,7 +54,7 @@ function Router() {
       <Route path="/crews" component={() => <ProtectedRoute component={CrewsNew} />} />
       <Route path="/invoices" component={() => <ProtectedRoute component={Invoices} />} />
       <Route path="/files" component={() => <ProtectedRoute component={FileStorage} />} />
-      <Route path="/calendar" component={() => <ProtectedRoute component={GoogleCalendar} />} />
+      <Route path="/calendar" component={() => <ProtectedRoute component={Calendar} />} />
       <Route path="/google-calendar" component={() => <ProtectedRoute component={GoogleCalendar} />} />
       <Route path="/google-setup" component={() => <ProtectedRoute component={GoogleCalendarSetup} />} />
       <Route path="/settings" component={() => <ProtectedRoute component={Settings} />} />

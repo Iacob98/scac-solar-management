@@ -305,6 +305,16 @@ export class GoogleCalendarService {
               timeZone: 'Europe/Berlin'
             },
             colorId: '9', // Синий цвет для рабочих событий
+            attendees: [
+              {
+                email: member.memberEmail,
+                displayName: `${member.firstName} ${member.lastName}`,
+                responseStatus: 'accepted'
+              }
+            ],
+            guestsCanInviteOthers: false,
+            guestsCanModify: false,
+            guestsCanSeeOtherGuests: true
           };
 
           try {
