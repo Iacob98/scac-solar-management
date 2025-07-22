@@ -76,10 +76,13 @@ router.post('/upload', isAuthenticated, upload.single('file'), async (req, res) 
     const fs = await import('fs');
     const path = await import('path');
     
-    // Создаем уникальное имя файла
+    // Создаем уникальное имя файла с правильной кодировкой
     const timestamp = Date.now();
     const fileExtension = path.extname(req.file.originalname);
-    const fileName = `${path.basename(req.file.originalname, fileExtension)}_${timestamp}${fileExtension}`;
+    // Убираем кириллицу из имени файла для избежания проблем с кодировкой
+    const baseName = path.basename(req.file.originalname, fileExtension)
+      .replace(/[^\w\-\.]/g, '_'); // Заменяем все не-ASCII символы на подчеркивания
+    const fileName = `${baseName}_${timestamp}${fileExtension}`;
     const uploadsDir = path.join(process.cwd(), 'uploads');
     const filePath = path.join(uploadsDir, fileName);
 
@@ -95,7 +98,7 @@ router.post('/upload', isAuthenticated, upload.single('file'), async (req, res) 
     const fileRecord: InsertProjectFile = {
       projectId: validatedData.projectId!,
       fileName: fileName,
-      fileUrl: `/uploads/${fileName}`,
+      fileUrl: null, // Не используем прямые URL, только API
       fileType: req.file.mimetype
     };
 
@@ -124,7 +127,7 @@ router.post('/upload', isAuthenticated, upload.single('file'), async (req, res) 
       id: savedFile.id,
       projectId: savedFile.projectId,
       fileName: savedFile.fileName,
-      fileUrl: savedFile.fileUrl,
+      fileUrl: `/api/files/${savedFile.id}`, // Используем API URL
       fileType: savedFile.fileType,
       uploadedAt: savedFile.uploadedAt
     });

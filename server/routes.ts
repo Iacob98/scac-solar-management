@@ -1391,10 +1391,9 @@ startxref
       const fileSize = fs.statSync(filePath).size;
       
       // Add to project files in database (legacy table with required fileUrl)
-      const fileUrl = `/uploads/${fileName}`;
       const fileRecord = await storage.createFile({
         projectId: parseInt(projectId),
-        fileUrl: fileUrl,
+        fileUrl: null, // Не используем прямые URL, только API
         fileName: fileName,
         fileType: 'application/pdf'
       });
