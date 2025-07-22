@@ -111,31 +111,73 @@ router.post('/upload', isAuthenticated, upload.single('file'), async (req, res) 
 // Получение файла
 router.get('/:fileId', isAuthenticated, async (req, res) => {
   try {
+    const fileId = parseInt(req.params.fileId);
+    
+    // Сначала пытаемся найти в новой системе файлов
     const fileRecord = await storage.getFileRecord(req.params.fileId);
     
-    if (!fileRecord || fileRecord.isDeleted) {
+    if (fileRecord && !fileRecord.isDeleted) {
+      // Обрабатываем файл из новой системы
+      if (fileRecord.projectId) {
+        const userId = (req.user as any)?.claims?.sub || (req.user as any)?.id;
+        const hasAccess = await storage.hasProjectAccess(userId, fileRecord.projectId);
+        if (!hasAccess) {
+          return res.status(403).json({ message: 'Нет доступа к файлу' });
+        }
+      }
+
+      const fileBuffer = await fileStorageService.getFile(fileRecord.fileName);
+      
+      res.set({
+        'Content-Type': fileRecord.mimeType,
+        'Content-Length': fileRecord.size.toString(),
+        'Content-Disposition': `inline; filename="${encodeURIComponent(fileRecord.originalName)}"`
+      });
+
+      return res.send(fileBuffer);
+    }
+
+    // Если не найден в новой системе, пытаемся найти в legacy таблице
+    const legacyFile = await storage.getFileById(fileId);
+    
+    if (!legacyFile) {
       return res.status(404).json({ message: 'Файл не найден' });
     }
 
-    // Проверяем права доступа к файлу
-    // Если файл связан с проектом, проверяем доступ к проекту
-    if (fileRecord.projectId) {
-      const userId = (req.user as any)?.claims?.sub || (req.user as any)?.id;
-      const hasAccess = await storage.hasProjectAccess(userId, fileRecord.projectId);
-      if (!hasAccess) {
-        return res.status(403).json({ message: 'Нет доступа к файлу' });
-      }
+    // Проверяем права доступа к legacy файлу
+    const userId = (req.user as any)?.claims?.sub || (req.user as any)?.id;
+    const hasAccess = await storage.hasProjectAccess(userId, legacyFile.projectId);
+    if (!hasAccess) {
+      return res.status(403).json({ message: 'Нет доступа к файлу' });
     }
 
-    const fileBuffer = await fileStorageService.getFile(fileRecord.fileName);
+    // Для legacy файлов используем файлы из папки uploads
+    const fs = await import('fs');
+    const path = await import('path');
     
-    res.set({
-      'Content-Type': fileRecord.mimeType,
-      'Content-Length': fileRecord.size.toString(),
-      'Content-Disposition': `inline; filename="${encodeURIComponent(fileRecord.originalName)}"`
-    });
+    try {
+      // Путь к файлу в папке uploads
+      const filePath = path.join(process.cwd(), 'uploads', legacyFile.fileName);
+      
+      // Проверяем существует ли файл
+      if (!fs.existsSync(filePath)) {
+        return res.status(404).json({ message: 'Физический файл не найден' });
+      }
 
-    res.send(fileBuffer);
+      const fileBuffer = fs.readFileSync(filePath);
+      
+      res.set({
+        'Content-Type': legacyFile.fileType,
+        'Content-Length': fileBuffer.length.toString(),
+        'Content-Disposition': `inline; filename="${encodeURIComponent(legacyFile.fileName)}"`
+      });
+
+      res.send(fileBuffer);
+      
+    } catch (fileError) {
+      console.error('Error reading legacy file:', fileError);
+      return res.status(404).json({ message: 'Не удалось прочитать файл' });
+    }
 
   } catch (error: any) {
     console.error('Error downloading file:', error);
@@ -146,7 +188,7 @@ router.get('/:fileId', isAuthenticated, async (req, res) => {
   }
 });
 
-// Получение списка файлов для проекта (используем legacy таблицу)
+// Получение списка файлов для проекта (объединяем legacy и новые файлы)
 router.get('/project/:projectId', isAuthenticated, async (req, res) => {
   try {
     const projectId = parseInt(req.params.projectId);
@@ -159,8 +201,12 @@ router.get('/project/:projectId', isAuthenticated, async (req, res) => {
     }
 
     // Получаем файлы из legacy таблицы project_files
-    const files = await storage.getFilesByProjectId(projectId);
-    res.json(files);
+    const legacyFiles = await storage.getFilesByProjectId(projectId);
+    
+    // Пока используем только legacy файлы, так как новая система требует дополнительной настройки
+    const combinedFiles = legacyFiles;
+
+    res.json(combinedFiles);
 
   } catch (error: any) {
     console.error('Error getting project files:', error);
