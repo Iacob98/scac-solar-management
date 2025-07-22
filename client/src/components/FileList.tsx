@@ -207,7 +207,11 @@ export function FileList({ projectId }: FileListProps) {
                 <Button
                   size="sm"
                   variant="ghost"
-                  onClick={() => handleDownload(file.id, file.fileName)}
+                  onClick={() => {
+                    console.log('Button clicked!', { fileId: file.id, fileName: file.fileName });
+                    handleDownload(file.id, file.fileName);
+                  }}
+                  title="Открыть файл"
                 >
                   <Download className="w-4 h-4" />
                 </Button>
