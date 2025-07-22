@@ -179,6 +179,8 @@ The application follows a monolithic architecture with clear separation between 
 - Added dual-system support for both legacy project_files and new file_storage tables
 - Fixed routing conflicts between fileRoutes.ts and main routes.ts endpoints
 - Implemented proper file reading from uploads folder for legacy PDF invoices
+- Added proper MIME-type detection by file extension for PDF and image files
+- Replaced React Button components with direct HTML links for reliable file opening
 - All file operations (upload, view, delete) now work seamlessly with existing project interface
 - Maintained backward compatibility while preparing foundation for future file system migration
 

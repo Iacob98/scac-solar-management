@@ -225,18 +225,16 @@ export function FileList({ projectId }: FileListProps) {
               </div>
 
               <div className="flex items-center gap-2">
-                <button
-                  onClick={(e) => {
-                    console.log('Raw button clicked!', { fileId: file.id, fileName: file.fileName });
-                    e.preventDefault();
-                    e.stopPropagation();
-                    handleDownload(file.id, file.fileName);
-                  }}
+                <a
+                  href={`/api/files/${file.id}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
                   title="Открыть файл"
-                  className="p-1 hover:bg-gray-200 rounded z-10 relative"
+                  className="p-1 hover:bg-gray-200 rounded z-10 relative inline-block"
+                  onClick={() => console.log('Link clicked!', { fileId: file.id, fileName: file.fileName })}
                 >
                   <Download className="w-4 h-4" />
-                </button>
+                </a>
                 
                 <Button
                   size="sm"
