@@ -20,16 +20,11 @@ interface FileListProps {
 
 interface FileRecord {
   id: number;
-  fileId: string;
-  originalName: string;
-  size: number;
-  category: string;
+  projectId: number;
+  fileUrl: string;
+  fileName: string;
+  fileType: string;
   uploadedAt: string;
-  uploadedBy: string;
-  uploadedByUser?: {
-    firstName: string;
-    lastName: string;
-  };
 }
 
 export function FileList({ projectId }: FileListProps) {
@@ -83,21 +78,12 @@ export function FileList({ projectId }: FileListProps) {
     },
   });
 
-  const getFileIcon = (fileName: string, category: string) => {
+  const getFileIcon = (fileName: string, fileType: string) => {
     const extension = fileName.split('.').pop()?.toLowerCase();
     
-    // Иконка по категории
-    switch (category) {
-      case 'image':
-        return <Image className="w-4 h-4 text-green-600" />;
-      case 'report':
-        return <ClipboardList className="w-4 h-4 text-blue-600" />;
-      case 'invoice':
-        return <Receipt className="w-4 h-4 text-purple-600" />;
-      case 'project_file':
-        return <Folder className="w-4 h-4 text-orange-600" />;
-      default:
-        break;
+    // Иконка по типу файла
+    if (fileType === 'application/pdf') {
+      return <Receipt className="w-4 h-4 text-purple-600" />;
     }
     
     // Иконка по расширению файла
@@ -112,34 +98,21 @@ export function FileList({ projectId }: FileListProps) {
     return <File className="w-4 h-4 text-gray-600" />;
   };
 
-  const getCategoryLabel = (category: string) => {
-    const labels: Record<string, string> = {
-      'project_file': 'Файл проекта',
-      'document': 'Документ',
-      'image': 'Изображение',
-      'report': 'Отчет',
-      'invoice': 'Счет'
-    };
-    return labels[category] || category;
+  const getCategoryLabel = (fileType: string) => {
+    if (fileType === 'application/pdf') return 'PDF документ';
+    if (fileType.startsWith('image/')) return 'Изображение';
+    return 'Файл';
   };
 
-  const getCategoryColor = (category: string) => {
-    const colors: Record<string, string> = {
-      'project_file': 'bg-orange-100 text-orange-800',
-      'document': 'bg-gray-100 text-gray-800',
-      'image': 'bg-green-100 text-green-800',
-      'report': 'bg-blue-100 text-blue-800',
-      'invoice': 'bg-purple-100 text-purple-800'
-    };
-    return colors[category] || 'bg-gray-100 text-gray-800';
+  const getCategoryColor = (fileType: string) => {
+    if (fileType === 'application/pdf') return 'bg-purple-100 text-purple-800';
+    if (fileType.startsWith('image/')) return 'bg-green-100 text-green-800';
+    return 'bg-gray-100 text-gray-800';
   };
 
-  const formatFileSize = (bytes: number) => {
-    if (bytes === 0) return '0 Bytes';
-    const k = 1024;
-    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+  // Для legacy файлов размер неизвестен
+  const formatFileSize = () => {
+    return 'Неизвестно';
   };
 
   const formatDate = (dateString: string) => {
@@ -152,16 +125,16 @@ export function FileList({ projectId }: FileListProps) {
     });
   };
 
-  const handleDownload = (fileId: string, fileName: string) => {
+  const handleDownload = (fileUrl: string, fileName: string) => {
     const link = document.createElement('a');
-    link.href = `/api/files/${fileId}`;
+    link.href = fileUrl;
     link.download = fileName;
     link.click();
   };
 
-  const handleDelete = (fileId: string) => {
+  const handleDelete = (fileId: number) => {
     if (confirm('Вы уверены, что хотите удалить этот файл?')) {
-      deleteMutation.mutate(fileId);
+      deleteMutation.mutate(fileId.toString());
     }
   };
 
@@ -211,26 +184,21 @@ export function FileList({ projectId }: FileListProps) {
               className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border"
             >
               <div className="flex items-center gap-3 flex-1">
-                {getFileIcon(file.originalName, file.category)}
+                {getFileIcon(file.fileName, file.fileType)}
                 
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 mb-1">
                     <p className="font-medium text-gray-900 truncate">
-                      {file.originalName}
+                      {file.fileName}
                     </p>
-                    <Badge className={getCategoryColor(file.category)}>
-                      {getCategoryLabel(file.category)}
+                    <Badge className={getCategoryColor(file.fileType)}>
+                      {getCategoryLabel(file.fileType)}
                     </Badge>
                   </div>
                   
                   <div className="flex items-center gap-4 text-xs text-gray-500">
-                    <span>{formatFileSize(file.size)}</span>
+                    <span>{formatFileSize()}</span>
                     <span>{formatDate(file.uploadedAt)}</span>
-                    {file.uploadedByUser && (
-                      <span>
-                        {file.uploadedByUser.firstName} {file.uploadedByUser.lastName}
-                      </span>
-                    )}
                   </div>
                 </div>
               </div>
@@ -239,7 +207,7 @@ export function FileList({ projectId }: FileListProps) {
                 <Button
                   size="sm"
                   variant="ghost"
-                  onClick={() => handleDownload(file.fileId, file.originalName)}
+                  onClick={() => handleDownload(file.fileUrl, file.fileName)}
                 >
                   <Download className="w-4 h-4" />
                 </Button>
@@ -247,7 +215,7 @@ export function FileList({ projectId }: FileListProps) {
                 <Button
                   size="sm"
                   variant="ghost"
-                  onClick={() => handleDelete(file.fileId)}
+                  onClick={() => handleDelete(file.id)}
                   disabled={deleteMutation.isPending}
                   className="text-red-600 hover:text-red-700"
                 >
