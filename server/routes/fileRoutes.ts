@@ -146,7 +146,7 @@ router.get('/:fileId', isAuthenticated, async (req, res) => {
   }
 });
 
-// Получение списка файлов для проекта
+// Получение списка файлов для проекта (используем legacy таблицу)
 router.get('/project/:projectId', isAuthenticated, async (req, res) => {
   try {
     const projectId = parseInt(req.params.projectId);
@@ -158,7 +158,8 @@ router.get('/project/:projectId', isAuthenticated, async (req, res) => {
       return res.status(403).json({ message: 'Нет доступа к проекту' });
     }
 
-    const files = await storage.getProjectFiles(projectId);
+    // Получаем файлы из legacy таблицы project_files
+    const files = await storage.getFilesByProjectId(projectId);
     res.json(files);
 
   } catch (error: any) {

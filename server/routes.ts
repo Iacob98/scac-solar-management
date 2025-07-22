@@ -4,7 +4,7 @@ import { storage } from "./storage";
 import { setupAuth, isAuthenticated } from "./replitAuth";
 import { InvoiceNinjaService } from "./services/invoiceNinja";
 import { db } from "./db";
-import { firms, projects, projectHistory, projectNotes } from "@shared/schema";
+import { firms, projects, projectHistory, projectNotes, fileStorage } from "@shared/schema";
 import { eq } from "drizzle-orm";
 import { 
   insertFirmSchema, 
