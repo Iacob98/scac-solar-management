@@ -113,23 +113,30 @@ function DraggableEvent({ event, onClick }: DraggableEventProps) {
     <Card 
       ref={setNodeRef}
       style={style}
-      {...listeners}
-      {...attributes}
-      className={`p-2 cursor-move hover:shadow-md transition-shadow border-l-4 ${
+      className={`p-2 hover:shadow-md transition-shadow border-l-4 ${
         event.type === 'start' ? 'border-l-green-500 bg-green-50 hover:bg-green-100' :
         event.type === 'end' ? 'border-l-blue-500 bg-blue-50 hover:bg-blue-100' :
         'border-l-orange-500 bg-orange-50 hover:bg-orange-100'
       } ${isDragging ? 'opacity-50' : ''}`}
     >
+      {/* Drag handle */}
       <div 
-        className="text-xs"
+        {...listeners}
+        {...attributes}
+        className="flex items-center justify-end mb-1 cursor-move"
+      >
+        <Move className="h-3 w-3 text-gray-400" />
+      </div>
+      
+      {/* Clickable content */}
+      <div 
+        className="text-xs cursor-pointer"
         onClick={(e) => {
           e.stopPropagation();
           onClick();
         }}
       >
-        <div className="font-semibold text-gray-900 truncate mb-1 flex items-center">
-          <Move className="h-3 w-3 mr-1 text-gray-400" />
+        <div className="font-semibold text-gray-900 truncate mb-1">
           {event.type === 'start' ? '🚀' : event.type === 'end' ? '✅' : '🔧'} Проект #{event.project.id}
         </div>
         <div className="text-gray-600 mb-1">
