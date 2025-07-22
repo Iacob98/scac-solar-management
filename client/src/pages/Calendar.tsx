@@ -2,12 +2,15 @@ import { useQuery } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Calendar as CalendarIcon, Users, MapPin, Clock, Phone, AlertCircle, ExternalLink, ChevronLeft, ChevronRight, CalendarDays, CalendarRange } from 'lucide-react';
+import { Calendar as CalendarIcon, Users, MapPin, Clock, Phone, AlertCircle, ExternalLink, ChevronLeft, ChevronRight, CalendarDays, CalendarRange, Move } from 'lucide-react';
 import { useState, useMemo } from 'react';
 import { format, addWeeks, subWeeks, startOfWeek, addDays, isSameDay, addMonths, subMonths, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth } from 'date-fns';
 import { ru } from 'date-fns/locale';
 import { MainLayout } from '@/components/Layout/MainLayout';
 import { useLocation } from 'wouter';
+import { DndContext, DragEndEvent, DragOverlay, DragStartEvent, closestCenter, useDraggable, useDroppable } from '@dnd-kit/core';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { toast } from '@/hooks/use-toast';
 
 interface Project {
   id: number;
@@ -38,10 +41,118 @@ interface CalendarEvent {
 
 type CalendarViewType = 'threeDays' | 'week' | 'month';
 
+interface CalendarDayProps {
+  day: Date;
+  dayString: string;
+  events: CalendarEvent[];
+  isToday: boolean;
+  isCurrentMonth: boolean;
+  onEventClick: (event: CalendarEvent) => void;
+}
+
+function CalendarDay({ day, dayString, events, isToday, isCurrentMonth, onEventClick }: CalendarDayProps) {
+  const { setNodeRef } = useDroppable({
+    id: dayString
+  });
+
+  return (
+    <div
+      ref={setNodeRef}
+      className={`min-h-[200px] border rounded-lg p-3 ${
+        isToday ? 'bg-blue-50 border-blue-200' : 
+        isCurrentMonth ? 'bg-white border-gray-200' : 'bg-gray-50 border-gray-100'
+      }`}
+    >
+      <div className="text-center mb-2">
+        <div className="font-semibold text-xs text-gray-600">
+          {format(day, 'EEE', { locale: ru })}
+        </div>
+        <div className={`text-lg font-bold ${
+          isToday ? 'text-blue-600' : 
+          isCurrentMonth ? 'text-gray-900' : 'text-gray-400'
+        }`}>
+          {format(day, 'd')}
+        </div>
+      </div>
+      
+      <div className="space-y-2">
+        {events.map((event, eventIndex) => (
+          <DraggableEvent 
+            key={eventIndex}
+            event={event}
+            onClick={() => onEventClick(event)}
+          />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+interface DraggableEventProps {
+  event: CalendarEvent;
+  onClick: () => void;
+}
+
+function DraggableEvent({ event, onClick }: DraggableEventProps) {
+  const eventId = JSON.stringify(event);
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    isDragging,
+  } = useDraggable({
+    id: eventId,
+  });
+
+  const style = transform ? {
+    transform: `translate3d(${transform.x}px, ${transform.y}px, 0)`,
+  } : undefined;
+
+  return (
+    <Card 
+      ref={setNodeRef}
+      style={style}
+      {...listeners}
+      {...attributes}
+      className={`p-2 cursor-move hover:shadow-md transition-shadow border-l-4 ${
+        event.type === 'start' ? 'border-l-green-500 bg-green-50 hover:bg-green-100' :
+        event.type === 'end' ? 'border-l-blue-500 bg-blue-50 hover:bg-blue-100' :
+        'border-l-orange-500 bg-orange-50 hover:bg-orange-100'
+      } ${isDragging ? 'opacity-50' : ''}`}
+    >
+      <div 
+        className="text-xs"
+        onClick={(e) => {
+          e.stopPropagation();
+          onClick();
+        }}
+      >
+        <div className="font-semibold text-gray-900 truncate mb-1 flex items-center">
+          <Move className="h-3 w-3 mr-1 text-gray-400" />
+          {event.type === 'start' ? '🚀' : event.type === 'end' ? '✅' : '🔧'} Проект #{event.project.id}
+        </div>
+        <div className="text-gray-600 mb-1">
+          <Users className="h-3 w-3 inline mr-1" />
+          {event.crew.name}
+        </div>
+        {event.project.installationPersonAddress && (
+          <div className="text-gray-500 truncate">
+            <MapPin className="h-3 w-3 inline mr-1" />
+            {event.project.installationPersonAddress}
+          </div>
+        )}
+      </div>
+    </Card>
+  );
+}
+
 export default function Calendar() {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [viewType, setViewType] = useState<CalendarViewType>('week');
   const [, setLocation] = useLocation();
+  const [draggedEvent, setDraggedEvent] = useState<CalendarEvent | null>(null);
+  const queryClient = useQueryClient();
 
   // Получаем firm ID из localStorage для запросов
   const selectedFirmId = localStorage.getItem('selectedFirmId');
@@ -190,6 +301,80 @@ export default function Calendar() {
     }
   };
 
+  // Мутация для обновления дат проекта
+  const updateProjectDatesMutation = useMutation({
+    mutationFn: async ({ projectId, newDate, eventType }: {
+      projectId: number;
+      newDate: string;
+      eventType: 'start' | 'end' | 'work';
+    }) => {
+      let updateData: any = {};
+      
+      if (eventType === 'start') {
+        updateData.workStartDate = newDate;
+      } else if (eventType === 'end') {
+        updateData.workEndDate = newDate;
+      }
+      
+      const response = await fetch(`/api/projects/${projectId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify(updateData)
+      });
+      
+      if (!response.ok) throw new Error('Не удалось обновить дату проекта');
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/projects', selectedFirmId] });
+      toast({
+        title: 'Успех',
+        description: 'Дата проекта успешно обновлена'
+      });
+    },
+    onError: () => {
+      toast({
+        title: 'Ошибка',
+        description: 'Не удалось обновить дату проекта',
+        variant: 'destructive'
+      });
+    }
+  });
+
+  // Обработчики drag-and-drop
+  const handleDragStart = (event: DragStartEvent) => {
+    const eventData = JSON.parse(event.active.id as string);
+    setDraggedEvent(eventData);
+  };
+
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    
+    if (!over || !draggedEvent) {
+      setDraggedEvent(null);
+      return;
+    }
+    
+    const targetDate = over.id as string;
+    const eventData = JSON.parse(active.id as string);
+    
+    // Проверяем, изменилась ли дата
+    if (eventData.date === targetDate) {
+      setDraggedEvent(null);
+      return;
+    }
+    
+    // Обновляем дату в проекте
+    updateProjectDatesMutation.mutate({
+      projectId: eventData.project.id,
+      newDate: targetDate,
+      eventType: eventData.type
+    });
+    
+    setDraggedEvent(null);
+  };
+
   if (projectsLoading || crewsLoading) {
     return (
       <MainLayout>
@@ -206,6 +391,11 @@ export default function Calendar() {
   return (
     <MainLayout>
       <div className="p-6">
+        <DndContext
+          collisionDetection={closestCenter}
+          onDragStart={handleDragStart}
+          onDragEnd={handleDragEnd}
+        >
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center space-x-3">
             <CalendarIcon className="h-8 w-8 text-blue-600" />
@@ -278,65 +468,42 @@ export default function Calendar() {
                 const events = getEventsForDate(day);
                 const isToday = isSameDay(day, new Date());
                 const isCurrentMonth = viewType === 'month' ? isSameMonth(day, currentDate) : true;
+                const dayString = format(day, 'yyyy-MM-dd');
                 
                 return (
-                  <div
+                  <CalendarDay
                     key={index}
-                    className={`min-h-[200px] border rounded-lg p-3 ${
-                      isToday ? 'bg-blue-50 border-blue-200' : 
-                      isCurrentMonth ? 'bg-white border-gray-200' : 'bg-gray-50 border-gray-100'
-                    }`}
-                  >
-                    <div className="text-center mb-2">
-                      <div className="font-semibold text-xs text-gray-600">
-                        {format(day, 'EEE', { locale: ru })}
-                      </div>
-                      <div className={`text-lg font-bold ${
-                        isToday ? 'text-blue-600' : 
-                        isCurrentMonth ? 'text-gray-900' : 'text-gray-400'
-                      }`}>
-                        {format(day, 'd')}
-                      </div>
-                    </div>
-                    
-                    <div className="space-y-2">
-                      {events.map((event, eventIndex) => (
-                        <Card 
-                          key={eventIndex} 
-                          className={`p-2 cursor-pointer hover:shadow-md transition-shadow border-l-4 ${
-                            event.type === 'start' ? 'border-l-green-500 bg-green-50 hover:bg-green-100' :
-                            event.type === 'end' ? 'border-l-blue-500 bg-blue-50 hover:bg-blue-100' :
-                            'border-l-orange-500 bg-orange-50 hover:bg-orange-100'
-                          }`}
-                          onClick={() => {
-                            localStorage.setItem('selectedProjectId', event.project.id.toString());
-                            setLocation('/projects');
-                          }}
-                        >
-                          <div className="text-xs">
-                            <div className="font-semibold text-gray-900 truncate mb-1">
-                              {event.type === 'start' ? '🚀' : event.type === 'end' ? '✅' : '🔧'} Проект #{event.project.id}
-                            </div>
-                            <div className="text-gray-600 mb-1">
-                              <Users className="h-3 w-3 inline mr-1" />
-                              {event.crew.name}
-                            </div>
-                            {event.project.installationPersonAddress && (
-                              <div className="text-gray-500 truncate">
-                                <MapPin className="h-3 w-3 inline mr-1" />
-                                {event.project.installationPersonAddress}
-                              </div>
-                            )}
-                          </div>
-                        </Card>
-                      ))}
-                    </div>
-                  </div>
+                    day={day}
+                    dayString={dayString}
+                    events={events}
+                    isToday={isToday}
+                    isCurrentMonth={isCurrentMonth}
+                    onEventClick={(event) => {
+                      localStorage.setItem('selectedProjectId', event.project.id.toString());
+                      setLocation('/projects');
+                    }}
+                  />
                 );
               })}
             </div>
           </CardContent>
         </Card>
+
+        <DragOverlay>
+          {draggedEvent && (
+            <div className="p-2 bg-blue-100 border border-blue-300 rounded shadow-lg">
+              <div className="font-semibold text-xs text-blue-900">
+                {getEventTypeIcon(draggedEvent.type)} Проект #{draggedEvent.project.id}
+              </div>
+              <div className="text-blue-700 text-xs">
+                <Users className="h-3 w-3 inline mr-1" />
+                {draggedEvent.crew.name}
+              </div>
+            </div>
+          )}
+        </DragOverlay>
+
+        </DndContext>
 
       {/* Статистика активных проектов */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
