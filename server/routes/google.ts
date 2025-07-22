@@ -186,4 +186,87 @@ router.get('/logs', async (req, res) => {
   }
 });
 
+// Проверка подключения Google Calendar
+router.get('/connect/:firmId', async (req, res) => {
+  try {
+    const { firmId } = req.params;
+    
+    // Проверяем настройки
+    const [settings] = await db
+      .select()
+      .from(googleCalendarSettings)
+      .where(eq(googleCalendarSettings.firmId, firmId));
+    
+    if (!settings) {
+      return res.json({ connected: false, message: 'No settings found' });
+    }
+    
+    // Проверяем токены
+    const [token] = await db
+      .select()
+      .from(googleTokens)
+      .where(eq(googleTokens.firmId, firmId));
+    
+    if (!token) {
+      return res.json({ connected: false, message: 'Not authorized' });
+    }
+    
+    res.json({ 
+      connected: true, 
+      message: 'Google Calendar connected successfully',
+      hasTokens: true,
+      hasSettings: true
+    });
+  } catch (error) {
+    console.error('Error checking Google connection:', error);
+    res.status(500).json({ connected: false, error: 'Connection check failed' });
+  }
+});
+
+// Обновить настройки Google Calendar (POST)
+router.post('/settings', async (req, res) => {
+  try {
+    const { firmId, masterCalendarId } = req.body;
+    
+    if (!firmId) {
+      return res.status(400).json({ error: 'Firm ID is required' });
+    }
+    
+    // Используем environment variables для credentials
+    const clientId = process.env.GOOGLE_CLIENT_ID;
+    const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
+    
+    if (!clientId || !clientSecret) {
+      return res.status(400).json({ error: 'Google OAuth credentials not configured' });
+    }
+    
+    const redirectUri = `${req.protocol}://${req.get('host')}/api/google/callback`;
+    
+    await db
+      .insert(googleCalendarSettings)
+      .values({
+        firmId,
+        clientId,
+        clientSecret,
+        redirectUri,
+        masterCalendarId: masterCalendarId || null
+      })
+      .onConflictDoUpdate({
+        target: googleCalendarSettings.firmId,
+        set: {
+          clientId,
+          clientSecret,
+          redirectUri,
+          masterCalendarId: masterCalendarId || null,
+          updatedAt: new Date()
+        }
+      });
+    
+    res.json({ success: true, message: 'Settings updated successfully' });
+  } catch (error) {
+    console.error('Error updating Google settings:', error);
+    res.status(500).json({ error: 'Failed to update settings' });
+  }
+});
+
 export default router;
