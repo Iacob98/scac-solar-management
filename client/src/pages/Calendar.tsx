@@ -42,12 +42,26 @@ export default function Calendar() {
   const selectedFirmId = localStorage.getItem('selectedFirmId');
   
   const { data: projects = [], isLoading: projectsLoading } = useQuery({
-    queryKey: ['/api/projects'],
+    queryKey: ['/api/projects', selectedFirmId],
+    queryFn: async () => {
+      const response = await fetch(`/api/projects?firmId=${selectedFirmId}`, {
+        credentials: 'include'
+      });
+      if (!response.ok) throw new Error('Failed to fetch projects');
+      return response.json();
+    },
     enabled: !!selectedFirmId
   });
 
   const { data: crews = [], isLoading: crewsLoading } = useQuery({
-    queryKey: ['/api/crews'],  
+    queryKey: ['/api/crews', selectedFirmId],
+    queryFn: async () => {
+      const response = await fetch(`/api/crews?firmId=${selectedFirmId}`, {
+        credentials: 'include'
+      });
+      if (!response.ok) throw new Error('Failed to fetch crews');
+      return response.json();
+    },
     enabled: !!selectedFirmId
   });
 
