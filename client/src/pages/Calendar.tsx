@@ -2,8 +2,10 @@ import { useQuery } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Calendar as CalendarIcon, Users, MapPin, Clock, Phone, AlertCircle, ExternalLink } from 'lucide-react';
-import { useState } from 'react';
+import { Calendar as CalendarIcon, Users, MapPin, Clock, Phone, AlertCircle, ExternalLink, ChevronLeft, ChevronRight, CalendarDays, CalendarRange } from 'lucide-react';
+import { useState, useMemo } from 'react';
+import { format, addWeeks, subWeeks, startOfWeek, addDays, isSameDay, addMonths, subMonths, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth } from 'date-fns';
+import { ru } from 'date-fns/locale';
 import { MainLayout } from '@/components/Layout/MainLayout';
 import { useLocation } from 'wouter';
 
@@ -34,8 +36,11 @@ interface CalendarEvent {
   type: 'start' | 'end' | 'work';
 }
 
+type CalendarViewType = 'threeDays' | 'week' | 'month';
+
 export default function Calendar() {
-  const [currentWeek, setCurrentWeek] = useState(new Date());
+  const [currentDate, setCurrentDate] = useState(new Date());
+  const [viewType, setViewType] = useState<CalendarViewType>('week');
   const [, setLocation] = useLocation();
 
   // Получаем firm ID из localStorage для запросов
@@ -65,6 +70,44 @@ export default function Calendar() {
     enabled: !!selectedFirmId
   });
 
+  // Функции навигации по календарю
+  const navigatePrevious = () => {
+    if (viewType === 'month') {
+      setCurrentDate(subMonths(currentDate, 1));
+    } else {
+      setCurrentDate(subWeeks(currentDate, 1));
+    }
+  };
+
+  const navigateNext = () => {
+    if (viewType === 'month') {
+      setCurrentDate(addMonths(currentDate, 1));
+    } else {
+      setCurrentDate(addWeeks(currentDate, 1));
+    }
+  };
+
+  const navigateToday = () => {
+    setCurrentDate(new Date());
+  };
+
+  // Получаем дни для отображения в зависимости от вида
+  const displayDays = useMemo(() => {
+    if (viewType === 'month') {
+      const start = startOfMonth(currentDate);
+      const end = endOfMonth(currentDate);
+      const startWeek = startOfWeek(start, { weekStartsOn: 1 });
+      const endWeek = addDays(end, 6 - end.getDay());
+      return eachDayOfInterval({ start: startWeek, end: endWeek });
+    } else if (viewType === 'week') {
+      const start = startOfWeek(currentDate, { weekStartsOn: 1 });
+      return Array.from({ length: 7 }, (_, i) => addDays(start, i));
+    } else {
+      const start = startOfWeek(currentDate, { weekStartsOn: 1 });
+      return Array.from({ length: 3 }, (_, i) => addDays(start, i));
+    }
+  }, [currentDate, viewType]);
+
   // Создаем события календаря из проектов
   const calendarEvents: CalendarEvent[] = [];
   
@@ -91,53 +134,51 @@ export default function Calendar() {
     }
 
     // Добавляем рабочие дни между началом и концом
-    // Добавляем рабочие дни между началом и концом (упрощенная версия)
     if (project.workStartDate && project.workEndDate) {
-      const start = new Date(project.workStartDate);
-      const end = new Date(project.workEndDate);
+      const startDate = new Date(project.workStartDate);
+      const endDate = new Date(project.workEndDate);
+      let currentWorkDay = addDays(startDate, 1);
       
-      // Простая итерация по дням между датами
-      const currentDate = new Date(start);
-      while (currentDate <= end) {
-        if (currentDate.toISOString().split('T')[0] !== project.workStartDate && 
-            currentDate.toISOString().split('T')[0] !== project.workEndDate) {
-          calendarEvents.push({
-            project,
-            crew,
-            date: currentDate.toISOString().split('T')[0],
-            type: 'work'
-          });
-        }
-        currentDate.setDate(currentDate.getDate() + 1);
+      while (currentWorkDay < endDate) {
+        calendarEvents.push({
+          project,
+          crew,
+          date: format(currentWorkDay, 'yyyy-MM-dd'),
+          type: 'work'
+        });
+        currentWorkDay = addDays(currentWorkDay, 1);
       }
     }
+
   });
 
-  // Простое создание дней недели
-  const today = new Date();
-  const startOfCurrentWeek = new Date(today);
-  startOfCurrentWeek.setDate(today.getDate() - today.getDay() + 1); // Понедельник
-  
-  const weekDays = [];
-  for (let i = 0; i < 7; i++) {
-    const day = new Date(startOfCurrentWeek);
-    day.setDate(startOfCurrentWeek.getDate() + i);
-    weekDays.push(day);
-  }
+  // Группируем события по дням
+  const eventsByDay = calendarEvents.reduce((acc, event) => {
+    if (!acc[event.date]) {
+      acc[event.date] = [];
+    }
+    acc[event.date].push(event);
+    return acc;
+  }, {} as Record<string, CalendarEvent[]>);
 
-  const getEventsForDate = (date: Date) => {
-    const dateStr = date.toISOString().split('T')[0];
-    return calendarEvents.filter(event => event.date === dateStr);
+  // Функция для получения заголовка периода
+  const getPeriodTitle = () => {
+    if (viewType === 'month') {
+      return format(currentDate, 'LLLL yyyy', { locale: ru });
+    } else if (viewType === 'week') {
+      const weekStart = startOfWeek(currentDate, { weekStartsOn: 1 });
+      const weekEnd = addDays(weekStart, 6);
+      return `${format(weekStart, 'd MMM', { locale: ru })} - ${format(weekEnd, 'd MMM yyyy', { locale: ru })}`;
+    } else {
+      const start = startOfWeek(currentDate, { weekStartsOn: 1 });
+      const end = addDays(start, 2);
+      return `${format(start, 'd MMM', { locale: ru })} - ${format(end, 'd MMM yyyy', { locale: ru })}`;
+    }
   };
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'planning': return 'bg-yellow-100 text-yellow-800';
-      case 'work_in_progress': return 'bg-blue-100 text-blue-800';
-      case 'equipment_ready': return 'bg-green-100 text-green-800';
-      case 'equipment_delayed': return 'bg-red-100 text-red-800';
-      default: return 'bg-gray-100 text-gray-800';
-    }
+  const getEventsForDate = (date: Date) => {
+    const dateStr = format(date, 'yyyy-MM-dd');
+    return eventsByDay[dateStr] || [];
   };
 
   const getEventTypeIcon = (type: string) => {
@@ -166,109 +207,136 @@ export default function Calendar() {
     <MainLayout>
       <div className="p-6">
         <div className="flex items-center justify-between mb-6">
-        <div className="flex items-center space-x-3">
-          <CalendarIcon className="h-8 w-8 text-blue-600" />
-          <h1 className="text-3xl font-bold">Календарь проектов</h1>
-        </div>
-        
-        <div className="flex items-center space-x-2">
-          <Button variant="outline">
-            ← Предыдущая неделя
-          </Button>
-          <Button variant="outline">
-            Сегодня
-          </Button>
-          <Button variant="outline">
-            Следующая неделя →
-          </Button>
-        </div>
+          <div className="flex items-center space-x-3">
+            <CalendarIcon className="h-8 w-8 text-blue-600" />
+            <h1 className="text-3xl font-bold">Календарь проектов</h1>
+          </div>
+          
+          <div className="flex items-center space-x-4">
+            {/* Переключатели видов */}
+            <div className="flex items-center space-x-1 bg-gray-100 rounded-lg p-1">
+              <Button
+                variant={viewType === 'threeDays' ? 'default' : 'ghost'}
+                size="sm"
+                onClick={() => setViewType('threeDays')}
+                className="px-3 py-1"
+              >
+                <CalendarDays className="h-4 w-4 mr-1" />
+                3 дня
+              </Button>
+              <Button
+                variant={viewType === 'week' ? 'default' : 'ghost'}
+                size="sm"
+                onClick={() => setViewType('week')}
+                className="px-3 py-1"
+              >
+                <CalendarDays className="h-4 w-4 mr-1" />
+                Неделя
+              </Button>
+              <Button
+                variant={viewType === 'month' ? 'default' : 'ghost'}
+                size="sm"
+                onClick={() => setViewType('month')}
+                className="px-3 py-1"
+              >
+                <CalendarRange className="h-4 w-4 mr-1" />
+                Месяц
+              </Button>
+            </div>
+            
+            {/* Навигация */}
+            <div className="flex items-center space-x-2">
+              <Button variant="outline" size="sm" onClick={navigatePrevious}>
+                <ChevronLeft className="h-4 w-4" />
+              </Button>
+              <Button variant="outline" size="sm" onClick={navigateToday}>
+                Сегодня
+              </Button>
+              <Button variant="outline" size="sm" onClick={navigateNext}>
+                <ChevronRight className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
         </div>
 
-        <Card className="mb-6">
-        <CardHeader>
-          <CardTitle className="text-center">
-            Календарь проектов - текущая неделя
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-7 gap-4">
-            {weekDays.map((day, index) => {
-              const events = getEventsForDate(day);
-              const isToday = day.toDateString() === new Date().toDateString();
-              
-              return (
-                <div
-                  key={index}
-                  className={`min-h-[250px] border rounded-lg p-3 ${
-                    isToday ? 'bg-blue-50 border-blue-200' : 'bg-white border-gray-200'
-                  }`}
-                >
-                  <div className="text-center mb-2">
-                    <div className="font-semibold text-sm text-gray-600">
-                      {day.toLocaleDateString('ru', { weekday: 'short' })}
+        {/* Заголовок периода */}
+        <div className="text-center mb-6">
+          <h2 className="text-xl font-semibold text-gray-900 capitalize">
+            {getPeriodTitle()}
+          </h2>
+        </div>
+
+        {/* Календарная сетка */}
+        <Card>
+          <CardContent className="p-4">
+            <div className={`grid gap-2 ${
+              viewType === 'month' ? 'grid-cols-7' : 
+              viewType === 'week' ? 'grid-cols-7' : 
+              'grid-cols-3'
+            }`}>
+              {displayDays.map((day, index) => {
+                const events = getEventsForDate(day);
+                const isToday = isSameDay(day, new Date());
+                const isCurrentMonth = viewType === 'month' ? isSameMonth(day, currentDate) : true;
+                
+                return (
+                  <div
+                    key={index}
+                    className={`min-h-[200px] border rounded-lg p-3 ${
+                      isToday ? 'bg-blue-50 border-blue-200' : 
+                      isCurrentMonth ? 'bg-white border-gray-200' : 'bg-gray-50 border-gray-100'
+                    }`}
+                  >
+                    <div className="text-center mb-2">
+                      <div className="font-semibold text-xs text-gray-600">
+                        {format(day, 'EEE', { locale: ru })}
+                      </div>
+                      <div className={`text-lg font-bold ${
+                        isToday ? 'text-blue-600' : 
+                        isCurrentMonth ? 'text-gray-900' : 'text-gray-400'
+                      }`}>
+                        {format(day, 'd')}
+                      </div>
                     </div>
-                    <div className={`text-lg font-bold ${isToday ? 'text-blue-600' : 'text-gray-900'}`}>
-                      {day.getDate()}
+                    
+                    <div className="space-y-2">
+                      {events.map((event, eventIndex) => (
+                        <Card 
+                          key={eventIndex} 
+                          className={`p-2 cursor-pointer hover:shadow-md transition-shadow border-l-4 ${
+                            event.type === 'start' ? 'border-l-green-500 bg-green-50 hover:bg-green-100' :
+                            event.type === 'end' ? 'border-l-blue-500 bg-blue-50 hover:bg-blue-100' :
+                            'border-l-orange-500 bg-orange-50 hover:bg-orange-100'
+                          }`}
+                          onClick={() => {
+                            localStorage.setItem('selectedProjectId', event.project.id.toString());
+                            setLocation('/projects');
+                          }}
+                        >
+                          <div className="text-xs">
+                            <div className="font-semibold text-gray-900 truncate mb-1">
+                              {event.type === 'start' ? '🚀' : event.type === 'end' ? '✅' : '🔧'} Проект #{event.project.id}
+                            </div>
+                            <div className="text-gray-600 mb-1">
+                              <Users className="h-3 w-3 inline mr-1" />
+                              {event.crew.name}
+                            </div>
+                            {event.project.installationPersonAddress && (
+                              <div className="text-gray-500 truncate">
+                                <MapPin className="h-3 w-3 inline mr-1" />
+                                {event.project.installationPersonAddress}
+                              </div>
+                            )}
+                          </div>
+                        </Card>
+                      ))}
                     </div>
                   </div>
-                  
-                  <div className="space-y-2">
-                    {events.map((event, eventIndex) => (
-                      <Card 
-                        key={eventIndex} 
-                        className={`p-3 cursor-pointer hover:shadow-md transition-shadow border-l-4 ${
-                          event.type === 'start' ? 'border-l-green-500 bg-green-50 hover:bg-green-100' :
-                          event.type === 'end' ? 'border-l-blue-500 bg-blue-50 hover:bg-blue-100' :
-                          'border-l-orange-500 bg-orange-50 hover:bg-orange-100'
-                        }`}
-                        onClick={() => {
-                          // Сохраняем ID выбранного проекта и переходим на страницу проектов
-                          localStorage.setItem('selectedProjectId', event.project.id.toString());
-                          setLocation('/projects');
-                        }}
-                      >
-                        <div className="text-sm">
-                          <div className="flex items-center justify-between mb-2">
-                            <span className="font-semibold text-gray-900 truncate">
-                              {getEventTypeIcon(event.type)} Проект #{event.project.id}
-                            </span>
-                            <div className="flex items-center space-x-1">
-                              <Badge variant="outline" className="text-xs">
-                                {event.type === 'start' ? 'Начало' :
-                                 event.type === 'end' ? 'Конец' : 'Работа'}
-                              </Badge>
-                              <ExternalLink className="h-3 w-3 text-gray-400" />
-                            </div>
-                          </div>
-                          
-                          <div className="flex items-center text-gray-600 mb-1">
-                            <Users className="h-3 w-3 mr-1" />
-                            <span className="truncate">{event.crew.name}</span>
-                          </div>
-                          
-                          <div className="flex items-center text-gray-600 mb-1">
-                            <MapPin className="h-3 w-3 mr-1" />
-                            <span className="truncate">
-                              {event.project.installationPersonAddress || 'Адрес не указан'}
-                            </span>
-                          </div>
-                          
-                          {event.project.installationPersonPhone && (
-                            <div className="flex items-center text-gray-600">
-                              <Phone className="h-3 w-3 mr-1" />
-                              <span>{event.project.installationPersonPhone}</span>
-                            </div>
-                          )}
-                        </div>
-                      </Card>
-                    ))}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </CardContent>
-      </Card>
+                );
+              })}
+            </div>
+          </CardContent>
+        </Card>
 
       {/* Статистика активных проектов */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
