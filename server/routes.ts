@@ -1017,6 +1017,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
               } catch (emailError) {
                 console.warn(`Failed to send email notification for work date update:`, emailError);
               }
+              
+              // Обновляем Google Calendar события при изменении дат работ
+              try {
+                const { googleCalendarService } = require('../services/googleCalendar');
+                await googleCalendarService.updateProjectDates(projectId, currentProject.crewId, {
+                  workStartDate: key === 'workStartDate' ? newValue : currentProject.workStartDate,
+                  workEndDate: key === 'workEndDate' ? newValue : currentProject.workEndDate
+                });
+                console.log(`Google Calendar events updated for project ${projectId}`);
+              } catch (calendarError) {
+                console.warn(`Failed to update Google Calendar events:`, calendarError);
+              }
             }
           } else if (key === 'needsCallForEquipmentDelay' || key === 'needsCallForCrewDelay' || key === 'needsCallForDateChange') {
             changeType = 'call_update';

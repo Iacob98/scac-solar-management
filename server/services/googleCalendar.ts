@@ -487,6 +487,106 @@ export class GoogleCalendarService {
   }
 
   /**
+   * Обновить даты проекта в календарных событиях
+   */
+  async updateProjectDates(projectId: number, crewId: number, updatedDates: { workStartDate?: string; workEndDate?: string }): Promise<void> {
+    try {
+      // Получаем данные проекта
+      const [project] = await db
+        .select()
+        .from(projects)
+        .where(eq(projects.id, projectId));
+
+      if (!project) {
+        throw new Error('Project not found');
+      }
+
+      // Получаем участников бригады с Google Calendar ID
+      const members = await db
+        .select()
+        .from(crewMembers)
+        .where(and(
+          eq(crewMembers.crewId, crewId),
+          isNotNull(crewMembers.googleCalendarId)
+        ));
+
+      if (members.length === 0) {
+        console.log('No crew members with Google Calendar access found');
+        return;
+      }
+
+      // Получаем OAuth2 клиента для фирмы
+      const oauth2Client = await this.getOAuth2Client(project.firmId);
+      
+      // Получаем токены для аутентификации
+      const [token] = await db
+        .select()
+        .from(googleTokens)
+        .where(eq(googleTokens.firmId, project.firmId));
+      
+      if (!token) {
+        throw new Error('Google Calendar not authorized for this firm');
+      }
+      
+      oauth2Client.setCredentials({
+        access_token: token.accessToken,
+        refresh_token: token.refreshToken
+      });
+      
+      const calendar = google.calendar({ version: 'v3', auth: oauth2Client });
+
+      // Обновляем события для каждого участника
+      for (const member of members) {
+        if (member.googleCalendarId) {
+          try {
+            // Получаем события проекта в календаре участника
+            const events = await calendar.events.list({
+              calendarId: member.googleCalendarId,
+              q: `Проект: ${project.id}`,
+              timeMin: new Date().toISOString(),
+              maxResults: 10
+            });
+
+            if (events.data.items && events.data.items.length > 0) {
+              // Обновляем каждое найденное событие
+              for (const event of events.data.items) {
+                if (event.id) {
+                  const updatedEventData = {
+                    summary: event.summary,
+                    location: event.location,
+                    description: this.buildProjectEventDescription(project),
+                    start: {
+                      date: updatedDates.workStartDate || project.workStartDate || project.startDate,
+                      timeZone: 'Europe/Berlin'
+                    },
+                    end: {
+                      date: updatedDates.workEndDate || project.workEndDate || project.endDate || updatedDates.workStartDate || project.workStartDate || project.startDate,
+                      timeZone: 'Europe/Berlin'
+                    }
+                  };
+
+                  await calendar.events.patch({
+                    calendarId: member.googleCalendarId,
+                    eventId: event.id,
+                    requestBody: updatedEventData
+                  });
+
+                  console.log(`Updated calendar event for member ${member.firstName} ${member.lastName}`);
+                }
+              }
+            }
+          } catch (memberError) {
+            console.warn(`Failed to update events for member ${member.firstName} ${member.lastName}:`, memberError);
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Error updating project dates in calendar:', error);
+      throw error;
+    }
+  }
+
+  /**
    * Получить URL календаря для просмотра
    */
   getCalendarViewUrl(calendarId: string): string {
