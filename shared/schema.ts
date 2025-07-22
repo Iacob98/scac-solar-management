@@ -168,7 +168,7 @@ export const projectFiles = pgTable("project_files", {
   projectId: integer("project_id").notNull().references(() => projects.id),
   fileUrl: varchar("file_url").notNull(),
   fileName: varchar("file_name"),
-  fileType: varchar("file_type", { enum: ["report_photo", "review_document", "acceptance"] }).notNull(),
+  fileType: varchar("file_type").notNull(), // Убрал enum ограничения для совместимости с PDF файлами
   uploadedAt: timestamp("uploaded_at").defaultNow(),
 });
 

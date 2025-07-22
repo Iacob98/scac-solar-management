@@ -174,47 +174,74 @@ router.get('/project/:projectId', isAuthenticated, async (req, res) => {
 // Удаление файла
 router.delete('/:fileId', isAuthenticated, async (req, res) => {
   try {
+    const fileId = parseInt(req.params.fileId);
+
+    // Сначала пытаемся найти в новой системе файлов
     const fileRecord = await storage.getFileRecord(req.params.fileId);
     
-    if (!fileRecord || fileRecord.isDeleted) {
+    if (fileRecord && !fileRecord.isDeleted) {
+      // Обрабатываем файл из новой системы
+      const userId = (req.user as any)?.claims?.sub || (req.user as any)?.id;
+      const userRole = (req.user as any)?.role || 'user';
+      
+      // Проверяем права доступа
+      if (fileRecord.projectId) {
+        const hasAccess = await storage.hasProjectAccess(userId, fileRecord.projectId);
+        if (!hasAccess) {
+          return res.status(403).json({ message: 'Нет доступа к файлу' });
+        }
+      }
+
+      // Проверяем, что пользователь может удалить файл
+      if (fileRecord.uploadedBy !== parseInt(userId) && userRole !== 'admin') {
+        return res.status(403).json({ message: 'Нет прав на удаление файла' });
+      }
+
+      // Мягкое удаление в базе данных
+      await storage.deleteFileRecord(req.params.fileId);
+      // Удаляем физический файл
+      await fileStorageService.deleteFile(fileRecord.fileName);
+
+      // Добавляем запись в историю проекта
+      if (fileRecord.projectId) {
+        await storage.addProjectHistory({
+          projectId: fileRecord.projectId,
+          userId: req.user!.id,
+          changeType: 'file_deleted',
+          fieldName: 'file',
+          oldValue: fileRecord.originalName,
+          newValue: null,
+          description: `Удален файл: ${fileRecord.originalName}`
+        });
+      }
+
+      return res.json({ message: 'Файл успешно удален' });
+    }
+
+    // Если не найден в новой системе, пытаемся найти в legacy таблице project_files
+    const legacyFile = await storage.getFileById(fileId);
+    
+    if (!legacyFile) {
       return res.status(404).json({ message: 'Файл не найден' });
     }
 
-    // Получаем ID пользователя из аутентификации
+    // Проверяем права доступа к legacy файлу
     const userId = (req.user as any)?.claims?.sub || (req.user as any)?.id;
-    const userRole = (req.user as any)?.role || 'user';
-    
-    // Проверяем права доступа
-    if (fileRecord.projectId) {
-      const hasAccess = await storage.hasProjectAccess(userId, fileRecord.projectId);
-      if (!hasAccess) {
-        return res.status(403).json({ message: 'Нет доступа к файлу' });
-      }
+    const hasAccess = await storage.hasProjectAccess(userId, legacyFile.projectId);
+    if (!hasAccess) {
+      return res.status(403).json({ message: 'Нет доступа к файлу' });
     }
 
-    // Проверяем, что пользователь может удалить файл (загрузивший его или админ)
-    if (fileRecord.uploadedBy !== parseInt(userId) && userRole !== 'admin') {
-      return res.status(403).json({ message: 'Нет прав на удаление файла' });
-    }
+    // Удаляем legacy файл
+    await storage.deleteFile(fileId);
 
-    // Мягкое удаление в базе данных
-    await storage.deleteFileRecord(req.params.fileId);
-
-    // Удаляем физический файл
-    await fileStorageService.deleteFile(fileRecord.fileName);
-
-    // Добавляем запись в историю проекта
-    if (fileRecord.projectId) {
-      await storage.addProjectHistory({
-        projectId: fileRecord.projectId,
-        userId: req.user!.id,
-        changeType: 'file_deleted',
-        fieldName: 'file',
-        oldValue: fileRecord.originalName,
-        newValue: null,
-        description: `Удален файл: ${fileRecord.originalName}`
-      });
-    }
+    // Добавляем запись в историю проекта для legacy файла
+    await storage.createProjectHistoryEntry({
+      projectId: legacyFile.projectId,
+      userId,
+      changeType: 'file_deleted',
+      description: `Удален файл: ${legacyFile.fileName}`,
+    });
 
     res.json({ message: 'Файл успешно удален' });
 

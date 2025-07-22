@@ -1647,39 +1647,7 @@ startxref
     }
   });
 
-  app.delete('/api/files/:id', isAuthenticated, async (req: any, res) => {
-    try {
-      const fileId = parseInt(req.params.id);
-      
-      // Получаем данные файла перед удалением для истории
-      const file = await storage.getFileById(fileId);
-      
-      await storage.deleteFile(fileId);
-      
-      // Добавляем запись в историю проекта
-      const userId = req.user.claims.sub;
-      if (userId && file) {
-        const fileTypeLabels = {
-          'report_photo': 'фото отчет',
-          'review_document': 'документ отзыва',
-          'acceptance': 'документ приемки'
-        };
-        const fileTypeLabel = fileTypeLabels[file.fileType as keyof typeof fileTypeLabels] || file.fileType;
-        
-        await storage.createProjectHistoryEntry({
-          projectId: file.projectId,
-          userId,
-          changeType: 'file_deleted',
-          description: `Удален файл: ${file.fileName || fileTypeLabel}`,
-        });
-      }
-      
-      res.json({ message: "File deleted successfully" });
-    } catch (error) {
-      console.error("Error deleting file:", error);
-      res.status(500).json({ message: "Failed to delete file" });
-    }
-  });
+
 
   // Project Reports routes
   app.get('/api/projects/:id/reports', isAuthenticated, async (req: any, res) => {
