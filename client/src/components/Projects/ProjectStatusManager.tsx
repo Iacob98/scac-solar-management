@@ -3,7 +3,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { AlertTriangle, CheckCircle, Clock, Package, PlayCircle, Receipt } from 'lucide-react';
+import { AlertTriangle, CheckCircle, Clock, Package, PlayCircle, Receipt, Send } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { apiRequest } from '@/lib/queryClient';
 import { format, isAfter, isToday } from 'date-fns';
@@ -17,6 +17,8 @@ const statusLabels = {
   work_in_progress: 'Работы в процессе',
   work_completed: 'Работы завершены',
   invoiced: 'Счет выставлен',
+  send_invoice: 'Отправить счет клиенту',
+  invoice_sent: 'Счет отправлен',
   paid: 'Оплачен'
 };
 
@@ -28,6 +30,8 @@ const statusColors = {
   work_in_progress: 'bg-orange-100 text-orange-800',
   work_completed: 'bg-emerald-100 text-emerald-800',
   invoiced: 'bg-indigo-100 text-indigo-800',
+  send_invoice: 'bg-purple-100 text-purple-800',
+  invoice_sent: 'bg-cyan-100 text-cyan-800',
   paid: 'bg-gray-100 text-gray-800'
 };
 
@@ -65,19 +69,57 @@ export function ProjectStatusManager({ project, selectedFirm }: ProjectStatusMan
       const response = await apiRequest('/api/invoice/create', 'POST', { projectId: project.id });
       return response.json();
     },
-    onSuccess: (data: any) => {
+    onSuccess: async (data: any) => {
       queryClient.invalidateQueries({ queryKey: ['/api/projects'] });
       queryClient.invalidateQueries({ queryKey: ['/api/projects', selectedFirm] });
       queryClient.invalidateQueries({ queryKey: ['/api/projects', project.id] });
       queryClient.invalidateQueries({ queryKey: ['/api/projects', project.id, 'history'] });
       queryClient.invalidateQueries({ queryKey: ['/api/invoices'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/files/project', project.id] });
+      
       toast({ 
         description: `Счет №${data.invoiceNumber} создан в Invoice Ninja`
       });
+      
+      // Автоматически скачиваем PDF счета
+      try {
+        const pdfResponse = await apiRequest(`/api/invoice/download-pdf/${project.id}`, 'POST');
+        if (pdfResponse.ok) {
+          const pdfData = await pdfResponse.json();
+          toast({ 
+            description: 'PDF счета автоматически сохранен в файлы проекта'
+          });
+          queryClient.invalidateQueries({ queryKey: ['/api/files/project', project.id] });
+        }
+      } catch (error) {
+        console.error('Error auto-downloading PDF:', error);
+      }
     },
     onError: (error: any) => {
       toast({
         description: error.message || 'Не удалось создать счет',
+        variant: 'destructive'
+      });
+    }
+  });
+
+  const sendInvoiceMutation = useMutation({
+    mutationFn: async () => {
+      const response = await apiRequest(`/api/invoice/send-email/${project.id}`, 'POST');
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/projects'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/projects', selectedFirm] });
+      queryClient.invalidateQueries({ queryKey: ['/api/projects', project.id] });
+      queryClient.invalidateQueries({ queryKey: ['/api/projects', project.id, 'history'] });
+      toast({ 
+        description: 'Счет успешно отправлен клиенту'
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        description: error.message || 'Не удалось отправить счет',
         variant: 'destructive'
       });
     }
@@ -223,7 +265,28 @@ export function ProjectStatusManager({ project, selectedFirm }: ProjectStatusMan
           {project.status === 'invoiced' && (
             <div className="pt-2 border-t">
               <p className="text-sm text-purple-700 font-medium mb-2">💼 Счет выставлен</p>
-              <p className="text-xs text-gray-600">Ожидание оплаты от клиента</p>
+              <Button
+                onClick={() => sendInvoiceMutation.mutate()}
+                disabled={sendInvoiceMutation.isPending}
+                className="w-full bg-purple-600 hover:bg-purple-700"
+              >
+                <Send className="h-4 w-4 mr-2" />
+                {sendInvoiceMutation.isPending ? 'Отправка счета...' : 'Отправить счет клиенту'}
+              </Button>
+            </div>
+          )}
+
+          {project.status === 'invoice_sent' && (
+            <div className="pt-2 border-t">
+              <p className="text-sm text-cyan-700 font-medium mb-2">📧 Счет отправлен клиенту</p>
+              <Button
+                onClick={() => updateStatusMutation.mutate('paid')}
+                disabled={updateStatusMutation.isPending}
+                className="w-full bg-emerald-600 hover:bg-emerald-700"
+              >
+                <CheckCircle className="h-4 w-4 mr-2" />
+                Отметить как оплаченный
+              </Button>
             </div>
           )}
 

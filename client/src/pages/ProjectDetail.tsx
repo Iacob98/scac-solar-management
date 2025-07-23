@@ -695,44 +695,13 @@ export default function ProjectDetail({ projectId, selectedFirm, onBack }: Proje
                     <p className="font-medium text-gray-900">#{project.invoiceNumber}</p>
                   </div>
                   
-                  <div className="flex gap-2">
-                    {project.invoiceUrl && (
-                      <Button variant="outline" size="sm" asChild className="flex-1">
-                        <a href={project.invoiceUrl} target="_blank" rel="noopener noreferrer">
-                          <FileText className="h-4 w-4 mr-2" />
-                          Онлайн счет
-                        </a>
-                      </Button>
-                    )}
-                    <Button 
-                      variant="outline" 
-                      size="sm" 
-                      className="flex-1"
-                      onClick={() => downloadInvoicePdfMutation.mutate()}
-                      disabled={downloadInvoicePdfMutation.isPending}
-                    >
-                      <Download className="h-4 w-4 mr-2" />
-                      {downloadInvoicePdfMutation.isPending ? 'Скачивание...' : 'Скачать PDF'}
+                  {project.invoiceUrl && (
+                    <Button variant="outline" size="sm" asChild className="w-full">
+                      <a href={project.invoiceUrl} target="_blank" rel="noopener noreferrer">
+                        <FileText className="h-4 w-4 mr-2" />
+                        Открыть счет в Invoice Ninja
+                      </a>
                     </Button>
-                  </div>
-                  
-                  {project.status === 'invoiced' && client?.email && (
-                    <Button 
-                      variant="default" 
-                      size="sm" 
-                      className="w-full mt-2"
-                      onClick={() => sendInvoiceEmailMutation.mutate()}
-                      disabled={sendInvoiceEmailMutation.isPending}
-                    >
-                      <Send className="h-4 w-4 mr-2" />
-                      {sendInvoiceEmailMutation.isPending ? 'Отправка...' : 'Отправить счет клиенту'}
-                    </Button>
-                  )}
-                  
-                  {project.status === 'invoiced' && !client?.email && (
-                    <p className="text-sm text-amber-600 mt-2">
-                      У клиента не указан email адрес
-                    </p>
                   )}
                 </CardContent>
               </Card>
