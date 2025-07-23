@@ -9,7 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { ArrowLeft, FileText, Users, Package, Clock, Euro, Calendar, Building2, Phone, History, Star, Plus, Upload, Image, Trash2, Eye, MessageSquare, Download, Send } from 'lucide-react';
+import { ArrowLeft, FileText, Users, Package, Clock, Euro, Calendar, Building2, Phone, History, Star, Plus, Upload, Image, Trash2, Eye, MessageSquare, Download, Send, StickyNote, User } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -26,6 +26,7 @@ import ProjectHistory from './ProjectHistory';
 import { ProjectShareButton } from '@/components/ProjectShareButton';
 import { ProjectStatusManager } from '@/components/Projects/ProjectStatusManager';
 import { GoogleCalendarWidget } from '@/components/GoogleCalendarWidget';
+import { FileUpload } from '@/components/FileUpload';
 
 interface ProjectDetailProps {
   projectId: number;
@@ -314,20 +315,7 @@ export default function ProjectDetail({ projectId, selectedFirm, onBack }: Proje
     },
   });
 
-  const deleteReportMutation = useMutation({
-    mutationFn: (reportId: number) => apiRequest(`/api/reports/${reportId}`, 'DELETE'),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/projects', projectId, 'reports'] });
-      toast({ title: 'Отчет удален успешно' });
-    },
-    onError: (error: any) => {
-      toast({
-        title: 'Ошибка',
-        description: error.message || 'Не удалось удалить отчет',
-        variant: 'destructive'
-      });
-    },
-  });
+
 
   const deleteFileMutation = useMutation({
     mutationFn: (fileId: string) => apiRequest(`/api/files/${fileId}`, 'DELETE'),
@@ -363,6 +351,66 @@ export default function ProjectDetail({ projectId, selectedFirm, onBack }: Proje
     },
   });
 
+  // Reports mutations
+  const deleteReportMutation = useMutation({
+    mutationFn: (reportId: number) => apiRequest(`/api/reports/${reportId}`, 'DELETE'),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/projects', projectId, 'reports'] });
+      toast({ title: 'Отзыв удален успешно' });
+    },
+    onError: (error: any) => {
+      toast({
+        title: 'Ошибка',
+        description: error.message || 'Не удалось удалить отзыв',
+        variant: 'destructive'
+      });
+    },
+  });
+
+  // Files mutations
+
+
+
+  // Notes mutations
+  const createNoteMutation = useMutation({
+    mutationFn: (data: any) => {
+      console.log('createNoteMutation mutationFn вызвана:', data);
+      console.log('URL запроса:', `/api/projects/${projectId}/notes`);
+      return apiRequest(`/api/projects/${projectId}/notes`, 'POST', data);
+    },
+    onSuccess: (result) => {
+      console.log('createNoteMutation onSuccess:', result);
+      queryClient.invalidateQueries({ queryKey: ['/api/projects', projectId, 'notes'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/projects', projectId, 'history'] });
+      toast({ title: 'Примечание добавлено' });
+      setIsNoteDialogOpen(false);
+      noteForm.reset();
+    },
+    onError: (error: any) => {
+      console.error('createNoteMutation onError:', error);
+      toast({
+        title: 'Ошибка',
+        description: error.message || 'Не удалось добавить примечание',
+        variant: 'destructive'
+      });
+    },
+  });
+
+  const deleteNoteMutation = useMutation({
+    mutationFn: (noteId: number) => apiRequest(`/api/notes/${noteId}`, 'DELETE'),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/projects', projectId, 'notes'] });
+      toast({ title: 'Примечание удалено' });
+    },
+    onError: (error: any) => {
+      toast({
+        title: 'Ошибка',
+        description: error.message || 'Не удалось удалить примечание',
+        variant: 'destructive'
+      });
+    },
+  });
+
   const sendInvoiceEmailMutation = useMutation({
     mutationFn: () => apiRequest(`/api/invoice/send-email/${projectId}`, 'POST'),
     onSuccess: (response: any) => {
@@ -377,35 +425,6 @@ export default function ProjectDetail({ projectId, selectedFirm, onBack }: Proje
       toast({
         title: 'Ошибка',
         description: error.message || 'Не удалось отправить счет',
-        variant: 'destructive'
-      });
-    },
-  });
-
-  const createNoteMutation = useMutation({
-    mutationFn: (data: any) => {
-      console.log('createNoteMutation mutationFn вызвана:', data);
-      console.log('URL запроса:', `/api/projects/${projectId}/notes`);
-      return apiRequest(`/api/projects/${projectId}/notes`, 'POST', data);
-    },
-    onSuccess: (result) => {
-      console.log('createNoteMutation onSuccess:', result);
-      queryClient.invalidateQueries({ queryKey: ['/api/projects', projectId, 'notes'] });
-      queryClient.invalidateQueries({ queryKey: ['/api/projects', projectId, 'history'] });
-      toast({ title: 'Примечание добавлено успешно' });
-      setIsNoteDialogOpen(false);
-      noteForm.reset();
-    },
-    onError: (error: any) => {
-      console.log('createNoteMutation onError:', error);
-      console.log('Детали ошибки:', {
-        message: error.message,
-        status: error.status,
-        response: error.response
-      });
-      toast({
-        title: 'Ошибка',
-        description: error.message || 'Не удалось добавить примечание',
         variant: 'destructive'
       });
     },
@@ -464,10 +483,8 @@ export default function ProjectDetail({ projectId, selectedFirm, onBack }: Proje
     }
   };
 
-  const photoFiles = files.filter((file: any) => 
-    file.fileType && file.fileType.startsWith('image/')
-  );
-  const allFiles = files; // Показываем все файлы из legacy таблицы
+  const photoFiles = files.filter((file: ProjectFile) => file.fileType === 'report_photo');
+  const reviewFiles = files.filter((file: ProjectFile) => file.fileType === 'review_document');
 
   if (projectLoading) {
     return (
@@ -699,11 +716,437 @@ export default function ProjectDetail({ projectId, selectedFirm, onBack }: Proje
                 </TabsContent>
 
                 <TabsContent value="files" className="space-y-6">
-                  <p className="text-gray-500">Здесь будут файлы и отчеты проекта</p>
+                  {/* Reviews Section */}
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <FileText className="h-5 w-5" />
+                          Отзывы клиентов
+                        </div>
+                        <Dialog open={isReportDialogOpen} onOpenChange={setIsReportDialogOpen}>
+                          <DialogTrigger asChild>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => {
+                                setEditingReport(null);
+                                reportForm.reset({
+                                  projectId: project.id,
+                                  rating: 5,
+                                  reviewText: '',
+                                  reviewDocumentUrl: '',
+                                });
+                              }}
+                            >
+                              <Plus className="h-4 w-4 mr-1" />
+                              Добавить отзыв
+                            </Button>
+                          </DialogTrigger>
+                          <DialogContent>
+                            <DialogHeader>
+                              <DialogTitle>{editingReport ? 'Редактировать отзыв' : 'Добавить отзыв'}</DialogTitle>
+                            </DialogHeader>
+                            <Form {...reportForm}>
+                              <form onSubmit={reportForm.handleSubmit(onSubmitReport)} className="space-y-4">
+                                <FormField
+                                  control={reportForm.control}
+                                  name="rating"
+                                  render={({ field }) => (
+                                    <FormItem>
+                                      <FormLabel>Оценка</FormLabel>
+                                      <FormControl>
+                                        <Select 
+                                          value={field.value.toString()} 
+                                          onValueChange={(value) => field.onChange(parseInt(value))}
+                                        >
+                                          <SelectTrigger>
+                                            <SelectValue />
+                                          </SelectTrigger>
+                                          <SelectContent>
+                                            {[5, 4, 3, 2, 1].map((rating) => (
+                                              <SelectItem key={rating} value={rating.toString()}>
+                                                <div className="flex gap-1">
+                                                  {renderStars(rating)}
+                                                </div>
+                                              </SelectItem>
+                                            ))}
+                                          </SelectContent>
+                                        </Select>
+                                      </FormControl>
+                                      <FormMessage />
+                                    </FormItem>
+                                  )}
+                                />
+                                <FormField
+                                  control={reportForm.control}
+                                  name="reviewText"
+                                  render={({ field }) => (
+                                    <FormItem>
+                                      <FormLabel>Текст отзыва</FormLabel>
+                                      <FormControl>
+                                        <Textarea {...field} rows={4} />
+                                      </FormControl>
+                                      <FormMessage />
+                                    </FormItem>
+                                  )}
+                                />
+                                <FormField
+                                  control={reportForm.control}
+                                  name="reviewDocumentUrl"
+                                  render={({ field }) => (
+                                    <FormItem>
+                                      <FormLabel>URL документа (опционально)</FormLabel>
+                                      <FormControl>
+                                        <Input {...field} type="url" placeholder="https://example.com/document.pdf" />
+                                      </FormControl>
+                                      <FormMessage />
+                                    </FormItem>
+                                  )}
+                                />
+                                <div className="flex justify-end gap-2">
+                                  <Button
+                                    type="button"
+                                    variant="outline"
+                                    onClick={() => {
+                                      setIsReportDialogOpen(false);
+                                      setEditingReport(null);
+                                      reportForm.reset();
+                                    }}
+                                  >
+                                    Отмена
+                                  </Button>
+                                  <Button 
+                                    type="submit" 
+                                    disabled={createReportMutation.isPending || updateReportMutation.isPending}
+                                  >
+                                    {(createReportMutation.isPending || updateReportMutation.isPending) 
+                                      ? 'Сохранение...' 
+                                      : editingReport ? 'Обновить' : 'Создать'
+                                    }
+                                  </Button>
+                                </div>
+                              </form>
+                            </Form>
+                          </DialogContent>
+                        </Dialog>
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      {reportsLoading ? (
+                        <div className="flex justify-center py-8">
+                          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                        </div>
+                      ) : reports.length === 0 ? (
+                        <p className="text-gray-500 text-center py-8">Нет отзывов</p>
+                      ) : (
+                        <div className="space-y-4">
+                          {reports.map((report: ProjectReport) => (
+                            <div key={report.id} className="border rounded-lg p-4 space-y-2">
+                              <div className="flex items-center justify-between">
+                                <div className="flex gap-1">
+                                  {renderStars(report.rating)}
+                                </div>
+                                <div className="flex gap-2">
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => handleEditReport(report)}
+                                  >
+                                    <FileText className="h-4 w-4" />
+                                  </Button>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => deleteReportMutation.mutate(report.id)}
+                                  >
+                                    <Trash2 className="h-4 w-4 text-red-500" />
+                                  </Button>
+                                </div>
+                              </div>
+                              {report.reviewText && (
+                                <p className="text-gray-700">{report.reviewText}</p>
+                              )}
+                              {report.reviewDocumentUrl && (
+                                <a
+                                  href={report.reviewDocumentUrl}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="text-blue-600 hover:underline text-sm flex items-center gap-1"
+                                >
+                                  <Eye className="h-3 w-3" />
+                                  Просмотр документа
+                                </a>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+
+                  {/* Photo Reports Section */}
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2">
+                        <Image className="h-5 w-5" />
+                        Фото отчеты выполненных работ ({photoFiles.length}/10)
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      {filesLoading ? (
+                        <div className="flex justify-center py-8">
+                          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                        </div>
+                      ) : (
+                        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                          {photoFiles.map((file: ProjectFile) => (
+                            <div key={file.id} className="relative group">
+                              <a
+                                href={file.fileUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="block aspect-square bg-gray-100 rounded-lg overflow-hidden"
+                              >
+                                <Image className="h-full w-full object-cover text-gray-400" />
+                              </a>
+                              <Button
+                                variant="destructive"
+                                size="sm"
+                                className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity"
+                                onClick={() => deleteFileMutation.mutate(file.id)}
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                              {file.fileName && (
+                                <p className="mt-1 text-sm text-gray-600 truncate">{file.fileName}</p>
+                              )}
+                            </div>
+                          ))}
+                          {photoFiles.length < 10 && (
+                            <Dialog open={isFileDialogOpen} onOpenChange={setIsFileDialogOpen}>
+                              <DialogTrigger asChild>
+                                <Button
+                                  variant="outline"
+                                  className="aspect-square h-full"
+                                  onClick={() => {
+                                    fileForm.reset({
+                                      projectId: project.id,
+                                      fileName: '',
+                                      fileType: 'report_photo',
+                                    });
+                                  }}
+                                >
+                                  <Plus className="h-8 w-8" />
+                                </Button>
+                              </DialogTrigger>
+                              <DialogContent>
+                                <DialogHeader>
+                                  <DialogTitle>Добавить фото</DialogTitle>
+                                </DialogHeader>
+                                <Form {...fileForm}>
+                                  <form onSubmit={fileForm.handleSubmit(onSubmitFile)} className="space-y-4">
+                                    <FileUpload 
+                                      projectId={project.id}
+                                      onFileUploaded={() => {
+                                        queryClient.invalidateQueries({ queryKey: ['/api/projects', project.id, 'files'] });
+                                        setIsFileDialogOpen(false);
+                                      }}
+                                    />
+                                  </form>
+                                </Form>
+                              </DialogContent>
+                            </Dialog>
+                          )}
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+
+                  {/* Review Documents Section */}
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2">
+                        <FileText className="h-5 w-5" />
+                        Документы отзывов клиентов
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      {reviewFiles.length === 0 ? (
+                        <p className="text-gray-500 text-center py-8">Нет документов</p>
+                      ) : (
+                        <div className="space-y-2">
+                          {reviewFiles.map((file: ProjectFile) => (
+                            <div key={file.id} className="flex items-center justify-between p-2 border rounded">
+                              <a
+                                href={file.fileUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="flex items-center gap-2 text-blue-600 hover:underline"
+                              >
+                                <FileText className="h-4 w-4" />
+                                {file.fileName || 'Документ'}
+                              </a>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => deleteFileMutation.mutate(file.id)}
+                              >
+                                <Trash2 className="h-4 w-4 text-red-500" />
+                              </Button>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
                 </TabsContent>
 
                 <TabsContent value="notes" className="space-y-6">
-                  <p className="text-gray-500">Здесь будут примечания к проекту</p>
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <StickyNote className="h-5 w-5" />
+                          Примечания к проекту
+                        </div>
+                        <Dialog open={isNoteDialogOpen} onOpenChange={setIsNoteDialogOpen}>
+                          <DialogTrigger asChild>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => {
+                                noteForm.reset({
+                                  projectId: project.id,
+                                  content: '',
+                                  userId: user?.id || '',
+                                  priority: 'normal' as const,
+                                });
+                              }}
+                            >
+                              <Plus className="h-4 w-4 mr-1" />
+                              Добавить примечание
+                            </Button>
+                          </DialogTrigger>
+                          <DialogContent>
+                            <DialogHeader>
+                              <DialogTitle>Добавить примечание</DialogTitle>
+                            </DialogHeader>
+                            <Form {...noteForm}>
+                              <form onSubmit={noteForm.handleSubmit(onSubmitNote)} className="space-y-4">
+                                <FormField
+                                  control={noteForm.control}
+                                  name="content"
+                                  render={({ field }) => (
+                                    <FormItem>
+                                      <FormLabel>Текст примечания</FormLabel>
+                                      <FormControl>
+                                        <Textarea {...field} rows={4} />
+                                      </FormControl>
+                                      <FormMessage />
+                                    </FormItem>
+                                  )}
+                                />
+                                <FormField
+                                  control={noteForm.control}
+                                  name="priority"
+                                  render={({ field }) => (
+                                    <FormItem>
+                                      <FormLabel>Приоритет</FormLabel>
+                                      <FormControl>
+                                        <Select value={field.value} onValueChange={field.onChange}>
+                                          <SelectTrigger>
+                                            <SelectValue />
+                                          </SelectTrigger>
+                                          <SelectContent>
+                                            <SelectItem value="low">Низкий</SelectItem>
+                                            <SelectItem value="normal">Обычный</SelectItem>
+                                            <SelectItem value="high">Высокий</SelectItem>
+                                          </SelectContent>
+                                        </Select>
+                                      </FormControl>
+                                      <FormMessage />
+                                    </FormItem>
+                                  )}
+                                />
+                                <div className="flex justify-end gap-2">
+                                  <Button
+                                    type="button"
+                                    variant="outline"
+                                    onClick={() => {
+                                      setIsNoteDialogOpen(false);
+                                      noteForm.reset();
+                                    }}
+                                  >
+                                    Отмена
+                                  </Button>
+                                  <Button 
+                                    type="submit" 
+                                    disabled={createNoteMutation.isPending}
+                                  >
+                                    {createNoteMutation.isPending ? 'Сохранение...' : 'Создать'}
+                                  </Button>
+                                </div>
+                              </form>
+                            </Form>
+                          </DialogContent>
+                        </Dialog>
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      {notesLoading ? (
+                        <div className="flex justify-center py-8">
+                          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                        </div>
+                      ) : notes.length === 0 ? (
+                        <p className="text-gray-500 text-center py-8">Нет примечаний</p>
+                      ) : (
+                        <div className="space-y-3">
+                          {notes.map((note: ProjectNote) => (
+                            <div 
+                              key={note.id} 
+                              className={`border rounded-lg p-4 space-y-2 ${
+                                note.priority === 'high' ? 'border-red-300 bg-red-50' :
+                                note.priority === 'low' ? 'border-gray-200 bg-gray-50' :
+                                'border-blue-300 bg-blue-50'
+                              }`}
+                            >
+                              <div className="flex items-start justify-between">
+                                <div className="flex-1">
+                                  <p className="text-gray-700">{note.content}</p>
+                                  <div className="flex items-center gap-4 mt-2 text-sm text-gray-500">
+                                    <span className="flex items-center gap-1">
+                                      <User className="h-3 w-3" />
+                                      {note.userId}
+                                    </span>
+                                    <span className="flex items-center gap-1">
+                                      <Calendar className="h-3 w-3" />
+                                      {format(new Date(note.createdAt), 'dd.MM.yyyy HH:mm', { locale: ru })}
+                                    </span>
+                                    <span className={`px-2 py-0.5 rounded text-xs ${
+                                      note.priority === 'high' ? 'bg-red-200 text-red-700' :
+                                      note.priority === 'low' ? 'bg-gray-200 text-gray-700' :
+                                      'bg-blue-200 text-blue-700'
+                                    }`}>
+                                      {note.priority === 'high' ? 'Высокий' :
+                                       note.priority === 'low' ? 'Низкий' : 'Обычный'}
+                                    </span>
+                                  </div>
+                                </div>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => deleteNoteMutation.mutate(note.id)}
+                                >
+                                  <Trash2 className="h-4 w-4 text-red-500" />
+                                </Button>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
                 </TabsContent>
               </Tabs>
             </div>
