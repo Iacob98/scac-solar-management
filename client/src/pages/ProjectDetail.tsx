@@ -9,7 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { ArrowLeft, FileText, Users, Package, Clock, Euro, Calendar, Building2, Phone, History, Star, Plus, Upload, Image, Trash2, Eye, MessageSquare, Download, Send, StickyNote, User } from 'lucide-react';
+import { ArrowLeft, FileText, Users, Package, Clock, Euro, Calendar, Building2, Phone, History, Star, Plus, Upload, Image, Trash2, Eye, MessageSquare, Download, Send } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -26,7 +26,6 @@ import ProjectHistory from './ProjectHistory';
 import { ProjectShareButton } from '@/components/ProjectShareButton';
 import { ProjectStatusManager } from '@/components/Projects/ProjectStatusManager';
 import { GoogleCalendarWidget } from '@/components/GoogleCalendarWidget';
-import { FileUpload } from '@/components/FileUpload';
 
 interface ProjectDetailProps {
   projectId: number;
@@ -315,7 +314,20 @@ export default function ProjectDetail({ projectId, selectedFirm, onBack }: Proje
     },
   });
 
-
+  const deleteReportMutation = useMutation({
+    mutationFn: (reportId: number) => apiRequest(`/api/reports/${reportId}`, 'DELETE'),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/projects', projectId, 'reports'] });
+      toast({ title: 'Отчет удален успешно' });
+    },
+    onError: (error: any) => {
+      toast({
+        title: 'Ошибка',
+        description: error.message || 'Не удалось удалить отчет',
+        variant: 'destructive'
+      });
+    },
+  });
 
   const deleteFileMutation = useMutation({
     mutationFn: (fileId: string) => apiRequest(`/api/files/${fileId}`, 'DELETE'),
@@ -351,66 +363,6 @@ export default function ProjectDetail({ projectId, selectedFirm, onBack }: Proje
     },
   });
 
-  // Reports mutations
-  const deleteReportMutation = useMutation({
-    mutationFn: (reportId: number) => apiRequest(`/api/reports/${reportId}`, 'DELETE'),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/projects', projectId, 'reports'] });
-      toast({ title: 'Отзыв удален успешно' });
-    },
-    onError: (error: any) => {
-      toast({
-        title: 'Ошибка',
-        description: error.message || 'Не удалось удалить отзыв',
-        variant: 'destructive'
-      });
-    },
-  });
-
-  // Files mutations
-
-
-
-  // Notes mutations
-  const createNoteMutation = useMutation({
-    mutationFn: (data: any) => {
-      console.log('createNoteMutation mutationFn вызвана:', data);
-      console.log('URL запроса:', `/api/projects/${projectId}/notes`);
-      return apiRequest(`/api/projects/${projectId}/notes`, 'POST', data);
-    },
-    onSuccess: (result) => {
-      console.log('createNoteMutation onSuccess:', result);
-      queryClient.invalidateQueries({ queryKey: ['/api/projects', projectId, 'notes'] });
-      queryClient.invalidateQueries({ queryKey: ['/api/projects', projectId, 'history'] });
-      toast({ title: 'Примечание добавлено' });
-      setIsNoteDialogOpen(false);
-      noteForm.reset();
-    },
-    onError: (error: any) => {
-      console.error('createNoteMutation onError:', error);
-      toast({
-        title: 'Ошибка',
-        description: error.message || 'Не удалось добавить примечание',
-        variant: 'destructive'
-      });
-    },
-  });
-
-  const deleteNoteMutation = useMutation({
-    mutationFn: (noteId: number) => apiRequest(`/api/notes/${noteId}`, 'DELETE'),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/projects', projectId, 'notes'] });
-      toast({ title: 'Примечание удалено' });
-    },
-    onError: (error: any) => {
-      toast({
-        title: 'Ошибка',
-        description: error.message || 'Не удалось удалить примечание',
-        variant: 'destructive'
-      });
-    },
-  });
-
   const sendInvoiceEmailMutation = useMutation({
     mutationFn: () => apiRequest(`/api/invoice/send-email/${projectId}`, 'POST'),
     onSuccess: (response: any) => {
@@ -425,6 +377,35 @@ export default function ProjectDetail({ projectId, selectedFirm, onBack }: Proje
       toast({
         title: 'Ошибка',
         description: error.message || 'Не удалось отправить счет',
+        variant: 'destructive'
+      });
+    },
+  });
+
+  const createNoteMutation = useMutation({
+    mutationFn: (data: any) => {
+      console.log('createNoteMutation mutationFn вызвана:', data);
+      console.log('URL запроса:', `/api/projects/${projectId}/notes`);
+      return apiRequest(`/api/projects/${projectId}/notes`, 'POST', data);
+    },
+    onSuccess: (result) => {
+      console.log('createNoteMutation onSuccess:', result);
+      queryClient.invalidateQueries({ queryKey: ['/api/projects', projectId, 'notes'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/projects', projectId, 'history'] });
+      toast({ title: 'Примечание добавлено успешно' });
+      setIsNoteDialogOpen(false);
+      noteForm.reset();
+    },
+    onError: (error: any) => {
+      console.log('createNoteMutation onError:', error);
+      console.log('Детали ошибки:', {
+        message: error.message,
+        status: error.status,
+        response: error.response
+      });
+      toast({
+        title: 'Ошибка',
+        description: error.message || 'Не удалось добавить примечание',
         variant: 'destructive'
       });
     },
@@ -483,8 +464,10 @@ export default function ProjectDetail({ projectId, selectedFirm, onBack }: Proje
     }
   };
 
-  const photoFiles = files.filter((file: ProjectFile) => file.fileType === 'report_photo');
-  const reviewFiles = files.filter((file: ProjectFile) => file.fileType === 'review_document');
+  const photoFiles = files.filter((file: any) => 
+    file.fileType && file.fileType.startsWith('image/')
+  );
+  const allFiles = files; // Показываем все файлы из legacy таблицы
 
   if (projectLoading) {
     return (
@@ -591,565 +574,33 @@ export default function ProjectDetail({ projectId, selectedFirm, onBack }: Proje
               </CardContent>
             </Card>
 
-            {/* Вкладки - перемещены сюда */}
-            <div className="bg-white rounded-xl shadow-sm border p-6">
-              <Tabs value={activeTab} onValueChange={setActiveTab}>
-                <TabsList className="grid w-full grid-cols-4 mb-6">
-                  <TabsTrigger value="services" className="text-sm">Услуги проекта</TabsTrigger>
-                  <TabsTrigger value="management" className="text-sm">Управление датами</TabsTrigger>
-                  <TabsTrigger value="files" className="text-sm">Файлы и отчеты</TabsTrigger>
-                  <TabsTrigger value="notes" className="text-sm">Примечания</TabsTrigger>
-                </TabsList>
-
-                <TabsContent value="services" className="space-y-4">
-                  <ServicesPage 
-                    projectId={project.id} 
-                    selectedFirm={selectedFirm}
-                  />
-                </TabsContent>
-
-                <TabsContent value="management" className="space-y-6">
-                  {/* Управление датами */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    {/* Управление датами оборудования */}
-                    <Card className="border-l-4 border-l-blue-500">
-                      <CardHeader>
-                        <CardTitle className="flex items-center text-lg">
-                          <Package className="h-5 w-5 mr-2 text-blue-600" />
-                          Оборудование
-                        </CardTitle>
-                      </CardHeader>
-                      <CardContent className="space-y-4">
-                        <div className="space-y-2">
-                          <label className="text-sm font-medium">Ожидаемая дата поставки</label>
-                          <Input
-                            type="date"
-                            value={project.equipmentExpectedDate ? 
-                              new Date(project.equipmentExpectedDate).toISOString().split('T')[0] : ''}
-                            onChange={(e) => updateProjectDates({
-                              equipmentExpectedDate: e.target.value ? new Date(e.target.value).toISOString() : null
-                            })}
-                          />
-                        </div>
-                        
-                        <div className="space-y-2">
-                          <label className="text-sm font-medium">Фактическая дата поставки</label>
-                          <Input
-                            type="date"
-                            value={project.equipmentArrivedDate ? 
-                              new Date(project.equipmentArrivedDate).toISOString().split('T')[0] : ''}
-                            onChange={(e) => updateProjectDates({
-                              equipmentArrivedDate: e.target.value ? new Date(e.target.value).toISOString() : null
-                            })}
-                          />
-                        </div>
-                        
-                        <div className="flex items-center space-x-2">
-                          <Switch
-                            checked={project.needsCallForEquipmentDelay || false}
-                            onCheckedChange={(checked) => updateProjectDates({
-                              needsCallForEquipmentDelay: checked
-                            })}
-                          />
-                          <label className="text-sm">Нужен звонок по задержке оборудования</label>
-                        </div>
-                      </CardContent>
-                    </Card>
-
-                    {/* Управление датами работ */}
-                    <Card className="border-l-4 border-l-green-500">
-                      <CardHeader>
-                        <CardTitle className="flex items-center text-lg">
-                          <Clock className="h-5 w-5 mr-2 text-green-600" />
-                          Работы
-                        </CardTitle>
-                      </CardHeader>
-                      <CardContent className="space-y-4">
-                        <div className="space-y-2">
-                          <label className="text-sm font-medium">Дата начала работ</label>
-                          <Input
-                            type="date"
-                            value={project.workStartDate ? 
-                              new Date(project.workStartDate).toISOString().split('T')[0] : ''}
-                            onChange={(e) => updateProjectDates({
-                              workStartDate: e.target.value ? new Date(e.target.value).toISOString() : null
-                            })}
-                          />
-                        </div>
-                        
-                        <div className="space-y-2">
-                          <label className="text-sm font-medium">Дата окончания работ</label>
-                          <Input
-                            type="date"
-                            value={project.workEndDate ? 
-                              new Date(project.workEndDate).toISOString().split('T')[0] : ''}
-                            onChange={(e) => updateProjectDates({
-                              workEndDate: e.target.value ? new Date(e.target.value).toISOString() : null
-                            })}
-                          />
-                        </div>
-                        
-                        <div className="space-y-3">
-                          <div className="flex items-center space-x-2">
-                            <Switch
-                              checked={project.needsCallForCrewDelay || false}
-                              onCheckedChange={(checked) => updateProjectDates({
-                                needsCallForCrewDelay: checked
-                              })}
-                            />
-                            <label className="text-sm">Нужен звонок по задержке бригады</label>
-                          </div>
-                          
-                          <div className="flex items-center space-x-2">
-                            <Switch
-                              checked={project.needsCallForDateChange || false}
-                              onCheckedChange={(checked) => updateProjectDates({
-                                needsCallForDateChange: checked
-                              })}
-                            />
-                            <label className="text-sm">Нужен звонок по изменению дат</label>
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
+            {/* История проекта */}
+            <Card className="border-l-4 border-l-green-500 shadow-sm">
+              <CardHeader className="pb-3">
+                <CardTitle className="flex items-center justify-between text-lg">
+                  <div className="flex items-center">
+                    <History className="h-5 w-5 mr-2 text-green-600" />
+                    История проекта
                   </div>
-                </TabsContent>
-
-                <TabsContent value="files" className="space-y-6">
-                  {/* Reviews Section */}
-                  <Card>
-                    <CardHeader>
-                      <CardTitle className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <FileText className="h-5 w-5" />
-                          Отзывы клиентов
-                        </div>
-                        <Dialog open={isReportDialogOpen} onOpenChange={setIsReportDialogOpen}>
-                          <DialogTrigger asChild>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => {
-                                setEditingReport(null);
-                                reportForm.reset({
-                                  projectId: project.id,
-                                  rating: 5,
-                                  reviewText: '',
-                                  reviewDocumentUrl: '',
-                                });
-                              }}
-                            >
-                              <Plus className="h-4 w-4 mr-1" />
-                              Добавить отзыв
-                            </Button>
-                          </DialogTrigger>
-                          <DialogContent>
-                            <DialogHeader>
-                              <DialogTitle>{editingReport ? 'Редактировать отзыв' : 'Добавить отзыв'}</DialogTitle>
-                            </DialogHeader>
-                            <Form {...reportForm}>
-                              <form onSubmit={reportForm.handleSubmit(onSubmitReport)} className="space-y-4">
-                                <FormField
-                                  control={reportForm.control}
-                                  name="rating"
-                                  render={({ field }) => (
-                                    <FormItem>
-                                      <FormLabel>Оценка</FormLabel>
-                                      <FormControl>
-                                        <Select 
-                                          value={field.value.toString()} 
-                                          onValueChange={(value) => field.onChange(parseInt(value))}
-                                        >
-                                          <SelectTrigger>
-                                            <SelectValue />
-                                          </SelectTrigger>
-                                          <SelectContent>
-                                            {[5, 4, 3, 2, 1].map((rating) => (
-                                              <SelectItem key={rating} value={rating.toString()}>
-                                                <div className="flex gap-1">
-                                                  {renderStars(rating)}
-                                                </div>
-                                              </SelectItem>
-                                            ))}
-                                          </SelectContent>
-                                        </Select>
-                                      </FormControl>
-                                      <FormMessage />
-                                    </FormItem>
-                                  )}
-                                />
-                                <FormField
-                                  control={reportForm.control}
-                                  name="reviewText"
-                                  render={({ field }) => (
-                                    <FormItem>
-                                      <FormLabel>Текст отзыва</FormLabel>
-                                      <FormControl>
-                                        <Textarea {...field} rows={4} />
-                                      </FormControl>
-                                      <FormMessage />
-                                    </FormItem>
-                                  )}
-                                />
-                                <FormField
-                                  control={reportForm.control}
-                                  name="reviewDocumentUrl"
-                                  render={({ field }) => (
-                                    <FormItem>
-                                      <FormLabel>URL документа (опционально)</FormLabel>
-                                      <FormControl>
-                                        <Input {...field} type="url" placeholder="https://example.com/document.pdf" />
-                                      </FormControl>
-                                      <FormMessage />
-                                    </FormItem>
-                                  )}
-                                />
-                                <div className="flex justify-end gap-2">
-                                  <Button
-                                    type="button"
-                                    variant="outline"
-                                    onClick={() => {
-                                      setIsReportDialogOpen(false);
-                                      setEditingReport(null);
-                                      reportForm.reset();
-                                    }}
-                                  >
-                                    Отмена
-                                  </Button>
-                                  <Button 
-                                    type="submit" 
-                                    disabled={createReportMutation.isPending || updateReportMutation.isPending}
-                                  >
-                                    {(createReportMutation.isPending || updateReportMutation.isPending) 
-                                      ? 'Сохранение...' 
-                                      : editingReport ? 'Обновить' : 'Создать'
-                                    }
-                                  </Button>
-                                </div>
-                              </form>
-                            </Form>
-                          </DialogContent>
-                        </Dialog>
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      {reportsLoading ? (
-                        <div className="flex justify-center py-8">
-                          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-                        </div>
-                      ) : reports.length === 0 ? (
-                        <p className="text-gray-500 text-center py-8">Нет отзывов</p>
-                      ) : (
-                        <div className="space-y-4">
-                          {reports.map((report: ProjectReport) => (
-                            <div key={report.id} className="border rounded-lg p-4 space-y-2">
-                              <div className="flex items-center justify-between">
-                                <div className="flex gap-1">
-                                  {renderStars(report.rating)}
-                                </div>
-                                <div className="flex gap-2">
-                                  <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    onClick={() => handleEditReport(report)}
-                                  >
-                                    <FileText className="h-4 w-4" />
-                                  </Button>
-                                  <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    onClick={() => deleteReportMutation.mutate(report.id)}
-                                  >
-                                    <Trash2 className="h-4 w-4 text-red-500" />
-                                  </Button>
-                                </div>
-                              </div>
-                              {report.reviewText && (
-                                <p className="text-gray-700">{report.reviewText}</p>
-                              )}
-                              {report.reviewDocumentUrl && (
-                                <a
-                                  href={report.reviewDocumentUrl}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="text-blue-600 hover:underline text-sm flex items-center gap-1"
-                                >
-                                  <Eye className="h-3 w-3" />
-                                  Просмотр документа
-                                </a>
-                              )}
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                    </CardContent>
-                  </Card>
-
-                  {/* Photo Reports Section */}
-                  <Card>
-                    <CardHeader>
-                      <CardTitle className="flex items-center gap-2">
-                        <Image className="h-5 w-5" />
-                        Фото отчеты выполненных работ ({photoFiles.length}/10)
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      {filesLoading ? (
-                        <div className="flex justify-center py-8">
-                          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-                        </div>
-                      ) : (
-                        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                          {photoFiles.map((file: ProjectFile) => (
-                            <div key={file.id} className="relative group">
-                              <a
-                                href={file.fileUrl}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="block aspect-square bg-gray-100 rounded-lg overflow-hidden"
-                              >
-                                <Image className="h-full w-full object-cover text-gray-400" />
-                              </a>
-                              <Button
-                                variant="destructive"
-                                size="sm"
-                                className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity"
-                                onClick={() => deleteFileMutation.mutate(file.id)}
-                              >
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
-                              {file.fileName && (
-                                <p className="mt-1 text-sm text-gray-600 truncate">{file.fileName}</p>
-                              )}
-                            </div>
-                          ))}
-                          {photoFiles.length < 10 && (
-                            <Dialog open={isFileDialogOpen} onOpenChange={setIsFileDialogOpen}>
-                              <DialogTrigger asChild>
-                                <Button
-                                  variant="outline"
-                                  className="aspect-square h-full"
-                                  onClick={() => {
-                                    fileForm.reset({
-                                      projectId: project.id,
-                                      fileName: '',
-                                      fileType: 'report_photo',
-                                    });
-                                  }}
-                                >
-                                  <Plus className="h-8 w-8" />
-                                </Button>
-                              </DialogTrigger>
-                              <DialogContent>
-                                <DialogHeader>
-                                  <DialogTitle>Добавить фото</DialogTitle>
-                                </DialogHeader>
-                                <Form {...fileForm}>
-                                  <form onSubmit={fileForm.handleSubmit(onSubmitFile)} className="space-y-4">
-                                    <FileUpload 
-                                      projectId={project.id}
-                                      onFileUploaded={() => {
-                                        queryClient.invalidateQueries({ queryKey: ['/api/projects', project.id, 'files'] });
-                                        setIsFileDialogOpen(false);
-                                      }}
-                                    />
-                                  </form>
-                                </Form>
-                              </DialogContent>
-                            </Dialog>
-                          )}
-                        </div>
-                      )}
-                    </CardContent>
-                  </Card>
-
-                  {/* Review Documents Section */}
-                  <Card>
-                    <CardHeader>
-                      <CardTitle className="flex items-center gap-2">
-                        <FileText className="h-5 w-5" />
-                        Документы отзывов клиентов
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      {reviewFiles.length === 0 ? (
-                        <p className="text-gray-500 text-center py-8">Нет документов</p>
-                      ) : (
-                        <div className="space-y-2">
-                          {reviewFiles.map((file: ProjectFile) => (
-                            <div key={file.id} className="flex items-center justify-between p-2 border rounded">
-                              <a
-                                href={file.fileUrl}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="flex items-center gap-2 text-blue-600 hover:underline"
-                              >
-                                <FileText className="h-4 w-4" />
-                                {file.fileName || 'Документ'}
-                              </a>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => deleteFileMutation.mutate(file.id)}
-                              >
-                                <Trash2 className="h-4 w-4 text-red-500" />
-                              </Button>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                    </CardContent>
-                  </Card>
-                </TabsContent>
-
-                <TabsContent value="notes" className="space-y-6">
-                  <Card>
-                    <CardHeader>
-                      <CardTitle className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <StickyNote className="h-5 w-5" />
-                          Примечания к проекту
-                        </div>
-                        <Dialog open={isNoteDialogOpen} onOpenChange={setIsNoteDialogOpen}>
-                          <DialogTrigger asChild>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => {
-                                noteForm.reset({
-                                  projectId: project.id,
-                                  content: '',
-                                  userId: user?.id || '',
-                                  priority: 'normal' as const,
-                                });
-                              }}
-                            >
-                              <Plus className="h-4 w-4 mr-1" />
-                              Добавить примечание
-                            </Button>
-                          </DialogTrigger>
-                          <DialogContent>
-                            <DialogHeader>
-                              <DialogTitle>Добавить примечание</DialogTitle>
-                            </DialogHeader>
-                            <Form {...noteForm}>
-                              <form onSubmit={noteForm.handleSubmit(onSubmitNote)} className="space-y-4">
-                                <FormField
-                                  control={noteForm.control}
-                                  name="content"
-                                  render={({ field }) => (
-                                    <FormItem>
-                                      <FormLabel>Текст примечания</FormLabel>
-                                      <FormControl>
-                                        <Textarea {...field} rows={4} />
-                                      </FormControl>
-                                      <FormMessage />
-                                    </FormItem>
-                                  )}
-                                />
-                                <FormField
-                                  control={noteForm.control}
-                                  name="priority"
-                                  render={({ field }) => (
-                                    <FormItem>
-                                      <FormLabel>Приоритет</FormLabel>
-                                      <FormControl>
-                                        <Select value={field.value} onValueChange={field.onChange}>
-                                          <SelectTrigger>
-                                            <SelectValue />
-                                          </SelectTrigger>
-                                          <SelectContent>
-                                            <SelectItem value="low">Низкий</SelectItem>
-                                            <SelectItem value="normal">Обычный</SelectItem>
-                                            <SelectItem value="high">Высокий</SelectItem>
-                                          </SelectContent>
-                                        </Select>
-                                      </FormControl>
-                                      <FormMessage />
-                                    </FormItem>
-                                  )}
-                                />
-                                <div className="flex justify-end gap-2">
-                                  <Button
-                                    type="button"
-                                    variant="outline"
-                                    onClick={() => {
-                                      setIsNoteDialogOpen(false);
-                                      noteForm.reset();
-                                    }}
-                                  >
-                                    Отмена
-                                  </Button>
-                                  <Button 
-                                    type="submit" 
-                                    disabled={createNoteMutation.isPending}
-                                  >
-                                    {createNoteMutation.isPending ? 'Сохранение...' : 'Создать'}
-                                  </Button>
-                                </div>
-                              </form>
-                            </Form>
-                          </DialogContent>
-                        </Dialog>
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      {notesLoading ? (
-                        <div className="flex justify-center py-8">
-                          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-                        </div>
-                      ) : notes.length === 0 ? (
-                        <p className="text-gray-500 text-center py-8">Нет примечаний</p>
-                      ) : (
-                        <div className="space-y-3">
-                          {notes.map((note: ProjectNote) => (
-                            <div 
-                              key={note.id} 
-                              className={`border rounded-lg p-4 space-y-2 ${
-                                note.priority === 'high' ? 'border-red-300 bg-red-50' :
-                                note.priority === 'low' ? 'border-gray-200 bg-gray-50' :
-                                'border-blue-300 bg-blue-50'
-                              }`}
-                            >
-                              <div className="flex items-start justify-between">
-                                <div className="flex-1">
-                                  <p className="text-gray-700">{note.content}</p>
-                                  <div className="flex items-center gap-4 mt-2 text-sm text-gray-500">
-                                    <span className="flex items-center gap-1">
-                                      <User className="h-3 w-3" />
-                                      {note.userId}
-                                    </span>
-                                    <span className="flex items-center gap-1">
-                                      <Calendar className="h-3 w-3" />
-                                      {format(new Date(note.createdAt), 'dd.MM.yyyy HH:mm', { locale: ru })}
-                                    </span>
-                                    <span className={`px-2 py-0.5 rounded text-xs ${
-                                      note.priority === 'high' ? 'bg-red-200 text-red-700' :
-                                      note.priority === 'low' ? 'bg-gray-200 text-gray-700' :
-                                      'bg-blue-200 text-blue-700'
-                                    }`}>
-                                      {note.priority === 'high' ? 'Высокий' :
-                                       note.priority === 'low' ? 'Низкий' : 'Обычный'}
-                                    </span>
-                                  </div>
-                                </div>
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={() => deleteNoteMutation.mutate(note.id)}
-                                >
-                                  <Trash2 className="h-4 w-4 text-red-500" />
-                                </Button>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                    </CardContent>
-                  </Card>
-                </TabsContent>
-              </Tabs>
-            </div>
+                  <Button 
+                    variant="ghost" 
+                    size="sm"
+                    onClick={() => setShowAllHistory(!showAllHistory)}
+                    className="text-green-600 hover:bg-green-50 text-xs px-2 py-1"
+                  >
+                    {showAllHistory ? 'Свернуть' : 'Показать все'}
+                  </Button>
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <ProjectHistory 
+                  projectId={project.id} 
+                  onBack={() => {}}
+                  embedded={true}
+                  limit={showAllHistory ? undefined : 5}
+                />
+              </CardContent>
+            </Card>
           </div>
           
           {/* Правая колонка - боковая панель */}
@@ -1288,37 +739,624 @@ export default function ProjectDetail({ projectId, selectedFirm, onBack }: Proje
             )}
           </div>
         </div>
+        
+        {/* Вкладки */}
+        <div className="bg-white rounded-xl shadow-sm border p-6">
+          <Tabs value={activeTab} onValueChange={setActiveTab}>
+            <TabsList className="grid w-full grid-cols-4 mb-6">
+              <TabsTrigger value="services" className="text-sm">Услуги проекта</TabsTrigger>
+              <TabsTrigger value="management" className="text-sm">Управление датами</TabsTrigger>
+              <TabsTrigger value="files" className="text-sm">Файлы и отчеты</TabsTrigger>
+              <TabsTrigger value="notes" className="text-sm">Примечания</TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="services" className="space-y-4">
+              <ServicesPage 
+                projectId={project.id} 
+                selectedFirm={selectedFirm}
+              />
+            </TabsContent>
+
+            <TabsContent value="management" className="space-y-6">
+              {/* Управление датами */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {/* Управление датами оборудования */}
+                <Card className="border-l-4 border-l-blue-500">
+                  <CardHeader>
+                    <CardTitle className="flex items-center text-lg">
+                      <Package className="h-5 w-5 mr-2 text-blue-600" />
+                      Оборудование
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium">Ожидаемая дата поставки</label>
+                      <Input
+                        type="date"
+                        value={project.equipmentExpectedDate ? 
+                          new Date(project.equipmentExpectedDate).toISOString().split('T')[0] : ''}
+                        onChange={(e) => updateProjectDates({
+                          equipmentExpectedDate: e.target.value ? new Date(e.target.value).toISOString() : null
+                        })}
+                      />
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium">Фактическая дата поставки</label>
+                      <Input
+                        type="date"
+                        value={project.equipmentArrivedDate ? 
+                          new Date(project.equipmentArrivedDate).toISOString().split('T')[0] : ''}
+                        onChange={(e) => updateProjectDates({
+                          equipmentArrivedDate: e.target.value ? new Date(e.target.value).toISOString() : null
+                        })}
+                      />
+                    </div>
+                    
+                    <div className="flex items-center space-x-2">
+                      <Switch
+                        checked={project.needsCallForEquipmentDelay || false}
+                        onCheckedChange={(checked) => updateProjectDates({
+                          needsCallForEquipmentDelay: checked
+                        })}
+                      />
+                      <label className="text-sm">Нужен звонок по задержке оборудования</label>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Управление датами работ */}
+                <Card className="border-l-4 border-l-green-500">
+                  <CardHeader>
+                    <CardTitle className="flex items-center text-lg">
+                      <Clock className="h-5 w-5 mr-2 text-green-600" />
+                      Работы
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium">Дата начала работ</label>
+                      <Input
+                        type="date"
+                        value={project.workStartDate ? 
+                          new Date(project.workStartDate).toISOString().split('T')[0] : ''}
+                        onChange={(e) => updateProjectDates({
+                          workStartDate: e.target.value ? new Date(e.target.value).toISOString() : null
+                        })}
+                      />
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium">Дата окончания работ</label>
+                      <Input
+                        type="date"
+                        value={project.workEndDate ? 
+                          new Date(project.workEndDate).toISOString().split('T')[0] : ''}
+                        onChange={(e) => updateProjectDates({
+                          workEndDate: e.target.value ? new Date(e.target.value).toISOString() : null
+                        })}
+                      />
+                    </div>
+                    
+                    <div className="space-y-3">
+                      <div className="flex items-center space-x-2">
+                        <Switch
+                          checked={project.needsCallForCrewDelay || false}
+                          onCheckedChange={(checked) => updateProjectDates({
+                            needsCallForCrewDelay: checked
+                          })}
+                        />
+                        <label className="text-sm">Нужен звонок по задержке бригады</label>
+                      </div>
+                      
+                      <div className="flex items-center space-x-2">
+                        <Switch
+                          checked={project.needsCallForDateChange || false}
+                          onCheckedChange={(checked) => updateProjectDates({
+                            needsCallForDateChange: checked
+                          })}
+                        />
+                        <label className="text-sm">Нужен звонок по изменению дат</label>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+            </TabsContent>
+
+
+
+            <TabsContent value="files" className="space-y-6">
+              {/* Action Buttons */}
+              <div className="flex gap-4">
+                <Dialog open={isFileDialogOpen} onOpenChange={setIsFileDialogOpen}>
+                  <DialogTrigger asChild>
+                    <Button>
+                      <Upload className="h-4 w-4 mr-2" />
+                      Добавить фото
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent>
+                    <DialogHeader>
+                      <DialogTitle>Добавить файл проекта</DialogTitle>
+                    </DialogHeader>
+                    <Form {...fileForm}>
+                      <form onSubmit={fileForm.handleSubmit(onSubmitFile)} className="space-y-4">
+                        <FormField
+                          control={fileForm.control}
+                          name="fileType"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Тип файла</FormLabel>
+                              <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                <FormControl>
+                                  <SelectTrigger>
+                                    <SelectValue />
+                                  </SelectTrigger>
+                                </FormControl>
+                                <SelectContent>
+                                  <SelectItem value="report_photo">Фото отчет выполненной работы</SelectItem>
+                                  <SelectItem value="review_document">Документ отзыва (PDF/фото)</SelectItem>
+                                  <SelectItem value="acceptance">Документ приемки</SelectItem>
+                                </SelectContent>
+                              </Select>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+
+                        <FormField
+                          control={fileForm.control}
+                          name="fileName"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Название файла</FormLabel>
+                              <FormControl>
+                                <Input placeholder="Введите название файла" {...field} />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+
+                        <div className="space-y-2">
+                          <label className="text-sm font-medium">Файл</label>
+                          <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
+                            <input
+                              type="file"
+                              accept="image/*,.pdf,.doc,.docx,.txt"
+                              onChange={(e) => {
+                                const file = e.target.files?.[0];
+                                if (file) {
+                                  setSelectedFile(file);
+                                  fileForm.setValue('fileName', file.name);
+                                }
+                              }}
+                              className="hidden"
+                              id="file-upload"
+                            />
+                            <label htmlFor="file-upload" className="cursor-pointer">
+                              <Upload className="h-8 w-8 mx-auto text-gray-400 mb-2" />
+                              <p className="text-gray-600">
+                                {selectedFile ? selectedFile.name : 'Нажмите для выбора файла'}
+                              </p>
+                              <p className="text-xs text-gray-500 mt-1">
+                                Поддерживаются изображения, PDF, DOC, TXT
+                              </p>
+                            </label>
+                          </div>
+                        </div>
+
+                        <div className="flex justify-end space-x-2">
+                          <Button 
+                            type="button" 
+                            variant="outline" 
+                            onClick={() => setIsFileDialogOpen(false)}
+                          >
+                            Отмена
+                          </Button>
+                          <Button 
+                            type="submit" 
+                            disabled={createFileMutation.isPending}
+                          >
+                            {createFileMutation.isPending ? 'Сохранение...' : 'Добавить'}
+                          </Button>
+                        </div>
+                      </form>
+                    </Form>
+                  </DialogContent>
+                </Dialog>
+
+                <Dialog open={isReportDialogOpen} onOpenChange={setIsReportDialogOpen}>
+                  <DialogTrigger asChild>
+                    <Button variant="outline">
+                      <Plus className="h-4 w-4 mr-2" />
+                      Создать отчет
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="max-w-2xl">
+                    <DialogHeader>
+                      <DialogTitle>
+                        {editingReport ? 'Редактировать отчет' : 'Создать отчет о выполненной работе'}
+                      </DialogTitle>
+                    </DialogHeader>
+                    <Form {...reportForm}>
+                      <form onSubmit={reportForm.handleSubmit(onSubmitReport)} className="space-y-4">
+                        <FormField
+                          control={reportForm.control}
+                          name="rating"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Оценка качества работы (1-5 звезд)</FormLabel>
+                              <FormControl>
+                                <Select 
+                                  onValueChange={(value) => field.onChange(parseInt(value))}
+                                  defaultValue={field.value.toString()}
+                                >
+                                  <SelectTrigger>
+                                    <SelectValue />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    {[1, 2, 3, 4, 5].map((rating) => (
+                                      <SelectItem key={rating} value={rating.toString()}>
+                                        <div className="flex items-center gap-2">
+                                          <span>{rating}</span>
+                                          <div className="flex">
+                                            {renderStars(rating)}
+                                          </div>
+                                        </div>
+                                      </SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+
+                        <FormField
+                          control={reportForm.control}
+                          name="reviewText"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Письменный отзыв</FormLabel>
+                              <FormControl>
+                                <Textarea 
+                                  placeholder="Опишите выполненную работу, качество установки, возникшие проблемы..."
+                                  className="min-h-[100px]"
+                                  {...field} 
+                                />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+
+                        <FormField
+                          control={reportForm.control}
+                          name="reviewDocumentUrl"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>URL документа отзыва (опционально)</FormLabel>
+                              <FormControl>
+                                <Input 
+                                  type="url" 
+                                  placeholder="https://example.com/review.pdf" 
+                                  {...field} 
+                                />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+
+                        <div className="flex justify-end space-x-2">
+                          <Button 
+                            type="button" 
+                            variant="outline" 
+                            onClick={() => {
+                              setIsReportDialogOpen(false);
+                              setEditingReport(null);
+                              reportForm.reset();
+                            }}
+                          >
+                            Отмена
+                          </Button>
+                          <Button 
+                            type="submit" 
+                            disabled={createReportMutation.isPending || updateReportMutation.isPending}
+                          >
+                            {(createReportMutation.isPending || updateReportMutation.isPending) 
+                              ? 'Сохранение...' 
+                              : editingReport ? 'Обновить' : 'Создать'
+                            }
+                          </Button>
+                        </div>
+                      </form>
+                    </Form>
+                  </DialogContent>
+                </Dialog>
+              </div>
+
+              {/* Photo Reports Section */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Image className="h-5 w-5" />
+                    Файлы проекта ({allFiles.length})
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {filesLoading ? (
+                    <div className="flex justify-center py-8">
+                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                      {allFiles.map((file: any) => (
+                        <div key={file.id} className="relative group cursor-pointer">
+                          {file.fileType && file.fileType.startsWith('image/') ? (
+                            <img
+                              src={file.fileUrl}
+                              alt={file.fileName || 'Фото отчет'}
+                              className="w-full h-40 object-cover rounded-lg"
+                              onError={(e) => {
+                                (e.target as HTMLImageElement).src = '/placeholder-image.svg';
+                              }}
+                            />
+                          ) : (
+                            <div className="w-full h-40 bg-gray-100 rounded-lg flex items-center justify-center">
+                              <FileText className="h-12 w-12 text-gray-400" />
+                            </div>
+                          )}
+                          <div className="absolute inset-0 bg-black bg-opacity-50 opacity-0 group-hover:opacity-100 transition-opacity rounded-lg flex items-center justify-center gap-2">
+                            <Button
+                              size="sm"
+                              variant="secondary"
+                              onClick={() => window.open(file.fileUrl, '_blank')}
+                            >
+                              <Eye className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="destructive"
+                              onClick={() => deleteFileMutation.mutate(file.id.toString())}
+                              disabled={deleteFileMutation.isPending}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                          <p className="text-xs text-gray-600 mt-2 truncate">{file.fileName}</p>
+                        </div>
+                      ))}
+                      {allFiles.length === 0 && (
+                        <div className="col-span-full text-center py-8">
+                          <Image className="h-12 w-12 mx-auto text-gray-400 mb-4" />
+                          <p className="text-gray-500">Файлы проекта не добавлены</p>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+
+              {/* Reports and Reviews Section */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Star className="h-5 w-5" />
+                    Отчеты и оценки качества работ
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {reportsLoading ? (
+                    <div className="flex justify-center py-8">
+                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                    </div>
+                  ) : (
+                    <div className="space-y-4">
+                      {reports.map((report: ProjectReport) => (
+                        <div key={report.id} className="border rounded-lg p-4">
+                          <div className="flex justify-between items-start mb-3">
+                            <div className="flex items-center gap-2">
+                              <div className="flex">{renderStars(report.rating)}</div>
+                              <span className="text-sm text-gray-500">
+                                {(() => {
+                                  const dateToFormat = report.completedAt || report.createdAt;
+                                  return dateToFormat ? new Date(dateToFormat).toLocaleDateString('ru-RU') : 'Не указано';
+                                })()}
+                              </span>
+                            </div>
+                            <div className="flex gap-2">
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => handleEditReport(report)}
+                              >
+                                Редактировать
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="destructive"
+                                onClick={() => deleteReportMutation.mutate(report.id)}
+                                disabled={deleteReportMutation.isPending}
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          </div>
+                          
+                          {report.reviewText && (
+                            <p className="text-gray-700 mb-3">{report.reviewText}</p>
+                          )}
+                          
+                          {report.reviewDocumentUrl && (
+                            <div className="flex items-center gap-2">
+                              <FileText className="h-4 w-4 text-blue-600" />
+                              <a 
+                                href={report.reviewDocumentUrl} 
+                                target="_blank" 
+                                rel="noopener noreferrer"
+                                className="text-blue-600 hover:underline text-sm"
+                              >
+                                Просмотреть документ отзыва
+                              </a>
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                      {reports.length === 0 && (
+                        <div className="text-center py-8">
+                          <Star className="h-12 w-12 mx-auto text-gray-400 mb-4" />
+                          <p className="text-gray-500">Отчеты не созданы</p>
+                          <p className="text-gray-400 text-sm">Создайте отчет о выполненной работе с оценкой качества</p>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            <TabsContent value="notes" className="space-y-6">
+              {/* Action Buttons */}
+              <div className="flex gap-4">
+                <Dialog open={isNoteDialogOpen} onOpenChange={setIsNoteDialogOpen}>
+                  <DialogTrigger asChild>
+                    <Button>
+                      <MessageSquare className="h-4 w-4 mr-2" />
+                      Добавить примечание
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent>
+                    <DialogHeader>
+                      <DialogTitle>Добавить примечание к проекту</DialogTitle>
+                    </DialogHeader>
+                    <Form {...noteForm}>
+                      <form onSubmit={noteForm.handleSubmit(onSubmitNote)} className="space-y-4">
+                        <FormField
+                          control={noteForm.control}
+                          name="priority"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Приоритет</FormLabel>
+                              <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                <FormControl>
+                                  <SelectTrigger>
+                                    <SelectValue placeholder="Выберите приоритет" />
+                                  </SelectTrigger>
+                                </FormControl>
+                                <SelectContent>
+                                  <SelectItem value="normal">Обычное</SelectItem>
+                                  <SelectItem value="important">Важное</SelectItem>
+                                  <SelectItem value="urgent">Срочное</SelectItem>
+                                  <SelectItem value="critical">Критическое</SelectItem>
+                                </SelectContent>
+                              </Select>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+
+                        <FormField
+                          control={noteForm.control}
+                          name="content"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Текст примечания</FormLabel>
+                              <FormControl>
+                                <Textarea 
+                                  placeholder="Введите примечание или комментарий к проекту..."
+                                  className="min-h-[120px]"
+                                  {...field} 
+                                />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+
+                        {/* Hidden field for userId */}
+                        <FormField
+                          control={noteForm.control}
+                          name="userId"
+                          render={({ field }) => (
+                            <Input type="hidden" {...field} value={user?.id || ''} />
+                          )}
+                        />
+
+                        <div className="flex justify-end space-x-2">
+                          <Button 
+                            type="button" 
+                            variant="outline" 
+                            onClick={() => {
+                              setIsNoteDialogOpen(false);
+                              noteForm.reset();
+                            }}
+                          >
+                            Отмена
+                          </Button>
+                          <Button 
+                            type="submit" 
+                            disabled={createNoteMutation.isPending}
+                          >
+                            {createNoteMutation.isPending ? 'Сохранение...' : 'Добавить примечание'}
+                          </Button>
+                        </div>
+                      </form>
+                    </Form>
+                  </DialogContent>
+                </Dialog>
+              </div>
+
+              {/* Notes List */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center">
+                    <MessageSquare className="h-5 w-5 mr-2 text-blue-600" />
+                    Примечания проекта
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+
+                  {notesLoading ? (
+                    <div className="text-center py-4">Загрузка примечаний...</div>
+                  ) : notes.length === 0 ? (
+                    <div className="text-center py-8 text-gray-500">
+                      <MessageSquare className="h-12 w-12 mx-auto mb-4 text-gray-300" />
+                      <p>Примечания к проекту пока не добавлены</p>
+                      <p className="text-sm">Используйте кнопку выше для добавления первого примечания</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-4">
+                      {notes.slice().reverse().map((note: ProjectNote) => (
+                        <div key={note.id} className="border rounded-lg p-4 bg-gray-50">
+                          <div className="flex items-start justify-between mb-2">
+                            <div className="text-sm text-gray-600">
+                              Добавлено {note.createdAt ? format(new Date(note.createdAt), 'dd.MM.yyyy в HH:mm', { locale: ru }) : 'Не указано'}
+                            </div>
+                            {note.priority && note.priority !== 'normal' && (
+                              <Badge className={priorityColors[note.priority as keyof typeof priorityColors]}>
+                                {priorityLabels[note.priority as keyof typeof priorityLabels]}
+                              </Badge>
+                            )}
+                          </div>
+                          <div className="text-gray-900 whitespace-pre-wrap">
+                            {note.content}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+          </Tabs>
+        </div>
       </div>
 
-      {/* История проекта - перемещена вниз */}
-      <div className="mt-6 bg-white rounded-xl shadow-sm border p-6">
-        <Card className="border-l-4 border-l-green-500 shadow-sm">
-          <CardHeader className="pb-3">
-            <CardTitle className="flex items-center justify-between text-lg">
-              <div className="flex items-center">
-                <History className="h-5 w-5 mr-2 text-green-600" />
-                История проекта
-              </div>
-              <Button 
-                variant="ghost" 
-                size="sm"
-                onClick={() => setShowAllHistory(!showAllHistory)}
-                className="text-green-600 hover:bg-green-50 text-xs px-2 py-1"
-              >
-                {showAllHistory ? 'Свернуть' : 'Показать все'}
-              </Button>
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <ProjectHistory 
-              projectId={project.id} 
-              onBack={() => {}}
-              embedded={true}
-              limit={showAllHistory ? undefined : 5}
-            />
-          </CardContent>
-        </Card>
-      </div>
 
     </div>
   );
