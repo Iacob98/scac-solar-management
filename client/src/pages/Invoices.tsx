@@ -93,6 +93,7 @@ export default function Invoices() {
       return response.json();
     },
     enabled: !!selectedFirmId,
+    staleTime: 0, // Всегда получать свежие данные
   });
 
   const markPaidMutation = useMutation({

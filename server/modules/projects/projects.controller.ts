@@ -36,12 +36,15 @@ export const getProjects = async (req: any, res: Response) => {
       projects = await storage.getProjectsByFirmId(firmId);
     } else {
       // Обычный пользователь видит только свои проекты и расшаренные
-      projects = await storage.getProjectsByFirmId(firmId);
-      projects = projects.filter(project => {
+      const allProjects = await storage.getProjectsByFirmId(firmId);
+      projects = allProjects.filter(project => {
         return project.leiterId === userId;
         // TODO: добавить фильтрацию по shared projects
       });
     }
+
+    console.log(`🔍 Projects query result: user ${userId} (role: ${user.role}) for firm ${firmId} - found ${projects.length} projects`);
+    console.log('📊 Sample projects:', projects.slice(0, 2));
 
     res.json(projects);
   } catch (error) {
