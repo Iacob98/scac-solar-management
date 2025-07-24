@@ -63,11 +63,15 @@ function ProjectsList({ selectedFirm, onViewProject, onManageServices }: Project
   const [filter, setFilter] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
 
-  const { data: projects = [], isLoading: projectsLoading } = useQuery({
+  const { data: projects = [], isLoading: projectsLoading } = useQuery<Project[]>({
     queryKey: ['/api/projects', selectedFirm],
     enabled: !!selectedFirm,
     refetchInterval: 30000, // Автообновление каждые 30 секунд
   });
+
+  // Добавляем логирование загруженных проектов
+  console.log('📊 Загружено проектов:', projects.length);
+  console.log('📋 Данные проектов:', projects);
 
   const { data: clients = [] } = useQuery({
     queryKey: ['/api/clients', selectedFirm],
@@ -192,6 +196,8 @@ function ProjectsList({ selectedFirm, onViewProject, onManageServices }: Project
     updateProjectStatusMutation.mutate({ projectId, status });
   };
 
+  console.log('🔍 Начинаем фильтрацию. Фильтр:', filter, 'Статус фильтр:', statusFilter);
+  
   const filteredProjects = (projects as Project[]).filter((project: Project & { client?: Client; crew?: Crew }) => {
     const clientName = getClientName(project.clientId);
     const searchTerm = filter.toLowerCase();
