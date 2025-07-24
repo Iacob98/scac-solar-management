@@ -311,3 +311,8 @@ The application follows a monolithic architecture with clear separation between 
   - Reports management (/api/reports/:id PATCH/DELETE)
   - Postmark email integration (/api/postmark/test)
 - **Clean separation of concerns**: Each module handles distinct business domain with clear responsibilities
+- **FIXED missing crew statistics endpoints**: Added getCrewsStatsSummary and getCrewStats to crews module (July 24, 2025)
+  - Added `/api/crews/stats/summary` endpoint for aggregated crew statistics
+  - Added `/api/crews/:id/stats` endpoint for detailed crew statistics  
+  - Restored full crew statistics functionality in modular architecture
+  - Fixed API endpoints returning HTML instead of JSON by implementing proper modular routes

@@ -14,7 +14,9 @@ import {
   getCrewById,
   createCrew,
   updateCrew,
-  deleteCrew
+  deleteCrew,
+  getCrewsStatsSummary,
+  getCrewStats
 } from './crews.controller';
 
 const router = Router();
@@ -56,5 +58,19 @@ router.patch('/:id', isAuthenticated, updateCrew);
  * Удалить бригаду
  */
 router.delete('/:id', isAuthenticated, deleteCrew);
+
+// ----- Маршруты статистики бригад -----
+
+/**
+ * GET /api/crews/stats/summary
+ * Получить сводную статистику по всем бригадам
+ */
+router.get('/stats/summary', isAuthenticated, getCrewsStatsSummary);
+
+/**
+ * GET /api/crews/:id/stats
+ * Получить детальную статистику по бригаде
+ */
+router.get('/:id/stats', isAuthenticated, getCrewStats);
 
 export default router;
