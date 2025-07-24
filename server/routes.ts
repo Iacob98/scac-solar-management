@@ -733,29 +733,42 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post('/api/crews', isAuthenticated, async (req: any, res) => {
     try {
+      console.log('🚀 POST /api/crews - Request received');
+      console.log('📋 Request body:', JSON.stringify(req.body, null, 2));
+      console.log('👤 User:', req.user?.claims?.sub);
+      
       const { members, ...crewData } = req.body;
+      
+      console.log('🔧 Separated crew data:', JSON.stringify(crewData, null, 2));
+      console.log('👥 Members:', JSON.stringify(members, null, 2));
       
       // Validate crew data
       const validatedCrewData = insertCrewSchema.parse(crewData);
+      console.log('✅ Crew data validated:', JSON.stringify(validatedCrewData, null, 2));
       
       // Create crew
       const crew = await storage.createCrew(validatedCrewData);
+      console.log('🎯 Crew created:', JSON.stringify(crew, null, 2));
       
       // Create crew members if provided
       if (members && Array.isArray(members)) {
+        console.log(`👥 Creating ${members.length} crew members...`);
         for (const member of members) {
           const validatedMemberData = insertCrewMemberSchema.parse({
             ...member,
             crewId: crew.id,
           });
-          await storage.createCrewMember(validatedMemberData);
+          const createdMember = await storage.createCrewMember(validatedMemberData);
+          console.log('✅ Member created:', JSON.stringify(createdMember, null, 2));
         }
       }
       
+      console.log('🎉 Crew creation successful, sending response');
       res.json(crew);
     } catch (error) {
-      console.error("Error creating crew:", error);
-      res.status(500).json({ message: "Failed to create crew" });
+      console.error("❌ Error creating crew:", error);
+      console.error("Error details:", JSON.stringify(error, null, 2));
+      res.status(500).json({ message: "Failed to create crew", error: error.message });
     }
   });
 

@@ -600,13 +600,36 @@ export default function CrewsNew() {
 
   const createCrewMutation = useMutation({
     mutationFn: async (data: ExtendedCrewForm) => {
-      const response = await apiRequest('/api/crews', 'POST', {
+      console.log('🔥 Frontend: Starting API request with data:', data);
+      console.log('🏢 Frontend: Using firmId:', selectedFirmId);
+      
+      const requestData = {
         ...data,
         firmId: selectedFirmId,
-      });
-      return await response.json();
+      };
+      
+      console.log('📡 Frontend: Final request data:', requestData);
+      
+      try {
+        const response = await apiRequest('/api/crews', 'POST', requestData);
+        console.log('📋 Frontend: Response status:', response.status);
+        
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.error('❌ Frontend: Response error:', errorText);
+          throw new Error(`Server error: ${response.status} ${errorText}`);
+        }
+        
+        const result = await response.json();
+        console.log('✅ Frontend: Response success:', result);
+        return result;
+      } catch (error) {
+        console.error('💥 Frontend: API request failed:', error);
+        throw error;
+      }
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
+      console.log('🎉 Frontend: Mutation successful:', data);
       queryClient.invalidateQueries({ queryKey: ['/api/crews', selectedFirmId] });
       setIsCreateDialogOpen(false);
       form.reset();
@@ -616,6 +639,7 @@ export default function CrewsNew() {
       });
     },
     onError: (error: any) => {
+      console.error('❌ Frontend: Mutation failed:', error);
       toast({
         title: 'Ошибка создания бригады',
         description: error.message || 'Не удалось создать бригаду',
@@ -734,7 +758,10 @@ export default function CrewsNew() {
                 </DialogDescription>
               </DialogHeader>
               <Form {...form}>
-                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+                <form onSubmit={form.handleSubmit((data) => {
+                  console.log('🔥 Form submit event triggered!', data);
+                  onSubmit(data);
+                })} className="space-y-6">
                   {/* Основная информация о бригаде */}
                   <div className="grid grid-cols-2 gap-4">
                     <FormField

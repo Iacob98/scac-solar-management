@@ -142,17 +142,28 @@ export async function setupAuth(app: Express) {
 }
 
 export const isAuthenticated: RequestHandler = async (req, res, next) => {
+  console.log(`🔐 isAuthenticated middleware - ${req.method} ${req.url}`);
+  
   const user = req.user as any;
   const session = req.session as any;
 
+  console.log('🧑‍💻 User object:', !!user ? 'exists' : 'null');
+  console.log('📧 Session:', {
+    hasUser: !!session?.user,
+    hasUserId: !!session?.userId,
+    sessionKeys: session ? Object.keys(session) : 'no session'
+  });
+
   // Check for test login session first
   if (session?.user && session?.userId) {
+    console.log('✅ Test login session found, proceeding');
     req.user = session.user;
     return next();
   }
 
   // Original Replit Auth check
   if (!req.isAuthenticated() || !user?.expires_at) {
+    console.log('❌ Replit auth failed - isAuthenticated:', req.isAuthenticated(), 'expires_at:', !!user?.expires_at);
     return res.status(401).json({ message: "Unauthorized" });
   }
 
