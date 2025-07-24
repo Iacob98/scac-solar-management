@@ -204,9 +204,19 @@ function ProjectsList({ selectedFirm, onViewProject, onManageServices }: Project
 
   const filteredProjects = (projects as Project[]).filter((project: Project & { client?: Client; crew?: Crew }) => {
     if (filter) {
-      console.log('Filtering for:', filter);
+      console.log('=== Filtering ===');
+      console.log('Search term:', filter);
+      console.log('Project ID:', project.id);
       console.log('Project installationPersonUniqueId:', project.installationPersonUniqueId);
-      console.log('Match:', project.installationPersonUniqueId?.toLowerCase().includes(filter.toLowerCase()));
+      console.log('Type of installationPersonUniqueId:', typeof project.installationPersonUniqueId);
+      
+      if (project.installationPersonUniqueId) {
+        const lowerUniqueId = project.installationPersonUniqueId.toLowerCase();
+        const lowerFilter = filter.toLowerCase();
+        console.log('Lower unique ID:', lowerUniqueId);
+        console.log('Lower filter:', lowerFilter);
+        console.log('Includes result:', lowerUniqueId.includes(lowerFilter));
+      }
     }
     
     const clientName = getClientName(project.clientId);
@@ -217,6 +227,12 @@ function ProjectsList({ selectedFirm, onViewProject, onManageServices }: Project
       project.installationPersonUniqueId?.toLowerCase().includes(filter.toLowerCase());
     
     const matchesStatus = statusFilter === 'all' || project.status === statusFilter;
+    
+    if (filter && project.installationPersonUniqueId) {
+      console.log('Final matchesSearch result:', matchesSearch);
+      console.log('Final matchesStatus result:', matchesStatus);
+      console.log('Will include in results:', matchesSearch && matchesStatus);
+    }
     
     return matchesSearch && matchesStatus;
   });
