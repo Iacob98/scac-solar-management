@@ -108,8 +108,10 @@ export default function Invoices() {
       // Принудительно обновляем кэш всех связанных данных
       queryClient.invalidateQueries({ queryKey: ['/api/invoices'] });
       queryClient.invalidateQueries({ queryKey: ['/api/projects'] });
+      queryClient.invalidateQueries({ predicate: (query) => query.queryKey[0] === '/api/projects' });
       // Дополнительно рефетчим текущие данные
       queryClient.refetchQueries({ queryKey: ['/api/invoices', selectedFirmId] });
+      queryClient.refetchQueries({ predicate: (query) => query.queryKey[0] === '/api/projects' });
     },
     onError: (error) => {
       toast({
