@@ -35,39 +35,23 @@ export default function Home() {
     }
   }, []);
 
-  const { data: projects = [] } = useQuery<Project[]>({
-    queryKey: ['/api/projects', selectedFirmId],
+  // Fetch home statistics from new API endpoint
+  const { data: homeStats } = useQuery({
+    queryKey: ['/api/stats/home'],
     queryFn: async () => {
-      const response = await fetch(`/api/projects?firmId=${selectedFirmId}`);
-      if (!response.ok) throw new Error('Failed to fetch projects');
+      const response = await fetch('/api/stats/home');
+      if (!response.ok) throw new Error('Failed to fetch home statistics');
       return response.json();
     },
-    enabled: !!selectedFirmId,
   });
 
-  const { data: clients = [] } = useQuery<Client[]>({
-    queryKey: ['/api/clients', selectedFirmId],
-    queryFn: async () => {
-      const response = await fetch(`/api/clients?firmId=${selectedFirmId}`);
-      if (!response.ok) throw new Error('Failed to fetch clients');
-      return response.json();
-    },
-    enabled: !!selectedFirmId,
-  });
-
-  const { data: crews = [] } = useQuery<Crew[]>({
-    queryKey: ['/api/crews', selectedFirmId],
-    queryFn: async () => {
-      const response = await fetch(`/api/crews?firmId=${selectedFirmId}`);
-      if (!response.ok) throw new Error('Failed to fetch crews');
-      return response.json();
-    },
-    enabled: !!selectedFirmId,
-  });
-
-  const activeProjects = projects.filter(p => p.status === 'in_progress').length;
-  const totalClients = clients.length;
-  const activeCrews = crews.filter(c => !c.archived).length;
+  // Use statistics from API
+  const totalProjects = homeStats?.totalProjects || 0;
+  const activeProjects = homeStats?.activeProjects || 0;
+  const completedProjects = homeStats?.completedProjects || 0;
+  const totalClients = homeStats?.totalClients || 0;
+  const totalCrews = homeStats?.totalCrews || 0;
+  const recentProjects = homeStats?.recentProjects || [];
 
   const quickActions = [
     {
@@ -184,54 +168,106 @@ export default function Home() {
 
         {/* Stats Overview */}
         <div>
-          <h2 className="text-xl font-semibold text-gray-900 mb-4">Быстрая статистика</h2>
-          {selectedFirmId ? (
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <Card>
-                <CardContent className="p-6">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm font-medium text-gray-600">Активные проекты</p>
-                      <p className="text-2xl font-bold text-gray-900">{activeProjects}</p>
-                      <p className="text-xs text-gray-500 mt-1">Из {projects.length} общих</p>
-                    </div>
-                    <TrendingUp className="w-8 h-8 text-blue-600" />
-                  </div>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardContent className="p-6">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm font-medium text-gray-600">Всего клиентов</p>
-                      <p className="text-2xl font-bold text-gray-900">{totalClients}</p>
-                      <p className="text-xs text-gray-500 mt-1">В базе данных</p>
-                    </div>
-                    <Users className="w-8 h-8 text-green-600" />
-                  </div>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardContent className="p-6">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm font-medium text-gray-600">Активные бригады</p>
-                      <p className="text-2xl font-bold text-gray-900">{activeCrews}</p>
-                      <p className="text-xs text-gray-500 mt-1">Из {crews.length} общих</p>
-                    </div>
-                    <Wrench className="w-8 h-8 text-orange-600" />
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-          ) : (
+          <h2 className="text-xl font-semibold text-gray-900 mb-4">Общая статистика</h2>
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
             <Card>
-              <CardContent className="p-6 text-center">
-                <p className="text-gray-600">Выберите фирму в верхнем меню для просмотра статистики</p>
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-gray-600">Всего проектов</p>
+                    <p className="text-2xl font-bold text-gray-900">{totalProjects}</p>
+                    <p className="text-xs text-gray-500 mt-1">Во всех фирмах</p>
+                  </div>
+                  <FolderOpen className="w-8 h-8 text-blue-600" />
+                </div>
               </CardContent>
             </Card>
-          )}
+            <Card>
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-gray-600">Активные проекты</p>
+                    <p className="text-2xl font-bold text-gray-900">{activeProjects}</p>
+                    <p className="text-xs text-gray-500 mt-1">В работе</p>
+                  </div>
+                  <TrendingUp className="w-8 h-8 text-green-600" />
+                </div>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-gray-600">Всего клиентов</p>
+                    <p className="text-2xl font-bold text-gray-900">{totalClients}</p>
+                    <p className="text-xs text-gray-500 mt-1">В базе</p>
+                  </div>
+                  <Users className="w-8 h-8 text-purple-600" />
+                </div>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-gray-600">Всего бригад</p>
+                    <p className="text-2xl font-bold text-gray-900">{totalCrews}</p>
+                    <p className="text-xs text-gray-500 mt-1">Доступных</p>
+                  </div>
+                  <Wrench className="w-8 h-8 text-orange-600" />
+                </div>
+              </CardContent>
+            </Card>
+          </div>
         </div>
+
+        {/* Recent Projects */}
+        {recentProjects.length > 0 && (
+          <div>
+            <h2 className="text-xl font-semibold text-gray-900 mb-4">Последние проекты</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {recentProjects.slice(0, 6).map((project: any) => (
+                <Card key={project.id} className="hover:shadow-md transition-shadow">
+                  <CardContent className="p-4">
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="flex items-center space-x-2">
+                        <Sun className="w-4 h-4 text-yellow-600" />
+                        <span className="font-medium text-sm">
+                          Проект #{project.id}
+                        </span>
+                      </div>
+                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                        project.status === 'completed' || project.status === 'paid' 
+                          ? 'bg-green-100 text-green-800'
+                          : project.status === 'invoiced' || project.status === 'invoice_sent'
+                          ? 'bg-blue-100 text-blue-800'
+                          : 'bg-yellow-100 text-yellow-800'
+                      }`}>
+                        {project.status === 'planning' ? 'Планирование' :
+                         project.status === 'work_in_progress' ? 'В процессе' :
+                         project.status === 'completed' ? 'Завершён' :
+                         project.status === 'invoiced' ? 'Выставлен счет' :
+                         project.status === 'invoice_sent' ? 'Счет отправлен' :
+                         project.status === 'paid' ? 'Оплачен' : project.status}
+                      </span>
+                    </div>
+                    <p className="text-sm text-gray-600 mb-1">
+                      {project.installationPersonFirstName} {project.installationPersonLastName}
+                    </p>
+                    <p className="text-xs text-gray-500">
+                      {project.installationPersonAddress}
+                    </p>
+                    {project.invoiceNumber && (
+                      <p className="text-xs text-blue-600 mt-1">
+                        Счет: #{project.invoiceNumber}
+                      </p> 
+                    )}
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          </div>
+        )}
         
         <Tutorial 
           isOpen={isTutorialOpen} 
