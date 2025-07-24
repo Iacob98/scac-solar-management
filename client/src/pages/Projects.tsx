@@ -68,11 +68,15 @@ function ProjectsList({ selectedFirm, onViewProject, onManageServices }: Project
     queryFn: async () => {
       const response = await apiRequest(`/api/projects?firmId=${selectedFirm}`, 'GET');
       const data = await response.json();
-      console.log('Projects data:', data);
-      if (data.length > 0) {
-        console.log('First project fields:', Object.keys(data[0]));
-        console.log('First project installationPersonUniqueId:', data[0].installationPersonUniqueId);
-      }
+      console.log('=== PROJECTS LOADED ===');
+      console.log('Projects count:', data.length);
+      data.forEach((project, index) => {
+        console.log(`Project ${index + 1} (ID: ${project.id}):`, {
+          installationPersonUniqueId: project.installationPersonUniqueId,
+          notes: project.notes,
+          teamNumber: project.teamNumber
+        });
+      });
       return data;
     },
     enabled: !!selectedFirm,
@@ -408,7 +412,11 @@ function ProjectsList({ selectedFirm, onViewProject, onManageServices }: Project
         <Input
           placeholder="Поиск по имени клиента, заметкам, уникальному номеру..."
           value={filter}
-          onChange={(e) => setFilter(e.target.value)}
+          onChange={(e) => {
+            console.log('=== SEARCH INPUT CHANGED ===');
+            console.log('New search value:', e.target.value);
+            setFilter(e.target.value);
+          }}
           className="max-w-sm"
         />
         <Select value={statusFilter} onValueChange={setStatusFilter}>
