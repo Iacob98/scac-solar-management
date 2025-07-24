@@ -525,7 +525,8 @@ function EditCrewForm({ crew, onUpdate }: { crew: Crew, onUpdate: any }) {
   );
 }
 
-const extendedCrewSchema = insertCrewSchema.extend({
+const extendedCrewSchema = insertCrewSchema.omit({ firmId: true }).extend({
+  firmId: z.string().uuid('Требуется действительный ID фирмы').optional(),
   members: z.array(z.object({
     firstName: z.string().min(1, 'Имя обязательно'),
     lastName: z.string().min(1, 'Фамилия обязательна'),
@@ -580,7 +581,7 @@ export default function CrewsNew() {
   const form = useForm<ExtendedCrewForm>({
     resolver: zodResolver(extendedCrewSchema),
     defaultValues: {
-      firmId: selectedFirmId,
+      firmId: selectedFirmId || '',
       name: '',
       uniqueNumber: '',
       leaderName: '',
@@ -589,6 +590,13 @@ export default function CrewsNew() {
       members: [],
     },
   });
+
+  // Обновляем firmId когда selectedFirmId изменяется
+  useEffect(() => {
+    if (selectedFirmId) {
+      form.setValue('firmId', selectedFirmId);
+    }
+  }, [selectedFirmId, form]);
 
   const createCrewMutation = useMutation({
     mutationFn: async (data: ExtendedCrewForm) => {
@@ -695,6 +703,15 @@ export default function CrewsNew() {
   const onSubmit = (data: ExtendedCrewForm) => {
     console.log('🚀 Creating crew with data:', data);
     console.log('📋 Selected firm ID:', selectedFirmId);
+    
+    if (!selectedFirmId) {
+      toast({
+        title: 'Ошибка',
+        description: 'Не выбрана фирма',
+        variant: 'destructive',
+      });
+      return;
+    }
     
     createCrewMutation.mutate({
       ...data,
