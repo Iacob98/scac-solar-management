@@ -267,14 +267,6 @@ export default function Invoices() {
           </div>
           <div className="flex gap-2">
             <Button
-              onClick={() => refetch()}
-              variant="ghost"
-              size="sm"
-            >
-              <RotateCw className="w-4 h-4 mr-2" />
-              Обновить
-            </Button>
-            <Button
               onClick={() => syncAllPaymentsMutation.mutate()}
               disabled={syncAllPaymentsMutation.isPending}
               variant="outline"
