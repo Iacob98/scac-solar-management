@@ -562,11 +562,23 @@ export default function CrewsNew() {
   const { data: crews = [], isLoading } = useQuery<Crew[]>({
     queryKey: ['/api/crews', selectedFirmId],
     queryFn: async () => {
-      const response = await fetch(`/api/crews?firmId=${selectedFirmId}`);
+      const timestamp = Date.now();
+      const response = await fetch(`/api/crews?firmId=${selectedFirmId}&_t=${timestamp}`, {
+        cache: 'no-cache',
+        headers: {
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+          'Pragma': 'no-cache',
+        },
+      });
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
       return await response.json();
     },
     enabled: !!selectedFirmId,
     refetchInterval: 30000,
+    staleTime: 0,
+    gcTime: 0,
   });
 
   const { data: crewMembers = [], isLoading: membersLoading } = useQuery<CrewMember[]>({

@@ -667,6 +667,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         accessibleCrews = allCrews.filter(crew => accessibleCrewIds.has(crew.id));
       }
       
+      // Отключаем кэширование для свежих данных
+      res.set({
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
+        'Pragma': 'no-cache',
+        'Expires': '0'
+      });
       res.json(accessibleCrews);
     } catch (error) {
       console.error("Error fetching crews:", error);
