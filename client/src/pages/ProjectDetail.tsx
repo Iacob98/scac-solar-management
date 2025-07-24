@@ -523,7 +523,12 @@ export default function ProjectDetail({ projectId, selectedFirm, onBack }: Proje
             
             <div className="flex items-center space-x-3">
               {/* Кнопка "Поделиться" */}
-              <ProjectShareButton projectId={project.id} firmId={project.firmId} />
+              <ProjectShareButton 
+                projectId={project.id} 
+                firmId={project.firmId} 
+                projectOwnerId={project.leiterId}
+                currentUserId={user?.id}
+              />
             </div>
           </div>
         </div>

@@ -41,9 +41,11 @@ interface ProjectShare {
 interface ProjectShareButtonProps {
   projectId: number;
   firmId: string;
+  projectOwnerId?: string;
+  currentUserId?: string;
 }
 
-export function ProjectShareButton({ projectId, firmId }: ProjectShareButtonProps) {
+export function ProjectShareButton({ projectId, firmId, projectOwnerId, currentUserId }: ProjectShareButtonProps) {
   const [open, setOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<string>('');
   const [selectedPermission, setSelectedPermission] = useState<'view' | 'edit'>('view');
@@ -140,9 +142,11 @@ export function ProjectShareButton({ projectId, firmId }: ProjectShareButtonProp
     return `${user.firstName || ''} ${user.lastName || ''}`.trim() || user.email || userId;
   };
 
-  // Фильтрация пользователей - исключаем уже имеющих доступ
+  // Фильтрация пользователей - исключаем уже имеющих доступ, владельца проекта и текущего пользователя
   const availableUsers = users.filter((user: User) => 
-    !shares.some((share: ProjectShare) => share.sharedWith === user.id)
+    !shares.some((share: ProjectShare) => share.sharedWith === user.id) &&
+    user.id !== projectOwnerId &&
+    user.id !== currentUserId
   );
 
   return (
