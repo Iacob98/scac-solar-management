@@ -638,33 +638,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Admins see all crews
         accessibleCrews = allCrews;
       } else {
-        // Non-admin users see only crews assigned to their projects or shared projects
-        const userProjects = await storage.getProjectsByFirmId(firmId);
-        const accessibleProjectIds = new Set<number>();
-        
-        // Get projects user has access to
-        for (const project of userProjects) {
-          if (project.leiterId === userId) {
-            accessibleProjectIds.add(project.id);
-          } else {
-            const shares = await storage.getProjectShares(project.id);
-            const hasAccess = shares.some(share => share.sharedWith === userId);
-            if (hasAccess) {
-              accessibleProjectIds.add(project.id);
-            }
-          }
+        // Leiters see all crews in their firm - they can create and manage crews
+        // Check if user has access to this firm
+        const hasAccess = await storage.hasUserFirmAccess(userId, firmId);
+        if (hasAccess) {
+          accessibleCrews = allCrews;
+        } else {
+          accessibleCrews = [];
         }
-        
-        // Get crew IDs from accessible projects
-        const accessibleCrewIds = new Set<number>();
-        for (const project of userProjects) {
-          if (accessibleProjectIds.has(project.id) && project.crewId) {
-            accessibleCrewIds.add(project.crewId);
-          }
-        }
-        
-        // Filter crews
-        accessibleCrews = allCrews.filter(crew => accessibleCrewIds.has(crew.id));
       }
       
       // Отключаем кэширование для свежих данных
