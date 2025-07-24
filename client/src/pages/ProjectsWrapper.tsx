@@ -269,7 +269,8 @@ function ProjectsList({ selectedFirm, onViewProject, onManageServices }: { selec
     const matchesFilter = !filter || 
       getInstallationPersonName(project).toLowerCase().includes(filter.toLowerCase()) ||
       getClientName(project.clientId).toLowerCase().includes(filter.toLowerCase()) ||
-      project.teamNumber?.toLowerCase().includes(filter.toLowerCase());
+      project.teamNumber?.toLowerCase().includes(filter.toLowerCase()) ||
+      project.installationPersonUniqueId?.toLowerCase().includes(filter.toLowerCase());
     
     const matchesStatus = statusFilter === 'all' || project.status === statusFilter;
     
