@@ -196,11 +196,25 @@ function ProjectsList({ selectedFirm, onViewProject, onManageServices }: Project
     const clientName = getClientName(project.clientId);
     const searchTerm = filter.toLowerCase();
     
+    // Добавляем логирование для отладки
+    if (filter) {
+      console.log('🔍 Поиск:', filter);
+      console.log('📋 Проект ID:', project.id);
+      console.log('🆔 Уникальный ID:', project.installationPersonUniqueId);
+      console.log('👤 Имя клиента:', clientName);
+      console.log('📝 Заметки:', project.notes);
+      console.log('🔢 Номер бригады:', project.teamNumber);
+    }
+    
     const matchesSearch = !filter || 
       (project.notes && project.notes.toLowerCase().includes(searchTerm)) ||
       (clientName && clientName.toLowerCase().includes(searchTerm)) ||
       (project.teamNumber && project.teamNumber.toLowerCase().includes(searchTerm)) ||
       (project.installationPersonUniqueId && project.installationPersonUniqueId.toLowerCase().includes(searchTerm));
+    
+    if (filter) {
+      console.log('✅ Результат поиска для проекта', project.id, ':', matchesSearch);
+    }
     
     const matchesStatus = statusFilter === 'all' || project.status === statusFilter;
     
