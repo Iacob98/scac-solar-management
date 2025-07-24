@@ -67,7 +67,13 @@ function ProjectsList({ selectedFirm, onViewProject, onManageServices }: Project
     queryKey: ['/api/projects', selectedFirm],
     queryFn: async () => {
       const response = await apiRequest(`/api/projects?firmId=${selectedFirm}`, 'GET');
-      return await response.json();
+      const data = await response.json();
+      console.log('Projects data:', data);
+      if (data.length > 0) {
+        console.log('First project fields:', Object.keys(data[0]));
+        console.log('First project installationPersonUniqueId:', data[0].installationPersonUniqueId);
+      }
+      return data;
     },
     enabled: !!selectedFirm,
     refetchInterval: 30000, // Автообновление каждые 30 секунд
@@ -197,8 +203,16 @@ function ProjectsList({ selectedFirm, onViewProject, onManageServices }: Project
   };
 
   const filteredProjects = (projects as Project[]).filter((project: Project & { client?: Client; crew?: Crew }) => {
-    const matchesSearch = project.notes?.toLowerCase().includes(filter.toLowerCase()) ||
-      project.client?.name?.toLowerCase().includes(filter.toLowerCase()) ||
+    if (filter) {
+      console.log('Filtering for:', filter);
+      console.log('Project installationPersonUniqueId:', project.installationPersonUniqueId);
+      console.log('Match:', project.installationPersonUniqueId?.toLowerCase().includes(filter.toLowerCase()));
+    }
+    
+    const clientName = getClientName(project.clientId);
+    const matchesSearch = !filter || 
+      project.notes?.toLowerCase().includes(filter.toLowerCase()) ||
+      clientName?.toLowerCase().includes(filter.toLowerCase()) ||
       project.teamNumber?.toLowerCase().includes(filter.toLowerCase()) ||
       project.installationPersonUniqueId?.toLowerCase().includes(filter.toLowerCase());
     
