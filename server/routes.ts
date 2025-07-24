@@ -2225,9 +2225,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Firm-User management endpoints
-  app.get('/api/firms/:firmId/users', isAuthenticated, isAdmin, async (req: any, res) => {
+  app.get('/api/firms/:firmId/users', isAuthenticated, async (req: any, res) => {
     try {
       const { firmId } = req.params;
+      const userId = req.user.claims.sub;
+      const user = await storage.getUser(userId);
+      
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      
+      // Проверяем доступ пользователя к фирме
+      if (user.role !== 'admin') {
+        const hasAccess = await storage.hasUserFirmAccess(userId, firmId);
+        if (!hasAccess) {
+          return res.status(403).json({ message: "Access denied" });
+        }
+      }
       
       const users = await storage.getUsersByFirmId(firmId);
       res.json(users);
