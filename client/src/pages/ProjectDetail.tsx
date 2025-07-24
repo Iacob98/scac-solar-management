@@ -5,11 +5,11 @@ import { useLocation } from 'wouter';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from '@/components/ui/dialog';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { ArrowLeft, FileText, Users, Package, Clock, Euro, Calendar, Building2, Phone, History, Star, Plus, Upload, Image, Trash2, Eye, MessageSquare, Download, Send } from 'lucide-react';
+import { ArrowLeft, FileText, Users, Package, Clock, Euro, Calendar, Building2, Phone, History, Star, Plus, Upload, Image, Trash2, Eye, MessageSquare, Download, Send, Edit } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -97,6 +97,7 @@ export default function ProjectDetail({ projectId, selectedFirm, onBack }: Proje
   const [editingReport, setEditingReport] = useState<ProjectReport | null>(null);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [isNoteDialogOpen, setIsNoteDialogOpen] = useState(false);
+  const [isCrewChangeDialogOpen, setIsCrewChangeDialogOpen] = useState(false);
   const { toast } = useToast();
   const { user } = useAuth();
   const queryClient = useQueryClient();
@@ -145,6 +146,16 @@ export default function ProjectDetail({ projectId, selectedFirm, onBack }: Proje
     enabled: !!project?.crewId,
   });
 
+  // Fetch all crews for the firm
+  const { data: allCrews = [] } = useQuery({
+    queryKey: ['/api/crews', selectedFirm],
+    queryFn: async () => {
+      const response = await apiRequest(`/api/crews?firmId=${selectedFirm}`, 'GET');
+      return await response.json();
+    },
+    enabled: !!selectedFirm,
+  });
+
   console.log('Related data:', { client, clientError, crew, crewError });
 
   // Reports and Files queries
@@ -190,6 +201,26 @@ export default function ProjectDetail({ projectId, selectedFirm, onBack }: Proje
       toast({
         title: 'Ошибка',
         description: error.message || 'Не удалось обновить статус проекта',
+        variant: 'destructive'
+      });
+    },
+  });
+
+  // Mutation для изменения команды
+  const updateCrewMutation = useMutation({
+    mutationFn: (crewId: number | null) => 
+      apiRequest(`/api/projects/${projectId}`, 'PATCH', { crewId }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/projects', projectId] });
+      queryClient.invalidateQueries({ queryKey: ['/api/projects', projectId, 'history'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/crews/single', project?.crewId] });
+      toast({ title: 'Команда проекта успешно изменена' });
+      setIsCrewChangeDialogOpen(false);
+    },
+    onError: (error: any) => {
+      toast({
+        title: 'Ошибка',
+        description: error.message || 'Не удалось изменить команду',
         variant: 'destructive'
       });
     },
@@ -669,7 +700,18 @@ export default function ProjectDetail({ projectId, selectedFirm, onBack }: Proje
                 )}
                 
                 <div className="space-y-2">
-                  <p className="text-sm text-gray-500">Команда</p>
+                  <div className="flex items-center justify-between">
+                    <p className="text-sm text-gray-500">Команда</p>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setIsCrewChangeDialogOpen(true)}
+                      className="h-8 px-2"
+                    >
+                      <Edit className="h-3 w-3 mr-1" />
+                      Изменить
+                    </Button>
+                  </div>
                   <p className="font-medium text-gray-900 flex items-center">
                     <Users className="h-4 w-4 mr-2 text-blue-600" />
                     {(crew as Crew)?.name || 'Не назначена'}
@@ -1331,6 +1373,43 @@ export default function ProjectDetail({ projectId, selectedFirm, onBack }: Proje
         </div>
       </div>
 
+      {/* Crew Change Dialog */}
+      <Dialog open={isCrewChangeDialogOpen} onOpenChange={setIsCrewChangeDialogOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Изменить назначенную команду</DialogTitle>
+            <DialogDescription>
+              Выберите новую команду для выполнения этого проекта
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="text-sm text-gray-600">
+              Текущая команда: <span className="font-medium">{(crew as Crew)?.name || 'Не назначена'}</span>
+            </div>
+            <Select 
+              value={project?.crewId?.toString() || 'none'} 
+              onValueChange={(value) => {
+                updateCrewMutation.mutate(value === 'none' ? null : parseInt(value));
+              }}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Выберите команду" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="none">Не назначена</SelectItem>
+                {allCrews.map((c: any) => (
+                  <SelectItem key={c.id} value={c.id.toString()}>
+                    {c.name} ({c.uniqueNumber})
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <p className="text-xs text-gray-500">
+              При изменении команды будет создан снимок текущего состава для истории
+            </p>
+          </div>
+        </DialogContent>
+      </Dialog>
 
     </div>
   );
