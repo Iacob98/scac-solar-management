@@ -1008,6 +1008,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Crew snapshots route (missing from modular refactor)
+  app.get('/api/crew-snapshots/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      const snapshotId = parseInt(req.params.id, 10);
+      if (isNaN(snapshotId)) {
+        return res.status(400).json({ message: "Invalid snapshot ID" });
+      }
+
+      const snapshot = await storage.getCrewSnapshotById(snapshotId);
+      if (!snapshot) {
+        return res.status(404).json({ message: "Crew snapshot not found" });
+      }
+
+      res.json(snapshot);
+    } catch (error) {
+      console.error("Error fetching crew snapshot:", error);
+      res.status(500).json({ message: "Failed to fetch crew snapshot" });
+    }
+  });
+
   // Create HTTP server
   const httpServer = createServer(app);
   return httpServer;
