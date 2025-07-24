@@ -265,50 +265,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Invoice management routes
-  app.patch('/api/invoice/mark-paid', isAuthenticated, async (req: any, res) => {
-    try {
-      const userId = req.user?.claims?.sub || req.session?.userId;
-      const user = await storage.getUser(userId);
-      
-      if (!user) {
-        return res.status(404).json({ message: "User not found" });
-      }
-
-      const { invoiceId } = z.object({
-        invoiceId: z.number(),
-      }).parse(req.body);
-
-      const invoice = await storage.getInvoiceById(invoiceId);
-      
-      if (!invoice) {
-        return res.status(404).json({ message: "Invoice not found" });
-      }
-
-      // Update invoice as paid
-      await storage.updateInvoice(invoiceId, { isPaid: true });
-      
-      // Update project status to paid
-      await storage.updateProject(invoice.projectId, { status: 'paid' });
-      
-      // Add history entry
-      await storage.createProjectHistoryEntry({
-        projectId: invoice.projectId,
-        userId,
-        changeType: 'status_change',
-        fieldName: 'status',
-        oldValue: 'invoiced',
-        newValue: 'paid',
-        description: `Счет №${invoice.invoiceNumber} помечен как оплаченный`,
-      });
-
-      res.json({ message: "Invoice marked as paid successfully" });
-    } catch (error) {
-      console.error("Error marking invoice as paid:", error);
-      res.status(500).json({ message: "Failed to mark invoice as paid" });
-    }
-  });
-
   app.post('/api/invoice/send-email/:projectId', isAuthenticated, async (req: any, res) => {
     try {
       const { projectId } = req.params;

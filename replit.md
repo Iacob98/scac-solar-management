@@ -324,3 +324,9 @@ The application follows a monolithic architecture with clear separation between 
   - Created getProjectHistory controller function with proper access control
   - Fixed project history API returning HTML instead of JSON in modular architecture
   - All project history functionality now working correctly in new module system
+- **FIXED invoice payment marking API**: Fixed validation error in mark-paid endpoint (July 24, 2025)
+  - Changed validation from expecting `invoiceId` (number) to `invoiceNumber` (string) to match frontend requests
+  - Added proper invoice search across user's accessible firms by invoice number
+  - Integrated Invoice Ninja API synchronization for payment status updates
+  - Added proper error handling for Invoice Ninja API failures with local database fallback
+  - Fixed payment marking functionality that was failing due to validation mismatch
