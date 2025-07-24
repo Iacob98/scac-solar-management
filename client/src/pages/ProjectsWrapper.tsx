@@ -265,11 +265,16 @@ function ProjectsList({ selectedFirm, onViewProject, onManageServices }: { selec
     return crew?.name || 'Не назначена';
   };
 
+  const getCrewUniqueNumber = (crewId: number) => {
+    const crew = (crews as Crew[]).find((c: Crew) => c.id === crewId);
+    return crew?.uniqueNumber || '';
+  };
+
   const filteredProjects = (projects as Project[]).filter((project: Project) => {
     const matchesFilter = !filter || 
       getInstallationPersonName(project).toLowerCase().includes(filter.toLowerCase()) ||
       getClientName(project.clientId).toLowerCase().includes(filter.toLowerCase()) ||
-      project.teamNumber?.toLowerCase().includes(filter.toLowerCase()) ||
+      getCrewUniqueNumber(project.crewId).toLowerCase().includes(filter.toLowerCase()) ||
       project.installationPersonUniqueId?.toLowerCase().includes(filter.toLowerCase());
     
     const matchesStatus = statusFilter === 'all' || project.status === statusFilter;
