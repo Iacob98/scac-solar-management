@@ -42,7 +42,15 @@ export const getCurrentUser = async (req: any, res: Response) => {
  */
 export const getTestUsers = async (req: Request, res: Response) => {
   try {
-    const testUsers = await storage.getTestUsers();
+    const testUsers = [
+      { id: '41352215', name: 'Iacob Bujac', email: 'iasabujac@gmail.com', role: 'admin' },
+      { id: 'test_user_1', name: 'Maria Schneider', email: 'maria.schneider@solar.de', role: 'leiter' },
+      { id: 'test_user_2', name: 'Thomas Mueller', email: 'thomas.mueller@solar.de', role: 'leiter' },
+      { id: 'test_user_3', name: 'Anna Weber', email: 'anna.weber@solar.de', role: 'leiter' },
+      { id: 'test_user_4', name: 'Klaus Richter', email: 'klaus.richter@greenenergy.de', role: 'leiter' },
+      { id: 'test_user_new_firm', name: 'Manager Solar', email: 'manager@testsolar.de', role: 'admin' }
+    ];
+    
     res.json(testUsers);
   } catch (error) {
     console.error("Error fetching test users:", error);

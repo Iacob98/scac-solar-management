@@ -355,7 +355,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const invoiceNinja = new InvoiceNinjaService(firm.token, firm.invoiceNinjaUrl);
-      const paymentStatus = await invoiceNinja.getInvoicePaymentStatus(invoiceNumber);
+      const paymentStatus = await invoiceNinja.checkInvoicePaymentStatus(invoiceNumber);
       
       if (paymentStatus.isPaid) {
         console.log(`✅ Invoice ${invoiceNumber} is paid, updating project status`);
@@ -415,7 +415,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       for (const project of invoicedProjects) {
         try {
-          const paymentStatus = await invoiceNinja.getInvoicePaymentStatus(project.invoiceNumber!);
+          const paymentStatus = await invoiceNinja.checkInvoicePaymentStatus(project.invoiceNumber!);
           
           if (paymentStatus.isPaid) {
             console.log(`✅ Updating project ${project.id} - invoice ${project.invoiceNumber} is paid`);

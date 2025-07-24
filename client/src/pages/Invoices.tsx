@@ -184,10 +184,15 @@ export default function Invoices() {
     return projects.find((p) => p.id === projectId);
   };
 
-  const getStatusBadge = (isPaid: boolean, dueDate: string) => {
-    const isOverdue = new Date(dueDate) < new Date() && !isPaid;
+  const getStatusBadge = (isPaid: boolean, dueDate: string, projectId: number) => {
+    // Проверяем статус проекта - если проект оплачен, то и счет оплачен
+    const project = getProject(projectId);
+    const projectIsPaid = project?.status === 'paid';
+    const finalIsPaid = isPaid || projectIsPaid;
     
-    if (isPaid) {
+    const isOverdue = new Date(dueDate) < new Date() && !finalIsPaid;
+    
+    if (finalIsPaid) {
       return (
         <Badge variant="default" className="bg-green-100 text-green-800">
           <CheckCircle className="w-3 h-3 mr-1" />
@@ -227,10 +232,13 @@ export default function Invoices() {
 
   const filteredInvoices = invoices.filter((invoice) => {
     if (filters.status && filters.status !== 'all') {
-      if (filters.status === 'paid' && !invoice.isPaid) return false;
-      if (filters.status === 'unpaid' && invoice.isPaid) return false;
+      const project = getProject(invoice.projectId);
+      const finalIsPaid = invoice.isPaid || project?.status === 'paid';
+      
+      if (filters.status === 'paid' && !finalIsPaid) return false;
+      if (filters.status === 'unpaid' && finalIsPaid) return false;
       if (filters.status === 'overdue') {
-        const isOverdue = new Date(invoice.dueDate) < new Date() && !invoice.isPaid;
+        const isOverdue = new Date(invoice.dueDate) < new Date() && !finalIsPaid;
         if (!isOverdue) return false;
       }
     }
@@ -242,7 +250,10 @@ export default function Invoices() {
   );
 
   const unpaidAmount = filteredInvoices
-    .filter((invoice) => !invoice.isPaid)
+    .filter((invoice) => {
+      const project = getProject(invoice.projectId);
+      return !invoice.isPaid && project?.status !== 'paid';
+    })
     .reduce((sum: number, invoice) => sum + parseFloat(invoice.totalAmount), 0);
 
   if (!selectedFirmId) {
@@ -416,14 +427,14 @@ export default function Invoices() {
                         <span className="font-medium">{formatCurrency(invoice.totalAmount)}</span>
                       </TableCell>
                       <TableCell>
-                        {getStatusBadge(invoice.isPaid, invoice.dueDate)}
+                        {getStatusBadge(invoice.isPaid, invoice.dueDate, invoice.projectId)}
                       </TableCell>
                       <TableCell>
                         <span className={`font-medium ${
                           daysUntilDue < 0 ? 'text-red-600' : 
                           daysUntilDue <= 7 ? 'text-yellow-600' : 'text-green-600'
                         }`}>
-                          {invoice.isPaid ? 'Оплачен' : 
+                          {(invoice.isPaid || project?.status === 'paid') ? 'Оплачен' : 
                            daysUntilDue < 0 ? `${Math.abs(daysUntilDue)} дней просрочки` :
                            daysUntilDue === 0 ? 'Срок сегодня' :
                            `${daysUntilDue} дней`}
@@ -431,7 +442,7 @@ export default function Invoices() {
                       </TableCell>
                       <TableCell>
                         <div className="flex space-x-2">
-                          {!invoice.isPaid && (
+                          {!invoice.isPaid && project?.status !== 'paid' && (
                             <Button
                               size="sm"
                               onClick={() => markPaidMutation.mutate({ invoiceNumber: invoice.invoiceNumber })}
