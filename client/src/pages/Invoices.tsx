@@ -161,7 +161,7 @@ export default function Invoices() {
     onSuccess: (data) => {
       toast({
         title: 'Синхронизация завершена',
-        description: `Проверено счетов: ${data.totalInvoices}, обновлено: ${data.updatedCount}`,
+        description: `Проверено счетов: ${data.totalChecked}, обновлено: ${data.updatedCount}`,
       });
       queryClient.invalidateQueries({ queryKey: ['/api/invoices'] });
       queryClient.invalidateQueries({ queryKey: ['/api/projects'] });
