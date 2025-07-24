@@ -14,6 +14,7 @@ import {
   userFirms,
   fileStorage,
   projectNotes,
+  projectCrewSnapshots,
   type User,
   type UpsertUser,
   type Firm,
@@ -40,6 +41,8 @@ import {
   type InsertProjectShare,
   type FileStorage,
   type InsertFileStorage,
+  type ProjectCrewSnapshot,
+  type InsertProjectCrewSnapshot,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, desc, sql, gte, lte } from "drizzle-orm";
@@ -139,6 +142,10 @@ export interface IStorage {
   getUserSharedProjects(userId: string): Promise<number[]>;
   removeProjectShare(projectId: number, sharedWith: string): Promise<void>;
   getFirmUsers(firmId: string): Promise<User[]>;
+  
+  // Project Crew Snapshot operations
+  createProjectCrewSnapshot(projectId: number, crewId: number, userId: string): Promise<ProjectCrewSnapshot>;
+  getProjectCrewSnapshot(projectId: number): Promise<ProjectCrewSnapshot | undefined>;
   
   // New File Storage operations
   createFileRecord(file: InsertFileStorage): Promise<FileStorage>;
@@ -670,6 +677,7 @@ export class DatabaseStorage implements IStorage {
         oldValue: projectHistory.oldValue,
         newValue: projectHistory.newValue,
         description: projectHistory.description,
+        crewSnapshotId: projectHistory.crewSnapshotId,
         createdAt: projectHistory.createdAt,
         userFirstName: users.firstName,
         userLastName: users.lastName,
@@ -749,6 +757,72 @@ export class DatabaseStorage implements IStorage {
       .from(users)
       .innerJoin(userFirms, eq(users.id, userFirms.userId))
       .where(eq(userFirms.firmId, firmId));
+  }
+
+  // Project Crew Snapshot operations
+  async createProjectCrewSnapshot(projectId: number, crewId: number, userId: string): Promise<ProjectCrewSnapshot> {
+    // Получаем информацию о бригаде
+    const crew = await this.getCrewById(crewId);
+    if (!crew) {
+      throw new Error('Crew not found');
+    }
+
+    // Получаем всех членов бригады
+    const members = await this.getCrewMembersByCrewId(crewId);
+
+    // Создаем снимок с полной информацией о бригаде и ее составе
+    const [snapshot] = await db
+      .insert(projectCrewSnapshots)
+      .values({
+        projectId,
+        crewId,
+        crewData: {
+          id: crew.id,
+          firmId: crew.firmId,
+          name: crew.name,
+          uniqueNumber: crew.uniqueNumber,
+          leaderName: crew.leaderName,
+          phone: crew.phone,
+          address: crew.address,
+          status: crew.status,
+          gcalId: crew.gcalId,
+        },
+        membersData: members.map(member => ({
+          id: member.id,
+          firstName: member.firstName,
+          lastName: member.lastName,
+          address: member.address,
+          uniqueNumber: member.uniqueNumber,
+          phone: member.phone,
+          role: member.role,
+          memberEmail: member.memberEmail,
+          googleCalendarId: member.googleCalendarId,
+        })),
+        createdBy: userId,
+      })
+      .returning();
+
+    return snapshot;
+  }
+
+  async getProjectCrewSnapshot(projectId: number): Promise<ProjectCrewSnapshot | undefined> {
+    const [snapshot] = await db
+      .select()
+      .from(projectCrewSnapshots)
+      .where(eq(projectCrewSnapshots.projectId, projectId))
+      .orderBy(desc(projectCrewSnapshots.snapshotDate))
+      .limit(1);
+    
+    return snapshot;
+  }
+
+  async getCrewSnapshotById(snapshotId: number): Promise<ProjectCrewSnapshot | undefined> {
+    const [snapshot] = await db
+      .select()
+      .from(projectCrewSnapshots)
+      .where(eq(projectCrewSnapshots.id, snapshotId));
+    
+    return snapshot;
   }
 
   // New File Storage methods

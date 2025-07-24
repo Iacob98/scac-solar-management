@@ -4,7 +4,9 @@ import { ru } from 'date-fns/locale';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { ArrowLeft, Clock, User, FileText, AlertCircle, Calendar, Package, Phone, Users, Upload, Trash2, Star, Share2, MessageSquare } from 'lucide-react';
+import { useState } from 'react';
 
 interface ProjectHistoryEntry {
   id: number;
@@ -15,6 +17,7 @@ interface ProjectHistoryEntry {
   oldValue?: string;
   newValue?: string;
   description: string;
+  crewSnapshotId?: number;
   createdAt: string;
   userFirstName?: string;
   userLastName?: string;
@@ -78,6 +81,8 @@ const changeTypeLabels = {
   'report_updated': 'Отчет обновлен',
   'report_deleted': 'Отчет удален',
   'note_added': 'Примечание добавлено',
+  'crew_assigned': 'Бригада назначена',
+  'crew_snapshot_created': 'Снимок бригады',
 };
 
 // Функция для определения приоритета из описания примечания (для обратной совместимости со старыми записями)
@@ -112,6 +117,9 @@ const priorityBadgeStyles = {
 };
 
 export default function ProjectHistory({ projectId, onBack, embedded = false, limit }: ProjectHistoryProps) {
+  const [selectedSnapshot, setSelectedSnapshot] = useState<number | null>(null);
+  const [snapshotData, setSnapshotData] = useState<any>(null);
+  
   const { data: history = [], isLoading, error } = useQuery({
     queryKey: ['/api/projects', projectId, 'history'],
     queryFn: async () => {
@@ -122,6 +130,21 @@ export default function ProjectHistory({ projectId, onBack, embedded = false, li
       return response.json() as ProjectHistoryEntry[];
     },
     refetchInterval: 5000, // Автообновление каждые 5 секунд
+  });
+  
+  // Fetch snapshot data when selected
+  const { isLoading: snapshotLoading } = useQuery({
+    queryKey: ['/api/crew-snapshots', selectedSnapshot],
+    enabled: !!selectedSnapshot,
+    queryFn: async () => {
+      const response = await fetch(`/api/crew-snapshots/${selectedSnapshot}`);
+      if (!response.ok) {
+        throw new Error('Failed to fetch crew snapshot');
+      }
+      const data = await response.json();
+      setSnapshotData(data);
+      return data;
+    },
   });
 
   if (isLoading) {
@@ -166,7 +189,16 @@ export default function ProjectHistory({ projectId, onBack, embedded = false, li
             return (
               <div key={entry.id} className="relative">
                 
-                <div className={`flex items-start space-x-3 p-3 hover:bg-gray-50 rounded-lg transition-colors shadow-sm border ${cardStyle}`}>
+                <div 
+                  className={`flex items-start space-x-3 p-3 hover:bg-gray-50 rounded-lg transition-colors shadow-sm border ${cardStyle} ${
+                    entry.changeType === 'crew_assigned' && entry.description.includes('(снимок сохранен)') ? 'cursor-pointer' : ''
+                  }`}
+                  onClick={() => {
+                    if (entry.changeType === 'crew_assigned' && entry.description.includes('(снимок сохранен)') && entry.crewSnapshotId) {
+                      setSelectedSnapshot(entry.crewSnapshotId);
+                    }
+                  }}
+                >
                   {/* Icon */}
                   <div className={`p-2 rounded-full ${changeTypeColors[entry.changeType]} flex-shrink-0`}>
                     <IconComponent className="h-3 w-3" />
@@ -274,7 +306,16 @@ export default function ProjectHistory({ projectId, onBack, embedded = false, li
                     <div className="absolute left-6 -top-4 bottom-0 w-0.5 bg-gray-200"></div>
                   )}
                   
-                  <Card className={`ml-0 ${cardBgStyle}`}>
+                  <Card 
+                    className={`ml-0 ${cardBgStyle} ${
+                      entry.changeType === 'crew_assigned' && entry.description.includes('(снимок сохранен)') ? 'cursor-pointer hover:shadow-md transition-shadow' : ''
+                    }`}
+                    onClick={() => {
+                      if (entry.changeType === 'crew_assigned' && entry.description.includes('(снимок сохранен)') && entry.crewSnapshotId) {
+                        setSelectedSnapshot(entry.crewSnapshotId);
+                      }
+                    }}
+                  >
                     <CardContent className="p-6">
                       <div className="flex items-start space-x-4">
                         {/* Icon */}
@@ -336,6 +377,81 @@ export default function ProjectHistory({ projectId, onBack, embedded = false, li
           )}
         </div>
       </div>
+
+      {/* Crew Snapshot Dialog */}
+      <Dialog open={!!selectedSnapshot} onOpenChange={() => {
+        setSelectedSnapshot(null);
+        setSnapshotData(null);
+      }}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Снимок состава бригады</DialogTitle>
+            <DialogDescription>
+              Состав бригады на момент назначения на проект
+            </DialogDescription>
+          </DialogHeader>
+          
+          {snapshotLoading ? (
+            <div className="flex justify-center py-4">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+            </div>
+          ) : snapshotData ? (
+            <div className="space-y-4">
+              <div className="bg-gray-50 p-4 rounded-lg">
+                <h3 className="font-semibold text-lg mb-2">
+                  {snapshotData.crewData?.name} ({snapshotData.crewData?.uniqueNumber})
+                </h3>
+                <div className="grid grid-cols-2 gap-2 text-sm">
+                  <div>
+                    <span className="text-gray-500">Руководитель:</span>
+                    <span className="ml-2">{snapshotData.crewData?.leaderName}</span>
+                  </div>
+                  <div>
+                    <span className="text-gray-500">Телефон:</span>
+                    <span className="ml-2">{snapshotData.crewData?.phone}</span>
+                  </div>
+                  <div className="col-span-2">
+                    <span className="text-gray-500">Адрес:</span>
+                    <span className="ml-2">{snapshotData.crewData?.address}</span>
+                  </div>
+                  <div className="col-span-2">
+                    <span className="text-gray-500">Дата снимка:</span>
+                    <span className="ml-2">
+                      {format(new Date(snapshotData.snapshotDate), 'dd.MM.yyyy HH:mm', { locale: ru })}
+                    </span>
+                  </div>
+                </div>
+              </div>
+              
+              {snapshotData.membersData && snapshotData.membersData.length > 0 && (
+                <div>
+                  <h4 className="font-semibold mb-2">Участники бригады:</h4>
+                  <div className="space-y-2">
+                    {snapshotData.membersData.map((member: any, index: number) => (
+                      <div key={index} className="bg-white p-3 rounded-lg border">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <p className="font-medium">{member.name}</p>
+                            <p className="text-sm text-gray-500">{member.position}</p>
+                          </div>
+                          <div className="text-sm">
+                            <p className="text-gray-600">{member.phone}</p>
+                            {member.email && (
+                              <p className="text-gray-600">{member.email}</p>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          ) : (
+            <p className="text-gray-500 text-center py-4">Данные снимка не найдены</p>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

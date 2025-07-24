@@ -228,18 +228,30 @@ export const projectNotes = pgTable("project_notes", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
+// Project Crew Snapshots table - снимки состава бригады на момент назначения
+export const projectCrewSnapshots = pgTable("project_crew_snapshots", {
+  id: serial("id").primaryKey(),
+  projectId: integer("project_id").notNull().references(() => projects.id),
+  crewId: integer("crew_id").notNull(),
+  snapshotDate: timestamp("snapshot_date").defaultNow().notNull(),
+  crewData: jsonb("crew_data").notNull(), // Данные о бригаде на момент снимка
+  membersData: jsonb("members_data").notNull(), // Массив участников на момент снимка
+  createdBy: varchar("created_by").notNull().references(() => users.id),
+});
+
 // Project History table - для отслеживания всех изменений в проекте
 export const projectHistory = pgTable("project_history", {
   id: serial("id").primaryKey(),
   projectId: integer("project_id").notNull().references(() => projects.id),
   userId: varchar("user_id").notNull().references(() => users.id),
   changeType: varchar("change_type", { 
-    enum: ['status_change', 'date_update', 'info_update', 'created', 'equipment_update', 'call_update', 'assignment_change', 'shared', 'file_added', 'file_deleted', 'report_added', 'report_updated', 'report_deleted', 'note_added'] 
+    enum: ['status_change', 'date_update', 'info_update', 'created', 'equipment_update', 'call_update', 'assignment_change', 'shared', 'file_added', 'file_deleted', 'report_added', 'report_updated', 'report_deleted', 'note_added', 'crew_assigned', 'crew_snapshot_created'] 
   }).notNull(),
   fieldName: varchar("field_name"), // название поля которое изменилось
   oldValue: text("old_value"),
   newValue: text("new_value"),
   description: text("description").notNull(),
+  crewSnapshotId: integer("crew_snapshot_id").references(() => projectCrewSnapshots.id),
   createdAt: timestamp("created_at").defaultNow(),
 });
 
@@ -326,9 +338,15 @@ export const projectReportsRelations = relations(projectReports, ({ one }) => ({
   project: one(projects, { fields: [projectReports.projectId], references: [projects.id] }),
 }));
 
+export const projectCrewSnapshotsRelations = relations(projectCrewSnapshots, ({ one }) => ({
+  project: one(projects, { fields: [projectCrewSnapshots.projectId], references: [projects.id] }),
+  createdByUser: one(users, { fields: [projectCrewSnapshots.createdBy], references: [users.id] }),
+}));
+
 export const projectHistoryRelations = relations(projectHistory, ({ one }) => ({
   project: one(projects, { fields: [projectHistory.projectId], references: [projects.id] }),
   user: one(users, { fields: [projectHistory.userId], references: [users.id] }),
+  crewSnapshot: one(projectCrewSnapshots, { fields: [projectHistory.crewSnapshotId], references: [projectCrewSnapshots.id] }),
 }));
 
 export const projectSharesRelations = relations(projectShares, ({ one }) => ({
@@ -369,6 +387,13 @@ export const insertProjectSchema = createInsertSchema(projects).omit({
 });
 export type InsertProject = z.infer<typeof insertProjectSchema>;
 export type Project = typeof projects.$inferSelect;
+
+export const insertProjectCrewSnapshotSchema = createInsertSchema(projectCrewSnapshots).omit({ 
+  id: true, 
+  snapshotDate: true 
+});
+export type InsertProjectCrewSnapshot = z.infer<typeof insertProjectCrewSnapshotSchema>;
+export type ProjectCrewSnapshot = typeof projectCrewSnapshots.$inferSelect;
 
 export const insertProjectHistorySchema = createInsertSchema(projectHistory).omit({ 
   id: true, 

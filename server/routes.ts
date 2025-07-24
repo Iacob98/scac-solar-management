@@ -957,6 +957,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ message: "Failed to fetch project history" });
     }
   });
+  
+  // Get crew snapshot by ID
+  app.get('/api/crew-snapshots/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      const snapshotId = parseInt(req.params.id);
+      
+      if (isNaN(snapshotId)) {
+        return res.status(400).json({ message: "Invalid snapshot ID" });
+      }
+      
+      const snapshot = await storage.getCrewSnapshotById(snapshotId);
+      
+      if (!snapshot) {
+        return res.status(404).json({ message: "Snapshot not found" });
+      }
+      
+      res.json(snapshot);
+    } catch (error) {
+      console.error("Error fetching crew snapshot:", error);
+      res.status(500).json({ message: "Failed to fetch crew snapshot" });
+    }
+  });
 
   app.get('/api/project/:id', isAuthenticated, async (req: any, res) => {
     try {
@@ -1061,6 +1083,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         if (oldValue !== newValue) {
           let description = '';
           let changeType = 'info_update';
+          let crewSnapshotId: number | null = null;
           
           if (key === 'status') {
             changeType = 'status_change';
@@ -1136,15 +1159,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
               : `Звонок клиенту больше не требуется`;
           } else if (key === 'crewId') {
             changeType = 'assignment_change';
-            description = `Команда изменена`;
+            description = `Команда назначена`;
             
-            // Создаем события в Google Calendar для участников бригады
+            // Создаем снимок состава бригады при назначении
             if (newValue && newValue !== oldValue) {
               try {
-                await googleCalendarService.createProjectEventForCrewMembers(projectId, newValue);
-                console.log(`Google Calendar events created for project assignment: project ${projectId} to crew ${newValue}`);
-              } catch (calendarError) {
-                console.warn(`Failed to create Google Calendar events for project assignment:`, calendarError);
+                const snapshot = await storage.createProjectCrewSnapshot(projectId, parseInt(String(newValue)), userId);
+                console.log(`Crew snapshot created for project ${projectId}, crew ${newValue}`);
+                
+                // Обновляем описание и сохраняем ID снимка
+                description = `Команда назначена (снимок сохранен)`;
+                crewSnapshotId = snapshot.id;
+                
+                // Создаем события в Google Calendar для участников бригады
+                try {
+                  await googleCalendarService.createProjectEventForCrewMembers(projectId, newValue);
+                  console.log(`Google Calendar events created for project assignment: project ${projectId} to crew ${newValue}`);
+                } catch (calendarError) {
+                  console.warn(`Failed to create Google Calendar events for project assignment:`, calendarError);
+                }
+              } catch (snapshotError) {
+                console.warn(`Failed to create crew snapshot:`, snapshotError);
               }
             }
           } else {
@@ -1159,6 +1194,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             oldValue: oldValue ? String(oldValue) : null,
             newValue: newValue ? String(newValue) : null,
             description,
+            crewSnapshotId,
           });
         }
       }
