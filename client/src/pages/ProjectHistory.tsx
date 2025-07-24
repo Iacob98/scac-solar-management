@@ -127,9 +127,34 @@ export default function ProjectHistory({ projectId, onBack, embedded = false, li
       if (!response.ok) {
         throw new Error('Failed to fetch project history');
       }
-      return response.json() as ProjectHistoryEntry[];
+      return response.json();
     },
     refetchInterval: 5000, // Автообновление каждые 5 секунд
+  });
+
+  // Получаем данные проекта для получения firmId
+  const { data: project } = useQuery({
+    queryKey: ['/api/projects', projectId],
+    queryFn: async () => {
+      const response = await fetch(`/api/projects/${projectId}`);
+      if (!response.ok) {
+        throw new Error('Failed to fetch project');
+      }
+      return response.json();
+    },
+  });
+
+  // Получаем список бригад для отображения их названий
+  const { data: crews = [] } = useQuery({
+    queryKey: ['/api/crews', project?.firmId],
+    enabled: !!project?.firmId,
+    queryFn: async () => {
+      const response = await fetch(`/api/crews?firmId=${project.firmId}`);
+      if (!response.ok) {
+        throw new Error('Failed to fetch crews');
+      }
+      return response.json();
+    },
   });
   
   // Fetch snapshot data when selected
@@ -146,6 +171,43 @@ export default function ProjectHistory({ projectId, onBack, embedded = false, li
       return data;
     },
   });
+
+  // Функция для форматирования описания с названием бригады
+  const formatDescription = (entry: ProjectHistoryEntry): React.ReactNode => {
+    if (entry.changeType === 'assignment_change' && entry.fieldName === 'crewId') {
+      const crewId = entry.newValue ? parseInt(entry.newValue) : null;
+      const crew = crewId ? crews.find((c: any) => c.id === crewId) : null;
+      
+      if (crewId && crew) {
+        return (
+          <span>
+            Команда{' '}
+            {entry.crewSnapshotId ? (
+              <button
+                className="text-blue-600 hover:text-blue-800 font-semibold underline"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  if (entry.crewSnapshotId) {
+                    setSelectedSnapshot(entry.crewSnapshotId);
+                  }
+                }}
+              >
+                "{crew.name}"
+              </button>
+            ) : (
+              <span className="font-semibold">"{crew.name}"</span>
+            )}
+            {' '}назначена
+            {entry.crewSnapshotId && ' (снимок сохранен)'}
+          </span>
+        );
+      } else if (!crewId) {
+        return 'Команда снята с проекта';
+      }
+    }
+    
+    return cleanDescription(entry.description);
+  };
 
   if (isLoading) {
     return (
@@ -178,7 +240,7 @@ export default function ProjectHistory({ projectId, onBack, embedded = false, li
             <p className="text-xs">История изменений пуста</p>
           </div>
         ) : (
-          displayHistory.map((entry, index) => {
+          displayHistory.map((entry: ProjectHistoryEntry, index: number) => {
             const IconComponent = changeTypeIcons[entry.changeType] || FileText;
             const isFirst = index === 0;
             // Используем приоритет из API или извлекаем из описания для старых записей
@@ -190,14 +252,7 @@ export default function ProjectHistory({ projectId, onBack, embedded = false, li
               <div key={entry.id} className="relative">
                 
                 <div 
-                  className={`flex items-start space-x-3 p-3 hover:bg-gray-50 rounded-lg transition-colors shadow-sm border ${cardStyle} ${
-                    entry.changeType === 'crew_assigned' && entry.description.includes('(снимок сохранен)') ? 'cursor-pointer' : ''
-                  }`}
-                  onClick={() => {
-                    if (entry.changeType === 'crew_assigned' && entry.description.includes('(снимок сохранен)') && entry.crewSnapshotId) {
-                      setSelectedSnapshot(entry.crewSnapshotId);
-                    }
-                  }}
+                  className={`flex items-start space-x-3 p-3 hover:bg-gray-50 rounded-lg transition-colors shadow-sm border ${cardStyle}`}
                 >
                   {/* Icon */}
                   <div className={`p-2 rounded-full ${changeTypeColors[entry.changeType]} flex-shrink-0`}>
@@ -225,7 +280,7 @@ export default function ProjectHistory({ projectId, onBack, embedded = false, li
                       </div>
                     </div>
                     
-                    <p className="text-sm text-gray-800 leading-relaxed">{cleanDescription(entry.description)}</p>
+                    <p className="text-sm text-gray-800 leading-relaxed">{formatDescription(entry)}</p>
                     
                     {/* Show old/new values if available - hide technical status codes */}
                     {entry.oldValue && entry.newValue && entry.oldValue !== entry.newValue && 
@@ -288,7 +343,7 @@ export default function ProjectHistory({ projectId, onBack, embedded = false, li
               </CardContent>
             </Card>
           ) : (
-            history.map((entry, index) => {
+            history.map((entry: ProjectHistoryEntry, index: number) => {
               const IconComponent = changeTypeIcons[entry.changeType] || FileText;
               const isFirst = index === 0;
               // Используем приоритет из API или извлекаем из описания для старых записей
@@ -307,14 +362,7 @@ export default function ProjectHistory({ projectId, onBack, embedded = false, li
                   )}
                   
                   <Card 
-                    className={`ml-0 ${cardBgStyle} ${
-                      entry.changeType === 'crew_assigned' && entry.description.includes('(снимок сохранен)') ? 'cursor-pointer hover:shadow-md transition-shadow' : ''
-                    }`}
-                    onClick={() => {
-                      if (entry.changeType === 'crew_assigned' && entry.description.includes('(снимок сохранен)') && entry.crewSnapshotId) {
-                        setSelectedSnapshot(entry.crewSnapshotId);
-                      }
-                    }}
+                    className={`ml-0 ${cardBgStyle}`}
                   >
                     <CardContent className="p-6">
                       <div className="flex items-start space-x-4">
@@ -351,7 +399,7 @@ export default function ProjectHistory({ projectId, onBack, embedded = false, li
                             </div>
                           </div>
                           
-                          <p className="text-gray-900 mb-2">{cleanDescription(entry.description)}</p>
+                          <p className="text-gray-900 mb-2">{formatDescription(entry)}</p>
                           
                           {/* Show old/new values if available - hide technical status codes */}
                           {entry.oldValue && entry.newValue && entry.oldValue !== entry.newValue && 
