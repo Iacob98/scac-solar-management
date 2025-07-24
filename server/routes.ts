@@ -861,11 +861,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Get all projects for the firm
       const allProjects = await storage.getProjectsByFirmId(firmId);
-      console.log('Projects from DB - count:', allProjects.length);
-      if (allProjects.length > 0) {
-        console.log('First project from DB:', JSON.stringify(allProjects[0], null, 2));
-        console.log('First project installationPersonUniqueId:', allProjects[0].installationPersonUniqueId);
-      }
       
       // Filter projects based on user access rights
       let accessibleProjects: any[] = [];
@@ -890,11 +885,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
             accessibleProjects.push(project);
           }
         }
-      }
-      
-      console.log('Sending to client - count:', accessibleProjects.length);
-      if (accessibleProjects.length > 0) {
-        console.log('First accessible project installationPersonUniqueId:', accessibleProjects[0].installationPersonUniqueId);
       }
       
       res.json(accessibleProjects);

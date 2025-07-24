@@ -65,12 +65,6 @@ function ProjectsList({ selectedFirm, onViewProject, onManageServices }: Project
 
   const { data: projects = [], isLoading: projectsLoading } = useQuery({
     queryKey: ['/api/projects', selectedFirm],
-    queryFn: async () => {
-      const response = await apiRequest(`/api/projects?firmId=${selectedFirm}`, 'GET');
-      const data = await response.json();
-      console.log('Projects loaded:', data.length);
-      return data;
-    },
     enabled: !!selectedFirm,
     refetchInterval: 30000, // Автообновление каждые 30 секунд
   });
@@ -199,16 +193,14 @@ function ProjectsList({ selectedFirm, onViewProject, onManageServices }: Project
   };
 
   const filteredProjects = (projects as Project[]).filter((project: Project & { client?: Client; crew?: Crew }) => {
-    if (filter) {
-      console.log('Search for:', filter, 'in project:', project.id, 'unique ID:', project.installationPersonUniqueId);
-    }
-    
     const clientName = getClientName(project.clientId);
+    const searchTerm = filter.toLowerCase();
+    
     const matchesSearch = !filter || 
-      project.notes?.toLowerCase().includes(filter.toLowerCase()) ||
-      clientName?.toLowerCase().includes(filter.toLowerCase()) ||
-      project.teamNumber?.toLowerCase().includes(filter.toLowerCase()) ||
-      project.installationPersonUniqueId?.toLowerCase().includes(filter.toLowerCase());
+      (project.notes && project.notes.toLowerCase().includes(searchTerm)) ||
+      (clientName && clientName.toLowerCase().includes(searchTerm)) ||
+      (project.teamNumber && project.teamNumber.toLowerCase().includes(searchTerm)) ||
+      (project.installationPersonUniqueId && project.installationPersonUniqueId.toLowerCase().includes(searchTerm));
     
     const matchesStatus = statusFilter === 'all' || project.status === statusFilter;
     
@@ -386,10 +378,7 @@ function ProjectsList({ selectedFirm, onViewProject, onManageServices }: Project
         <Input
           placeholder="Поиск по имени клиента, заметкам, уникальному номеру..."
           value={filter}
-          onChange={(e) => {
-            console.log('Search changed to:', e.target.value);
-            setFilter(e.target.value);
-          }}
+          onChange={(e) => setFilter(e.target.value)}
           className="max-w-sm"
         />
         <Select value={statusFilter} onValueChange={setStatusFilter}>
