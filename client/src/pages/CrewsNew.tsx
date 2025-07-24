@@ -489,7 +489,7 @@ function EditCrewForm({ crew, onUpdate }: { crew: Crew, onUpdate: any }) {
                         phone: member.phone || '',
                         memberEmail: member.memberEmail || '',
                         googleCalendarId: member.googleCalendarId || '',
-                        role: member.role || 'worker',
+                        role: (member.role as 'leader' | 'worker' | 'specialist') || 'worker',
                       });
                       setShowAddMemberForm(true);
                     }}
@@ -677,6 +677,9 @@ export default function CrewsNew() {
   };
 
   const onSubmit = (data: ExtendedCrewForm) => {
+    console.log('🚀 Creating crew with data:', data);
+    console.log('📋 Selected firm ID:', selectedFirmId);
+    
     createCrewMutation.mutate({
       ...data,
       firmId: selectedFirmId,
@@ -790,7 +793,7 @@ export default function CrewsNew() {
                         <FormItem>
                           <FormLabel>Телефон</FormLabel>
                           <FormControl>
-                            <Input placeholder="+49 xxx xxx xxxx" {...field} />
+                            <Input placeholder="+49 xxx xxx xxxx" {...field} value={field.value || ''} />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -805,7 +808,7 @@ export default function CrewsNew() {
                       <FormItem>
                         <FormLabel>Адрес бригады</FormLabel>
                         <FormControl>
-                          <Textarea placeholder="Рабочий адрес или база" {...field} />
+                          <Textarea placeholder="Рабочий адрес или база" {...field} value={field.value || ''} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
