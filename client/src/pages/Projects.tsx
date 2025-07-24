@@ -56,6 +56,9 @@ interface ProjectsProps {
 }
 
 function ProjectsList({ selectedFirm, onViewProject, onManageServices }: ProjectsProps) {
+  console.log('PROJECTS COMPONENT LOADED!');
+  console.log('SELECTED FIRM:', selectedFirm);
+  
   const { toast } = useToast();
   const { user } = useAuth();
   const queryClient = useQueryClient();
