@@ -1042,15 +1042,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
           console.log(`Creating crew snapshot for project ${project.id}, crew ${project.crewId}`);
           const snapshot = await storage.createProjectCrewSnapshot(project.id, project.crewId, userId);
           
+          // Получаем информацию о бригаде и участниках из снепшота
+          const crewData = snapshot.crewData as any;
+          const membersData = snapshot.membersData as any[];
+          
+          // Формируем список участников для отображения
+          let membersList = '';
+          if (membersData && membersData.length > 0) {
+            const memberNames = membersData.map(member => 
+              `${member.firstName || ''} ${member.lastName || ''}`.trim()
+            ).filter(name => name.length > 0);
+            
+            if (memberNames.length > 0) {
+              membersList = memberNames.join(', ');
+            }
+          }
+          
+          // Формируем описание с именами участников
+          let description = `Бригада "${crewData.name}" назначена`;
+          if (membersList) {
+            description += ` (участники: ${membersList})`;
+          }
+          
           // Добавляем запись в историю о создании снепшота
           await storage.createProjectHistoryEntry({
             projectId: project.id,
             userId,
-            changeType: 'crew_assigned',
+            changeType: 'assignment_change',
             fieldName: 'crew',
             oldValue: null,
             newValue: `Бригада назначена (ID: ${project.crewId})`,
-            description: `Создан снепшот состава бригады`,
+            description,
             crewSnapshotId: snapshot.id,
           });
           
@@ -1103,7 +1125,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Логируем изменения в истории
       for (const [key, newValue] of Object.entries(updateData)) {
-        const oldValue = currentProject ? currentProject[key as keyof typeof currentProject] : null;
+        const oldValue = currentProject ? (currentProject as any)[key] : null;
         
         if (oldValue !== newValue) {
           let description = '';
@@ -1129,8 +1151,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           } else if (key === 'equipmentExpectedDate' || key === 'equipmentArrivedDate') {
             changeType = 'equipment_update';
             description = key === 'equipmentExpectedDate' 
-              ? `Дата ожидания оборудования изменена на ${new Date(newValue).toLocaleDateString('ru-RU')}`
-              : `Дата поступления оборудования изменена на ${new Date(newValue).toLocaleDateString('ru-RU')}`;
+              ? `Дата ожидания оборудования изменена на ${new Date(newValue as string).toLocaleDateString('ru-RU')}`
+              : `Дата поступления оборудования изменена на ${new Date(newValue as string).toLocaleDateString('ru-RU')}`;
             
             // Отправляем email уведомление о готовности оборудования
             if (key === 'equipmentArrivedDate' && newValue && currentProject?.crewId) {
@@ -1154,8 +1176,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           } else if (key === 'workStartDate' || key === 'workEndDate') {
             changeType = 'date_update';
             description = key === 'workStartDate'
-              ? `Дата начала работ изменена на ${new Date(newValue).toLocaleDateString('ru-RU')}`
-              : `Дата окончания работ изменена на ${new Date(newValue).toLocaleDateString('ru-RU')}`;
+              ? `Дата начала работ изменена на ${new Date(newValue as string).toLocaleDateString('ru-RU')}`
+              : `Дата окончания работ изменена на ${new Date(newValue as string).toLocaleDateString('ru-RU')}`;
             
             // Отправляем email уведомление о изменении дат работ
             if (currentProject?.crewId && newValue !== oldValue) {
@@ -1192,8 +1214,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 const snapshot = await storage.createProjectCrewSnapshot(projectId, parseInt(String(newValue)), userId);
                 console.log(`Crew snapshot created for project ${projectId}, crew ${newValue}`);
                 
-                // Обновляем описание и сохраняем ID снимка
-                description = `Команда назначена (снимок сохранен)`;
+                // Получаем информацию о бригаде и участниках из снепшота
+                const crewData = snapshot.crewData as any;
+                const membersData = snapshot.membersData as any[];
+                
+                // Формируем список участников для отображения
+                let membersList = '';
+                if (membersData && membersData.length > 0) {
+                  const memberNames = membersData.map(member => 
+                    `${member.firstName || ''} ${member.lastName || ''}`.trim()
+                  ).filter(name => name.length > 0);
+                  
+                  if (memberNames.length > 0) {
+                    membersList = memberNames.join(', ');
+                  }
+                }
+                
+                // Обновляем описание с именами участников и сохраняем ID снимка
+                description = `Бригада "${crewData.name}" назначена`;
+                if (membersList) {
+                  description += ` (участники: ${membersList})`;
+                }
                 crewSnapshotId = snapshot.id;
                 
                 // Создаем события в Google Calendar для участников бригады
