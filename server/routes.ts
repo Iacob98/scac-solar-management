@@ -1040,6 +1040,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const updateData = req.body;
       const userId = req.user.claims.sub;
       
+      // Проверяем роль пользователя, если статус меняется на 'paid'
+      if (updateData.status === 'paid') {
+        const user = await storage.getUser(userId);
+        if (!user || user.role !== 'admin') {
+          return res.status(403).json({ message: "Только администраторы могут отмечать счета как оплаченные" });
+        }
+      }
+      
       // Получаем данные проекта до изменения для истории
       const currentProject = await storage.getProjectById(projectId);
       
@@ -1063,7 +1071,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
               'work_scheduled': 'Работы запланированы',
               'work_in_progress': 'Работы в процессе',
               'work_completed': 'Работы завершены',
-              'invoiced': 'Выставлен счет',
+              'invoiced': 'Счет выставлен',
+              'send_invoice': 'Отправить счет клиенту',
+              'invoice_sent': 'Счет отправлен',
               'paid': 'Оплачено',
               'done': 'Завершено'
             };

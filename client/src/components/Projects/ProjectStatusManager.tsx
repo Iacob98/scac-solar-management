@@ -8,6 +8,7 @@ import { useToast } from '@/hooks/use-toast';
 import { apiRequest } from '@/lib/queryClient';
 import { format, isAfter, isToday } from 'date-fns';
 import { ru } from 'date-fns/locale';
+import { useAuth } from '@/hooks/useAuth';
 
 const statusLabels = {
   planning: 'Планирование',
@@ -43,6 +44,7 @@ interface ProjectStatusManagerProps {
 export function ProjectStatusManager({ project, selectedFirm }: ProjectStatusManagerProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const { user } = useAuth();
 
   const updateStatusMutation = useMutation({
     mutationFn: async (newStatus: string) => {
@@ -279,14 +281,18 @@ export function ProjectStatusManager({ project, selectedFirm }: ProjectStatusMan
           {project.status === 'invoice_sent' && (
             <div className="pt-2 border-t">
               <p className="text-sm text-cyan-700 font-medium mb-2">📧 Счет отправлен клиенту</p>
-              <Button
-                onClick={() => updateStatusMutation.mutate('paid')}
-                disabled={updateStatusMutation.isPending}
-                className="w-full bg-emerald-600 hover:bg-emerald-700"
-              >
-                <CheckCircle className="h-4 w-4 mr-2" />
-                Отметить как оплаченный
-              </Button>
+              {user?.role === 'admin' ? (
+                <Button
+                  onClick={() => updateStatusMutation.mutate('paid')}
+                  disabled={updateStatusMutation.isPending}
+                  className="w-full bg-emerald-600 hover:bg-emerald-700"
+                >
+                  <CheckCircle className="h-4 w-4 mr-2" />
+                  Отметить как оплаченный
+                </Button>
+              ) : (
+                <p className="text-sm text-gray-600">Ожидание подтверждения оплаты администратором</p>
+              )}
             </div>
           )}
 
