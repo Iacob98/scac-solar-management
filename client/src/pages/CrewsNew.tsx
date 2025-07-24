@@ -484,11 +484,12 @@ function EditCrewForm({ crew, onUpdate }: { crew: Crew, onUpdate: any }) {
                       memberForm.reset({
                         firstName: member.firstName,
                         lastName: member.lastName,
-                        address: member.address,
+                        address: member.address || '',
                         uniqueNumber: member.uniqueNumber,
                         phone: member.phone || '',
                         memberEmail: member.memberEmail || '',
-                        role: member.role,
+                        googleCalendarId: member.googleCalendarId || '',
+                        role: member.role || 'worker',
                       });
                       setShowAddMemberForm(true);
                     }}
