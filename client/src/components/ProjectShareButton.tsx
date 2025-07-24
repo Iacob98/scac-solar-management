@@ -143,11 +143,24 @@ export function ProjectShareButton({ projectId, firmId, projectOwnerId, currentU
   };
 
   // Фильтрация пользователей - исключаем уже имеющих доступ, владельца проекта и текущего пользователя
-  const availableUsers = users.filter((user: User) => 
-    !shares.some((share: ProjectShare) => share.sharedWith === user.id) &&
-    user.id !== projectOwnerId &&
-    user.id !== currentUserId
-  );
+  const availableUsers = users.filter((user: User) => {
+    const isShared = shares.some((share: ProjectShare) => share.sharedWith === user.id);
+    const isOwner = user.id === projectOwnerId;
+    const isCurrent = user.id === currentUserId;
+    
+    console.log('Filtering user:', {
+      user: user.email,
+      userId: user.id,
+      projectOwnerId,
+      currentUserId,
+      isShared,
+      isOwner,
+      isCurrent,
+      willInclude: !isShared && !isOwner && !isCurrent
+    });
+    
+    return !isShared && !isOwner && !isCurrent;
+  });
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
