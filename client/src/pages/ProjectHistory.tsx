@@ -235,6 +235,7 @@ export default function ProjectHistory({ projectId, onBack, embedded = false, li
     const displayHistory = limit ? history.slice(0, limit) : history;
     
     return (
+      <>
       <div className="space-y-2">
         {displayHistory.length === 0 ? (
           <div className="text-center py-6 text-gray-500">
@@ -310,6 +311,80 @@ export default function ProjectHistory({ projectId, onBack, embedded = false, li
           })
         )}
       </div>
+
+      {/* Crew Snapshot Dialog */}
+      <Dialog open={!!selectedSnapshot} onOpenChange={() => {
+        setSelectedSnapshot(null);
+        setSnapshotData(null);
+      }}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Снимок состава бригады</DialogTitle>
+            <DialogDescription>
+              Состав бригады на момент назначения на проект
+            </DialogDescription>
+          </DialogHeader>
+          
+          {snapshotLoading ? (
+            <div className="flex justify-center py-4">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+            </div>
+          ) : snapshotData ? (
+            <div className="space-y-4">
+              <div className="bg-gray-50 p-4 rounded-lg">
+                <h3 className="font-semibold text-lg mb-2">
+                  {snapshotData.crewData?.name} ({snapshotData.crewData?.uniqueNumber})
+                </h3>
+                <div className="grid grid-cols-2 gap-2 text-sm">
+                  <div>
+                    <span className="text-gray-500">Руководитель:</span>
+                    <span className="ml-2">{snapshotData.crewData?.leaderName}</span>
+                  </div>
+                  <div>
+                    <span className="text-gray-500">Телефон:</span>
+                    <span className="ml-2">{snapshotData.crewData?.phone}</span>
+                  </div>
+                  <div className="col-span-2">
+                    <span className="text-gray-500">Адрес:</span>
+                    <span className="ml-2">{snapshotData.crewData?.address}</span>
+                  </div>
+                  <div className="col-span-2">
+                    <span className="text-gray-500">Дата снимка:</span>
+                    <span className="ml-2">
+                      {format(new Date(snapshotData.snapshotDate), 'dd.MM.yyyy HH:mm', { locale: ru })}
+                    </span>
+                  </div>
+                </div>
+              </div>
+              
+              {snapshotData.membersData && snapshotData.membersData.length > 0 && (
+                <div>
+                  <h4 className="font-semibold mb-2">Участники бригады ({snapshotData.membersData.length})</h4>
+                  <div className="space-y-2">
+                    {snapshotData.membersData.map((member: any, index: number) => (
+                      <div key={index} className="bg-white p-3 rounded border">
+                        <div className="flex justify-between items-start">
+                          <div>
+                            <p className="font-medium">{member.firstName} {member.lastName}</p>
+                            <p className="text-sm text-gray-600">{member.position}</p>
+                          </div>
+                          <div className="text-sm text-gray-500 text-right">
+                            {member.phone && <p>{member.phone}</p>}
+                            {member.email && <p>{member.email}</p>}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          ) : (
+            <p className="text-center text-gray-500">Не удалось загрузить данные снимка</p>
+          )}
+        </DialogContent>
+      </Dialog>
+      </>
     );
   }
 
