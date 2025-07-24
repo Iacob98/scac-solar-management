@@ -529,12 +529,13 @@ const extendedCrewSchema = insertCrewSchema.extend({
   members: z.array(z.object({
     firstName: z.string().min(1, 'Имя обязательно'),
     lastName: z.string().min(1, 'Фамилия обязательна'),
-    address: z.string().min(1, 'Адрес обязателен'),
+    address: z.string().optional().default(''),
     uniqueNumber: z.string().min(1, 'Уникальный номер обязателен'),
-    phone: z.string().optional(),
+    phone: z.string().optional().default(''),
     memberEmail: z.string().email('Неверный формат email').optional().or(z.literal('')),
+    googleCalendarId: z.string().optional().default(''),
     role: z.enum(['leader', 'worker', 'specialist']).default('worker'),
-  })).min(1, 'Нужен хотя бы один участник'),
+  })).optional().default([]),
 });
 
 type ExtendedCrewForm = z.infer<typeof extendedCrewSchema>;
@@ -585,16 +586,7 @@ export default function CrewsNew() {
       leaderName: '',
       phone: '',
       address: '',
-      members: [
-        {
-          firstName: '',
-          lastName: '',
-          address: '',
-          uniqueNumber: '',
-          phone: '',
-          role: 'leader',
-        }
-      ],
+      members: [],
     },
   });
 
@@ -972,7 +964,12 @@ export default function CrewsNew() {
                     <Button type="button" variant="outline" onClick={() => setIsCreateDialogOpen(false)}>
                       Отмена
                     </Button>
-                    <Button type="submit" disabled={createCrewMutation.isPending}>
+                    <Button type="submit" disabled={createCrewMutation.isPending} onClick={() => {
+                      console.log('🔥 Button clicked!');
+                      console.log('📋 Form errors:', form.formState.errors);
+                      console.log('📊 Form values:', form.getValues());
+                      console.log('✅ Form valid:', form.formState.isValid);
+                    }}>
                       {createCrewMutation.isPending ? 'Создание...' : 'Создать бригаду'}
                     </Button>
                   </div>
