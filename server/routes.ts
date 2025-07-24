@@ -161,6 +161,225 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Services management routes
+  app.get('/api/services', isAuthenticated, async (req: any, res) => {
+    try {
+      const projectId = parseInt(req.query.projectId as string);
+      if (!projectId) {
+        return res.status(400).json({ message: "Project ID is required" });
+      }
+      
+      const services = await storage.getServicesByProjectId(projectId);
+      res.json(services);
+    } catch (error) {
+      console.error("Error fetching services:", error);
+      res.status(500).json({ message: "Failed to fetch services" });
+    }
+  });
+
+  app.post('/api/services', isAuthenticated, async (req: any, res) => {
+    try {
+      const serviceApiSchema = insertServiceSchema.extend({
+        price: z.union([z.string(), z.number()]).transform(val => val.toString()),
+        quantity: z.union([z.string(), z.number()]).transform(val => val.toString()),
+      });
+      
+      const serviceData = serviceApiSchema.parse(req.body);
+      const service = await storage.createService(serviceData);
+      
+      // Добавляем запись в историю проекта
+      const userId = req.user?.claims?.sub || req.session?.userId;
+      if (userId && service.projectId) {
+        await storage.createProjectHistoryEntry({
+          projectId: service.projectId,
+          userId,
+          changeType: 'info_update',
+          description: `Добавлена новая услуга: ${service.description || service.productKey}`,
+        });
+      }
+      
+      res.json(service);
+    } catch (error) {
+      console.error("Error creating service:", error);
+      res.status(500).json({ message: "Failed to create service" });
+    }
+  });
+
+  app.patch('/api/services/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      const serviceId = parseInt(req.params.id);
+      
+      // Получаем данные услуги до изменения для истории
+      const currentService = await storage.getServiceById(serviceId);
+      
+      const serviceApiSchema = insertServiceSchema.extend({
+        price: z.union([z.string(), z.number()]).transform(val => val.toString()),
+        quantity: z.union([z.string(), z.number()]).transform(val => val.toString()),
+      }).partial();
+      
+      const serviceData = serviceApiSchema.parse(req.body);
+      const service = await storage.updateService(serviceId, serviceData);
+      
+      // Добавляем запись в историю проекта об изменении
+      const userId = req.user?.claims?.sub || req.session?.userId;
+      if (userId && service && service.projectId) {
+        await storage.createProjectHistoryEntry({
+          projectId: service.projectId,
+          userId,
+          changeType: 'info_update',
+          description: `Изменена услуга: ${service.description || service.productKey}`,
+        });
+      }
+      
+      res.json(service);
+    } catch (error) {
+      console.error("Error updating service:", error);
+      res.status(500).json({ message: "Failed to update service" });
+    }
+  });
+
+  app.delete('/api/services/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      const serviceId = parseInt(req.params.id);
+      
+      // Получаем данные услуги перед удалением для истории
+      const service = await storage.getServiceById(serviceId);
+      
+      await storage.deleteService(serviceId);
+      
+      // Добавляем запись в историю проекта
+      const userId = req.user?.claims?.sub || req.session?.userId;
+      if (userId && service && service.projectId) {
+        await storage.createProjectHistoryEntry({
+          projectId: service.projectId,
+          userId,
+          changeType: 'info_update',
+          description: `Удалена услуга: ${service.description || service.productKey}`,
+        });
+      }
+      
+      res.json({ message: "Service deleted successfully" });
+    } catch (error) {
+      console.error("Error deleting service:", error);
+      res.status(500).json({ message: "Failed to delete service" });
+    }
+  });
+
+  // Invoice management routes
+  app.patch('/api/invoice/mark-paid', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user?.claims?.sub || req.session?.userId;
+      const user = await storage.getUser(userId);
+      
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      const { invoiceId } = z.object({
+        invoiceId: z.number(),
+      }).parse(req.body);
+
+      const invoice = await storage.getInvoiceById(invoiceId);
+      
+      if (!invoice) {
+        return res.status(404).json({ message: "Invoice not found" });
+      }
+
+      // Update invoice as paid
+      await storage.updateInvoice(invoiceId, { isPaid: true });
+      
+      // Update project status to paid
+      await storage.updateProject(invoice.projectId, { status: 'paid' });
+      
+      // Add history entry
+      await storage.createProjectHistoryEntry({
+        projectId: invoice.projectId,
+        userId,
+        changeType: 'status_change',
+        fieldName: 'status',
+        oldValue: 'invoiced',
+        newValue: 'paid',
+        description: `Счет №${invoice.invoiceNumber} помечен как оплаченный`,
+      });
+
+      res.json({ message: "Invoice marked as paid successfully" });
+    } catch (error) {
+      console.error("Error marking invoice as paid:", error);
+      res.status(500).json({ message: "Failed to mark invoice as paid" });
+    }
+  });
+
+  app.post('/api/invoice/send-email/:projectId', isAuthenticated, async (req: any, res) => {
+    try {
+      const { projectId } = req.params;
+      const userId = req.user?.claims?.sub || req.session?.userId;
+      
+      const project = await storage.getProjectById(parseInt(projectId));
+      if (!project) {
+        return res.status(404).json({ message: "Project not found" });
+      }
+
+      if (!project.invoiceNumber) {
+        return res.status(400).json({ message: "Project doesn't have an invoice" });
+      }
+
+      // Get firm details
+      const firm = await storage.getFirmById(project.firmId);
+      if (!firm || !firm.postmarkServerToken || !firm.postmarkFromEmail) {
+        return res.status(400).json({ message: "Postmark не настроен для этой фирмы" });
+      }
+
+      // Get client details
+      const client = await storage.getClientById(project.clientId);
+      if (!client || !client.email) {
+        return res.status(400).json({ message: "У клиента не указан email" });
+      }
+
+      // Get invoice details
+      const invoice = await storage.getInvoiceByProjectId(parseInt(projectId));
+      if (!invoice) {
+        return res.status(404).json({ message: "Invoice not found in database" });
+      }
+
+      // Create postmark service and send email
+      const postmarkService = new PostmarkService(
+        firm.postmarkServerToken,
+        firm.postmarkFromEmail,
+        firm.postmarkMessageStream || 'main'
+      );
+
+      await postmarkService.sendInvoiceEmail(
+        client.email,
+        client.firstName || 'Клиент',
+        project.invoiceNumber || 'N/A',
+        invoice.totalAmount?.toString() || '0',
+        project
+      );
+
+      // Update project status to invoice_sent
+      await storage.updateProject(parseInt(projectId), { status: 'invoice_sent' });
+
+      // Add history entry
+      await storage.createProjectHistoryEntry({
+        projectId: parseInt(projectId),
+        userId,
+        changeType: 'status_change',
+        fieldName: 'status',
+        oldValue: 'invoiced',
+        newValue: 'invoice_sent',
+        description: `Счет №${project.invoiceNumber} отправлен на email ${client.email}`,
+      });
+
+      res.json({ 
+        message: "Invoice sent successfully",
+        email: client.email 
+      });
+    } catch (error) {
+      console.error("Error sending invoice email:", error);
+      res.status(500).json({ message: "Failed to send invoice email", error: error.message });
+    }
+  });
+
   // Statistics routes
   app.get('/api/stats/:firmId', isAuthenticated, async (req: any, res) => {
     try {
@@ -649,6 +868,138 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error creating project note:", error);
       res.status(500).json({ message: "Failed to create project note" });
+    }
+  });
+
+  // User management routes
+  app.get('/api/users', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user?.claims?.sub || req.session?.userId;
+      const user = await storage.getUser(userId);
+      
+      if (!user || user.role !== 'admin') {
+        return res.status(403).json({ message: "Access denied" });
+      }
+
+      const users = await storage.getUsers();
+      res.json(users);
+    } catch (error) {
+      console.error("Error fetching users:", error);
+      res.status(500).json({ message: "Failed to fetch users" });
+    }
+  });
+
+  app.get('/api/users-with-firms', isAuthenticated, isAdmin, async (req: any, res) => {
+    try {
+      const users = await storage.getUsers();
+      
+      // Get firms for each user
+      const usersWithFirms = await Promise.all(
+        users.map(async (user) => {
+          const firms = await storage.getFirmsByUserId(user.id);
+          return {
+            ...user,
+            firms: firms
+          };
+        })
+      );
+      
+      res.json(usersWithFirms);
+    } catch (error) {
+      console.error("Error fetching users with firms:", error);
+      res.status(500).json({ message: "Failed to fetch users with firms" });
+    }
+  });
+
+  // Reports management routes
+  app.patch('/api/reports/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      const reportId = parseInt(req.params.id);
+      const updateData = z.object({
+        rating: z.number().min(1).max(5).optional(),
+        notes: z.string().optional(),
+      }).parse(req.body);
+
+      const report = await storage.updateReport(reportId, updateData);
+      
+      // Добавляем запись в историю проекта
+      const userId = req.user?.claims?.sub || req.session?.userId;
+      if (userId && report && report.projectId) {
+        await storage.createProjectHistoryEntry({
+          projectId: report.projectId,
+          userId,
+          changeType: 'report_updated',
+          description: `Обновлен отчет (рейтинг: ${updateData.rating ? '★'.repeat(updateData.rating) : 'не указан'})`,
+        });
+      }
+      
+      res.json(report);
+    } catch (error) {
+      console.error("Error updating report:", error);
+      res.status(500).json({ message: "Failed to update report" });
+    }
+  });
+
+  app.delete('/api/reports/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      const reportId = parseInt(req.params.id);
+      
+      // Получаем данные отчета перед удалением для истории
+      const report = await storage.getReportById(reportId);
+      
+      await storage.deleteReport(reportId);
+      
+      // Добавляем запись в историю проекта
+      const userId = req.user?.claims?.sub || req.session?.userId;
+      if (userId && report && report.projectId) {
+        await storage.createProjectHistoryEntry({
+          projectId: report.projectId,
+          userId,
+          changeType: 'report_deleted',
+          description: `Удален отчет`,
+        });
+      }
+      
+      res.json({ message: "Report deleted successfully" });
+    } catch (error) {
+      console.error("Error deleting report:", error);
+      res.status(500).json({ message: "Failed to delete report" });
+    }
+  });
+
+  // Postmark email integration
+  app.post('/api/postmark/test', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user?.claims?.sub || req.session?.userId;
+      const user = await storage.getUser(userId);
+      
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      const { firmId, testEmail } = z.object({
+        firmId: z.string(),
+        testEmail: z.string().email(),
+      }).parse(req.body);
+
+      const firm = await storage.getFirmById(firmId);
+      
+      if (!firm || !firm.postmarkServerToken) {
+        return res.status(400).json({ message: "Firm not found or Postmark not configured" });
+      }
+
+      const postmarkService = new PostmarkService(
+        firm.postmarkServerToken,
+        firm.postmarkFromEmail || 'noreply@example.com',
+        firm.postmarkMessageStream || 'main'
+      );
+
+      await postmarkService.sendTestEmail(testEmail);
+      
+      res.json({ message: "Test email sent successfully" });
+    } catch (error) {
+      console.error("Error sending test email:", error);
+      res.status(500).json({ message: "Failed to send test email", error: error.message });
     }
   });
 
