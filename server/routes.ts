@@ -1035,6 +1035,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
         newValue: 'created',
         description: `Проект создан пользователем`,
       });
+
+      // Создаем снепшот бригады, если бригада была назначена
+      if (project.crewId) {
+        try {
+          console.log(`Creating crew snapshot for project ${project.id}, crew ${project.crewId}`);
+          const snapshot = await storage.createProjectCrewSnapshot(project.id, project.crewId, userId);
+          
+          // Добавляем запись в историю о создании снепшота
+          await storage.createProjectHistoryEntry({
+            projectId: project.id,
+            userId,
+            changeType: 'crew_assigned',
+            fieldName: 'crew',
+            oldValue: null,
+            newValue: `Бригада назначена (ID: ${project.crewId})`,
+            description: `Создан снепшот состава бригады`,
+            crewSnapshotId: snapshot.id,
+          });
+          
+          console.log(`Crew snapshot created successfully: ${snapshot.id}`);
+        } catch (snapshotError) {
+          console.error('Failed to create crew snapshot:', snapshotError);
+          // Не блокируем создание проекта, если снепшот не удался
+        }
+      }
       
       console.log('Project created successfully:', project);
       res.json(project);

@@ -246,3 +246,15 @@ The application follows a monolithic architecture with clear separation between 
 - Automatic project status update and history tracking when invoices are sent
 - Fixed TypeScript errors in storage.ts by adding missing Postmark fields to getFirmsByUserId method
 - Added edit button to FirmsManagement page for easy access to firm configuration
+
+### Search Functionality and Crew Snapshots (July 2025)
+- Fixed comprehensive search functionality in ProjectsWrapper.tsx (the actual component used, not Projects.tsx)
+- Added search by unique customer ID (installationPersonUniqueId field)
+- Fixed search by crew number to use crew.uniqueNumber from crews table instead of empty project.teamNumber
+- Search now works for: installation person names, client names, crew unique numbers, and customer unique IDs
+- Implemented automatic crew snapshot creation when projects are created with assigned crews
+- Added createProjectCrewSnapshot call to POST /api/projects route with proper error handling
+- Crew snapshots now automatically preserve complete crew and member information at project assignment time
+- Added crew snapshot history entries with crewSnapshotId references for tracking
+- Removed unnecessary "Update" button from Invoices page per user request
+- Fixed TypeScript errors in ProjectsWrapper.tsx by correcting form default values

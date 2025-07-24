@@ -109,8 +109,8 @@ function ProjectsList({ selectedFirm, onViewProject, onManageServices }: { selec
   const form = useForm({
     resolver: zodResolver(projectFormSchema),
     defaultValues: {
-      clientId: undefined,
-      crewId: undefined,
+      clientId: 0,
+      crewId: 0,
       startDate: '',
       equipmentExpectedDate: '',
       workStartDate: '',
