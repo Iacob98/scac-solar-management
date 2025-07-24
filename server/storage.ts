@@ -404,12 +404,27 @@ export class DatabaseStorage implements IStorage {
     await db.delete(crewMembers).where(eq(crewMembers.id, id));
   }
 
+  async getCrewMemberById(id: number): Promise<CrewMember | undefined> {
+    const [member] = await db
+      .select()
+      .from(crewMembers)
+      .where(eq(crewMembers.id, id));
+    return member;
+  }
+
   // Project operations
   async getProjectsByFirmId(firmId: string): Promise<Project[]> {
     return await db
       .select()
       .from(projects)
       .where(eq(projects.firmId, firmId))
+      .orderBy(desc(projects.createdAt));
+  }
+
+  async getAllProjects(): Promise<Project[]> {
+    return await db
+      .select()
+      .from(projects)
       .orderBy(desc(projects.createdAt));
   }
 
