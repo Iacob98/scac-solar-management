@@ -316,3 +316,6 @@ The application follows a monolithic architecture with clear separation between 
   - Added `/api/crews/:id/stats` endpoint for detailed crew statistics  
   - Restored full crew statistics functionality in modular architecture
   - Fixed API endpoints returning HTML instead of JSON by implementing proper modular routes
+  - Added getCrewProjects function to crews module for displaying crew project lists in statistics interface
+  - Restored `/api/crews/:id/projects` endpoint that was missing from modular architecture refactor
+  - Fixed "Ошибка загрузки проектов" error in crew statistics interface by implementing complete project pagination API

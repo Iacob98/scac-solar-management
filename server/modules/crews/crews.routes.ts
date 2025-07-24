@@ -16,7 +16,8 @@ import {
   updateCrew,
   deleteCrew,
   getCrewsStatsSummary,
-  getCrewStats
+  getCrewStats,
+  getCrewProjects
 } from './crews.controller';
 
 const router = Router();
@@ -72,5 +73,11 @@ router.get('/stats/summary', isAuthenticated, getCrewsStatsSummary);
  * Получить детальную статистику по бригаде
  */
 router.get('/:id/stats', isAuthenticated, getCrewStats);
+
+/**
+ * GET /api/crews/:id/projects
+ * Получить проекты бригады с пагинацией
+ */
+router.get('/:id/projects', isAuthenticated, getCrewProjects);
 
 export default router;

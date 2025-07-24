@@ -382,3 +382,66 @@ export const getCrewStats = async (req: any, res: Response) => {
     res.status(500).json({ message: "Failed to fetch crew statistics" });
   }
 };
+
+/**
+ * Получить проекты бригады с пагинацией
+ * @param req HTTP запрос с ID бригады и параметрами фильтрации
+ * @param res HTTP ответ
+ */
+export const getCrewProjects = async (req: any, res: Response) => {
+  try {
+    const crewId = parseInt(req.params.id);
+    const from = req.query.from as string;
+    const to = req.query.to as string;
+    const status = req.query.status || 'all';
+    const page = parseInt(req.query.page as string) || 1;
+    const size = parseInt(req.query.size as string) || 10;
+    
+    if (isNaN(crewId)) {
+      return res.status(400).json({ message: "Invalid crew ID" });
+    }
+    
+    const userId = req.user?.claims?.sub || req.session?.userId;
+    const user = await storage.getUser(userId);
+    
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+    
+    const crew = await storage.getCrewById(crewId);
+    if (!crew) {
+      return res.status(404).json({ message: "Crew not found" });
+    }
+    
+    // Проверяем права доступа
+    if (user.role !== 'admin') {
+      // Для неадминов проверяем доступ через проекты бригады
+      let hasAccess = false;
+      const crewProjects = await storage.getProjectsByCrewId(crewId);
+      
+      for (const project of crewProjects) {
+        if (project.leiterId === userId) {
+          hasAccess = true;
+          break;
+        } else {
+          const shares = await storage.getProjectShares(project.id);
+          const projectHasAccess = shares.some(share => share.sharedWith === userId);
+          if (projectHasAccess) {
+            hasAccess = true;
+            break;
+          }
+        }
+      }
+      
+      if (!hasAccess) {
+        return res.status(403).json({ message: "Access denied to this crew's projects" });
+      }
+    }
+    
+    const result = await storage.getCrewProjects(crewId, { from, to, status, page, size });
+    res.json(result);
+  } catch (error) {
+    console.error("Error fetching crew projects:", error);
+    res.status(500).json({ message: "Failed to fetch crew projects" });
+  }
+};
