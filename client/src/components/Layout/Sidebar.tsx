@@ -9,6 +9,7 @@ export function Sidebar() {
     { path: '/projects', label: 'Проекты', icon: 'dashboard' },
     { path: '/clients', label: 'Клиенты', icon: 'people' },
     { path: '/crews', label: 'Бригады', icon: 'groups' },
+    { path: '/crews/statistics', label: 'Статистика', icon: 'analytics' },
     { path: '/calendar', label: 'Календарь', icon: 'event' },
     ...(user?.role === 'admin' ? [{ path: '/invoices', label: 'Счета', icon: 'receipt' }] : []),
   ];
@@ -18,7 +19,15 @@ export function Sidebar() {
     { path: '/admin/users', label: 'Пользователи', icon: 'admin_panel_settings' },
   ];
 
-  const isActive = (path: string) => location === path;
+  const isActive = (path: string) => {
+    if (path === '/crews/statistics') {
+      return location === '/crews/statistics';
+    }
+    if (path === '/crews') {
+      return location === '/crews' || location.startsWith('/crews/');
+    }
+    return location === path || (path !== '/' && location.startsWith(path + '/'));
+  };
 
   return (
     <aside className="w-60 bg-white shadow-lg flex flex-col border-r">
