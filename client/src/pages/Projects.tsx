@@ -68,15 +68,7 @@ function ProjectsList({ selectedFirm, onViewProject, onManageServices }: Project
     queryFn: async () => {
       const response = await apiRequest(`/api/projects?firmId=${selectedFirm}`, 'GET');
       const data = await response.json();
-      console.log('=== PROJECTS LOADED ===');
-      console.log('Projects count:', data.length);
-      data.forEach((project: any, index: number) => {
-        console.log(`Project ${index + 1} (ID: ${project.id}):`, {
-          installationPersonUniqueId: project.installationPersonUniqueId,
-          notes: project.notes,
-          teamNumber: project.teamNumber
-        });
-      });
+      console.log('Projects loaded:', data.length);
       return data;
     },
     enabled: !!selectedFirm,
@@ -208,19 +200,7 @@ function ProjectsList({ selectedFirm, onViewProject, onManageServices }: Project
 
   const filteredProjects = (projects as Project[]).filter((project: Project & { client?: Client; crew?: Crew }) => {
     if (filter) {
-      console.log('=== Filtering ===');
-      console.log('Search term:', filter);
-      console.log('Project ID:', project.id);
-      console.log('Project installationPersonUniqueId:', project.installationPersonUniqueId);
-      console.log('Type of installationPersonUniqueId:', typeof project.installationPersonUniqueId);
-      
-      if (project.installationPersonUniqueId) {
-        const lowerUniqueId = project.installationPersonUniqueId.toLowerCase();
-        const lowerFilter = filter.toLowerCase();
-        console.log('Lower unique ID:', lowerUniqueId);
-        console.log('Lower filter:', lowerFilter);
-        console.log('Includes result:', lowerUniqueId.includes(lowerFilter));
-      }
+      console.log('Search for:', filter, 'in project:', project.id, 'unique ID:', project.installationPersonUniqueId);
     }
     
     const clientName = getClientName(project.clientId);
@@ -231,12 +211,6 @@ function ProjectsList({ selectedFirm, onViewProject, onManageServices }: Project
       project.installationPersonUniqueId?.toLowerCase().includes(filter.toLowerCase());
     
     const matchesStatus = statusFilter === 'all' || project.status === statusFilter;
-    
-    if (filter && project.installationPersonUniqueId) {
-      console.log('Final matchesSearch result:', matchesSearch);
-      console.log('Final matchesStatus result:', matchesStatus);
-      console.log('Will include in results:', matchesSearch && matchesStatus);
-    }
     
     return matchesSearch && matchesStatus;
   });
@@ -413,8 +387,7 @@ function ProjectsList({ selectedFirm, onViewProject, onManageServices }: Project
           placeholder="Поиск по имени клиента, заметкам, уникальному номеру..."
           value={filter}
           onChange={(e) => {
-            console.log('=== SEARCH INPUT CHANGED ===');
-            console.log('New search value:', e.target.value);
+            console.log('Search changed to:', e.target.value);
             setFilter(e.target.value);
           }}
           className="max-w-sm"
