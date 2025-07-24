@@ -199,7 +199,8 @@ function ProjectsList({ selectedFirm, onViewProject, onManageServices }: Project
   const filteredProjects = (projects as Project[]).filter((project: Project & { client?: Client; crew?: Crew }) => {
     const matchesSearch = project.notes?.toLowerCase().includes(filter.toLowerCase()) ||
       project.client?.name?.toLowerCase().includes(filter.toLowerCase()) ||
-      project.teamNumber?.toLowerCase().includes(filter.toLowerCase());
+      project.teamNumber?.toLowerCase().includes(filter.toLowerCase()) ||
+      project.installationPersonUniqueId?.toLowerCase().includes(filter.toLowerCase());
     
     const matchesStatus = statusFilter === 'all' || project.status === statusFilter;
     
@@ -375,7 +376,7 @@ function ProjectsList({ selectedFirm, onViewProject, onManageServices }: Project
 
       <div className="flex space-x-4">
         <Input
-          placeholder="Поиск проектов..."
+          placeholder="Поиск по имени клиента, заметкам, уникальному номеру..."
           value={filter}
           onChange={(e) => setFilter(e.target.value)}
           className="max-w-sm"

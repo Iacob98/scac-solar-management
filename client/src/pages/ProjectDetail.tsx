@@ -596,8 +596,14 @@ export default function ProjectDetail({ projectId, selectedFirm, onBack }: Proje
                     </p>
                   </div>
                   <div className="space-y-2">
+                    <p className="text-sm text-gray-500">Уникальный номер клиента</p>
+                    <p className="font-medium text-gray-900">{project.installationPersonUniqueId || 'Не указан'}</p>
+                  </div>
+                  <div className="space-y-2">
                     <p className="text-sm text-gray-500">Номер команды</p>
-                    <p className="font-medium text-gray-900">#{project.teamNumber}</p>
+                    <p className="font-medium text-gray-900">
+                      {(crew as Crew)?.uniqueNumber || project.teamNumber || 'Не назначена'}
+                    </p>
                   </div>
                 </div>
                 
