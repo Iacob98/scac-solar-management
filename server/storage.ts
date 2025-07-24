@@ -539,7 +539,7 @@ export class DatabaseStorage implements IStorage {
     }
 
     // Convert to arrays
-    for (const [month, data] of monthlyData) {
+    for (const [month, data] of Array.from(monthlyData.entries())) {
       completedByMonth.push({ month, count: data.count });
       const avgDays = data.projectsWithDuration > 0 ? data.totalDuration / data.projectsWithDuration : 0;
       avgDurationByMonth.push({ month, days: Math.round(avgDays * 10) / 10 });
