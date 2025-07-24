@@ -70,7 +70,7 @@ function ProjectsList({ selectedFirm, onViewProject, onManageServices }: Project
       const data = await response.json();
       console.log('=== PROJECTS LOADED ===');
       console.log('Projects count:', data.length);
-      data.forEach((project, index) => {
+      data.forEach((project: any, index: number) => {
         console.log(`Project ${index + 1} (ID: ${project.id}):`, {
           installationPersonUniqueId: project.installationPersonUniqueId,
           notes: project.notes,
@@ -491,22 +491,22 @@ function ProjectsList({ selectedFirm, onViewProject, onManageServices }: Project
                     {project.status === 'planning' && (
                       <Button 
                         size="sm" 
-                        onClick={() => updateProjectStatus(project.id, 'in_progress')}
+                        onClick={() => updateProjectStatus(project.id, 'work_in_progress')}
                       >
                         Начать работу
                       </Button>
                     )}
                     
-                    {project.status === 'in_progress' && (
+                    {project.status === 'work_in_progress' && (
                       <Button 
                         size="sm" 
-                        onClick={() => updateProjectStatus(project.id, 'done')}
+                        onClick={() => updateProjectStatus(project.id, 'work_completed')}
                       >
                         Завершить
                       </Button>
                     )}
                     
-                    {project.status === 'done' && (
+                    {project.status === 'work_completed' && (
                       <Button 
                         size="sm" 
                         onClick={() => createInvoiceMutation.mutate(project.id)}
