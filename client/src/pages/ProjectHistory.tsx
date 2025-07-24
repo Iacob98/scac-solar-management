@@ -174,15 +174,57 @@ export default function ProjectHistory({ projectId, onBack, embedded = false, li
 
   // Функция для форматирования описания с названием бригады
   const formatDescription = (entry: ProjectHistoryEntry): React.ReactNode => {
-    if (entry.changeType === 'assignment_change' && entry.fieldName === 'crewId') {
-      const crewId = entry.newValue ? parseInt(entry.newValue) : null;
-      const crew = crewId ? crews.find((c: any) => c.id === crewId) : null;
+    // Обрабатываем записи о назначении бригады (как fieldName 'crewId', так и 'crew')
+    if (entry.changeType === 'assignment_change' && (entry.fieldName === 'crewId' || entry.fieldName === 'crew')) {
       
-      if (crewId && crew) {
-        return (
-          <span>
-            Команда{' '}
-            {entry.crewSnapshotId ? (
+      // Если fieldName === 'crewId', используем старую логику
+      if (entry.fieldName === 'crewId') {
+        const crewId = entry.newValue ? parseInt(entry.newValue) : null;
+        const crew = crewId ? crews.find((c: any) => c.id === crewId) : null;
+        
+        if (crewId && crew) {
+          return (
+            <span>
+              Команда{' '}
+              {entry.crewSnapshotId ? (
+                <button
+                  className="text-blue-600 hover:text-blue-800 font-semibold underline"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    console.log('Crew click:', { crewSnapshotId: entry.crewSnapshotId, entry });
+                    if (entry.crewSnapshotId) {
+                      console.log('Setting selectedSnapshot to:', entry.crewSnapshotId);
+                      setSelectedSnapshot(entry.crewSnapshotId);
+                    }
+                  }}
+                >
+                  "{crew.name}"
+                </button>
+              ) : (
+                <span className="font-semibold">"{crew.name}"</span>
+              )}
+              {' '}назначена
+              {entry.crewSnapshotId && ' (снимок сохранен)'}
+            </span>
+          );
+        } else if (!crewId) {
+          return 'Команда снята с проекта';
+        }
+      }
+      
+      // Если fieldName === 'crew', парсим название бригады из описания
+      if (entry.fieldName === 'crew') {
+        const description = entry.description;
+        const brigadeNameMatch = description.match(/Бригада\s+"([^"]+)"/);
+        
+        if (brigadeNameMatch && entry.crewSnapshotId) {
+          const brigadeName = brigadeNameMatch[1];
+          const participantsMatch = description.match(/\(участники:\s*([^)]+)\)/);
+          const participants = participantsMatch ? participantsMatch[1] : '';
+          
+          return (
+            <span>
+              Бригада{' '}
               <button
                 className="text-blue-600 hover:text-blue-800 font-semibold underline"
                 onClick={(e) => {
@@ -194,17 +236,15 @@ export default function ProjectHistory({ projectId, onBack, embedded = false, li
                   }
                 }}
               >
-                "{crew.name}"
+                "{brigadeName}"
               </button>
-            ) : (
-              <span className="font-semibold">"{crew.name}"</span>
-            )}
-            {' '}назначена
-            {entry.crewSnapshotId && ' (снимок сохранен)'}
-          </span>
-        );
-      } else if (!crewId) {
-        return 'Команда снята с проекта';
+              {' '}назначена
+              {participants && (
+                <span className="text-gray-600"> (участники: {participants})</span>
+              )}
+            </span>
+          );
+        }
       }
     }
     
