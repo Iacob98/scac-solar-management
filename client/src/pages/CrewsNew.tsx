@@ -630,7 +630,9 @@ export default function CrewsNew() {
     },
     onSuccess: (data) => {
       console.log('🎉 Frontend: Mutation successful:', data);
+      // Инвалидируем запрос с правильным ключом
       queryClient.invalidateQueries({ queryKey: ['/api/crews', selectedFirmId] });
+      queryClient.refetchQueries({ queryKey: ['/api/crews', selectedFirmId] });
       setIsCreateDialogOpen(false);
       form.reset();
       toast({
