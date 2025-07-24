@@ -846,6 +846,137 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Crew Statistics routes
+  app.get('/api/crews/:id/stats', isAuthenticated, async (req: any, res) => {
+    try {
+      const crewId = parseInt(req.params.id);
+      const from = req.query.from as string;
+      const to = req.query.to as string;
+      
+      if (isNaN(crewId)) {
+        return res.status(400).json({ message: "Invalid crew ID" });
+      }
+      
+      if (!from || !to) {
+        return res.status(400).json({ message: "Date range (from/to) is required" });
+      }
+      
+      const userId = req.user.claims.sub;
+      const user = await storage.getUser(userId);
+      
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      
+      const crew = await storage.getCrewById(crewId);
+      if (!crew) {
+        return res.status(404).json({ message: "Crew not found" });
+      }
+      
+      // Check access permissions
+      let hasAccess = false;
+      
+      if (user.role === 'admin') {
+        hasAccess = true;
+      } else {
+        // For non-admin users, check if they have access to any projects this crew worked on
+        const crewProjects = await storage.getProjectsByCrewId(crewId);
+        for (const project of crewProjects) {
+          if (project.leiterId === userId) {
+            hasAccess = true;
+            break;
+          } else {
+            const shares = await storage.getProjectShares(project.id);
+            const projectHasAccess = shares.some(share => share.sharedWith === userId);
+            if (projectHasAccess) {
+              hasAccess = true;
+              break;
+            }
+          }
+        }
+      }
+      
+      if (!hasAccess) {
+        return res.status(403).json({ message: "Access denied to this crew" });
+      }
+      
+      // Get crew statistics
+      const stats = await storage.getCrewStatistics(crewId, from, to);
+      
+      res.json({
+        crewId: crewId,
+        crewName: crew.name,
+        period: { from, to },
+        metrics: stats.metrics,
+        charts: stats.charts
+      });
+    } catch (error) {
+      console.error("Error fetching crew statistics:", error);
+      res.status(500).json({ message: "Failed to fetch crew statistics" });
+    }
+  });
+
+  app.get('/api/crews/:id/projects', isAuthenticated, async (req: any, res) => {
+    try {
+      const crewId = parseInt(req.params.id);
+      const from = req.query.from as string;
+      const to = req.query.to as string;
+      const status = req.query.status as string || 'all';
+      const page = parseInt(req.query.page as string) || 1;
+      const size = parseInt(req.query.size as string) || 50;
+      
+      if (isNaN(crewId)) {
+        return res.status(400).json({ message: "Invalid crew ID" });
+      }
+      
+      const userId = req.user.claims.sub;
+      const user = await storage.getUser(userId);
+      
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      
+      const crew = await storage.getCrewById(crewId);
+      if (!crew) {
+        return res.status(404).json({ message: "Crew not found" });
+      }
+      
+      // Check access permissions (same as stats endpoint)
+      let hasAccess = false;
+      
+      if (user.role === 'admin') {
+        hasAccess = true;
+      } else {
+        const crewProjects = await storage.getProjectsByCrewId(crewId);
+        for (const project of crewProjects) {
+          if (project.leiterId === userId) {
+            hasAccess = true;
+            break;
+          } else {
+            const shares = await storage.getProjectShares(project.id);
+            const projectHasAccess = shares.some(share => share.sharedWith === userId);
+            if (projectHasAccess) {
+              hasAccess = true;
+              break;
+            }
+          }
+        }
+      }
+      
+      if (!hasAccess) {
+        return res.status(403).json({ message: "Access denied to this crew" });
+      }
+      
+      // Get crew projects with filtering
+      const projects = await storage.getCrewProjects(crewId, { from, to, status, page, size });
+      
+      res.json(projects);
+    } catch (error) {
+      console.error("Error fetching crew projects:", error);
+      res.status(500).json({ message: "Failed to fetch crew projects" });
+    }
+  });
+
   // Project routes
   app.get('/api/projects', isAuthenticated, async (req: any, res) => {
     try {

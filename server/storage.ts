@@ -89,6 +89,33 @@ export interface IStorage {
   updateCrewMember(id: number, member: Partial<InsertCrewMember>): Promise<CrewMember>;
   deleteCrewMember(id: number): Promise<void>;
   
+  // Crew Statistics operations
+  getProjectsByCrewId(crewId: number): Promise<Project[]>;
+  getCrewStatistics(crewId: number, from: string, to: string): Promise<{
+    metrics: {
+      completedObjects: number;
+      inProgress: number;
+      avgDurationDays: number;
+      overdueShare: number;
+    };
+    charts: {
+      completedByMonth: Array<{ month: string; count: number }>;
+      avgDurationByMonth: Array<{ month: string; days: number }>;
+    };
+  }>;
+  getCrewProjects(crewId: number, options: {
+    from?: string;
+    to?: string;
+    status?: string;
+    page?: number;
+    size?: number;
+  }): Promise<{
+    total: number;
+    page: number;
+    size: number;
+    items: Project[];
+  }>;
+  
   // Project operations
   getProjectsByFirmId(firmId: string): Promise<Project[]>;
   getProjectById(id: number): Promise<Project | undefined>;
@@ -146,6 +173,7 @@ export interface IStorage {
   // Project Crew Snapshot operations
   createProjectCrewSnapshot(projectId: number, crewId: number, userId: string): Promise<ProjectCrewSnapshot>;
   getProjectCrewSnapshot(projectId: number): Promise<ProjectCrewSnapshot | undefined>;
+  getCrewSnapshotById(id: number): Promise<ProjectCrewSnapshot | undefined>;
   
   // New File Storage operations
   createFileRecord(file: InsertFileStorage): Promise<FileStorage>;
@@ -404,7 +432,194 @@ export class DatabaseStorage implements IStorage {
     await db.delete(crewMembers).where(eq(crewMembers.id, id));
   }
 
+  // Crew Statistics operations
+  async getProjectsByCrewId(crewId: number): Promise<Project[]> {
+    return await db
+      .select()
+      .from(projects)
+      .where(eq(projects.crewId, crewId))
+      .orderBy(desc(projects.createdAt));
+  }
 
+  async getCrewStatistics(crewId: number, from: string, to: string): Promise<{
+    metrics: {
+      completedObjects: number;
+      inProgress: number;
+      avgDurationDays: number;
+      overdueShare: number;
+    };
+    charts: {
+      completedByMonth: Array<{ month: string; count: number }>;
+      avgDurationByMonth: Array<{ month: string; days: number }>;
+    };
+  }> {
+    const fromDate = new Date(from);
+    const toDate = new Date(to);
+
+    // Get completed projects
+    const completedProjects = await db
+      .select()
+      .from(projects)
+      .where(
+        and(
+          eq(projects.crewId, crewId),
+          sql`${projects.status} IN ('work_completed', 'invoiced', 'paid')`,
+          gte(projects.workEndDate, fromDate.toISOString().split('T')[0]),
+          lte(projects.workEndDate, toDate.toISOString().split('T')[0])
+        )
+      );
+
+    // Get currently active projects
+    const activeProjects = await db
+      .select()
+      .from(projects)
+      .where(
+        and(
+          eq(projects.crewId, crewId),
+          sql`${projects.status} IN ('work_scheduled', 'work_in_progress')`
+        )
+      );
+
+    // Calculate average duration
+    let totalDuration = 0;
+    let projectsWithDuration = 0;
+    
+    for (const project of completedProjects) {
+      if (project.workStartDate && project.workEndDate) {
+        const startDate = new Date(project.workStartDate);
+        const endDate = new Date(project.workEndDate);
+        const duration = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
+        totalDuration += duration;
+        projectsWithDuration++;
+      }
+    }
+
+    const avgDurationDays = projectsWithDuration > 0 ? totalDuration / projectsWithDuration : 0;
+
+    // Calculate overdue projects (simplified - projects that took longer than expected)
+    let overdueCount = 0;
+    for (const project of completedProjects) {
+      if (project.workStartDate && project.workEndDate && project.equipmentExpectedDate) {
+        const expectedDate = new Date(project.equipmentExpectedDate);
+        const actualEndDate = new Date(project.workEndDate);
+        if (actualEndDate > expectedDate) {
+          overdueCount++;
+        }
+      }
+    }
+
+    const overdueShare = completedProjects.length > 0 ? overdueCount / completedProjects.length : 0;
+
+    // Generate charts data
+    const completedByMonth: Array<{ month: string; count: number }> = [];
+    const avgDurationByMonth: Array<{ month: string; days: number }> = [];
+
+    // Group completed projects by month
+    const monthlyData = new Map<string, { count: number; totalDuration: number; projectsWithDuration: number }>();
+    
+    for (const project of completedProjects) {
+      if (project.workEndDate) {
+        const month = project.workEndDate.substring(0, 7); // YYYY-MM format
+        
+        if (!monthlyData.has(month)) {
+          monthlyData.set(month, { count: 0, totalDuration: 0, projectsWithDuration: 0 });
+        }
+        
+        const data = monthlyData.get(month)!;
+        data.count++;
+        
+        if (project.workStartDate && project.workEndDate) {
+          const startDate = new Date(project.workStartDate);
+          const endDate = new Date(project.workEndDate);
+          const duration = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
+          data.totalDuration += duration;
+          data.projectsWithDuration++;
+        }
+      }
+    }
+
+    // Convert to arrays
+    for (const [month, data] of monthlyData) {
+      completedByMonth.push({ month, count: data.count });
+      const avgDays = data.projectsWithDuration > 0 ? data.totalDuration / data.projectsWithDuration : 0;
+      avgDurationByMonth.push({ month, days: Math.round(avgDays * 10) / 10 });
+    }
+
+    // Sort by month
+    completedByMonth.sort((a, b) => a.month.localeCompare(b.month));
+    avgDurationByMonth.sort((a, b) => a.month.localeCompare(b.month));
+
+    return {
+      metrics: {
+        completedObjects: completedProjects.length,
+        inProgress: activeProjects.length,
+        avgDurationDays: Math.round(avgDurationDays * 10) / 10,
+        overdueShare: Math.round(overdueShare * 100) / 100
+      },
+      charts: {
+        completedByMonth,
+        avgDurationByMonth
+      }
+    };
+  }
+
+  async getCrewProjects(crewId: number, options: {
+    from?: string;
+    to?: string;
+    status?: string;
+    page?: number;
+    size?: number;
+  }): Promise<{
+    total: number;
+    page: number;
+    size: number;
+    items: Project[];
+  }> {
+    const { from, to, status = 'all', page = 1, size = 50 } = options;
+    
+    let query = db.select().from(projects).where(eq(projects.crewId, crewId));
+    
+    const conditions = [eq(projects.crewId, crewId)];
+    
+    if (from && to) {
+      conditions.push(
+        gte(projects.workEndDate, from),
+        lte(projects.workEndDate, to)
+      );
+    }
+    
+    if (status !== 'all') {
+      if (status === 'completed') {
+        conditions.push(sql`${projects.status} IN ('work_completed', 'invoiced', 'paid')`);
+      } else {
+        conditions.push(eq(projects.status, status as any));
+      }
+    }
+    
+    // Get total count
+    const totalQuery = db
+      .select({ count: sql<number>`count(*)` })
+      .from(projects)
+      .where(and(...conditions));
+    
+    const [{ count: total }] = await totalQuery;
+    
+    // Get paginated results
+    const items = await db
+      .select()
+      .from(projects)
+      .where(and(...conditions))
+      .orderBy(desc(projects.createdAt))
+      .limit(size)
+      .offset((page - 1) * size);
+    
+    return {
+      total,
+      page,
+      size,
+      items
+    };
+  }
 
   // Project operations
   async getProjectsByFirmId(firmId: string): Promise<Project[]> {

@@ -8,7 +8,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Plus, Users, Phone, Edit, Trash2, Archive, Settings, MapPin, User, Building2 } from 'lucide-react';
+import { Plus, Users, Phone, Edit, Trash2, Archive, Settings, MapPin, User, Building2, BarChart } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -17,6 +17,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
 import { MainLayout } from '@/components/Layout/MainLayout';
 import { apiRequest } from '@/lib/queryClient';
+import { useLocation } from 'wouter';
 
 // Схема для простого редактирования бригады
 const editCrewSchema = z.object({
@@ -541,6 +542,7 @@ export default function CrewsNew() {
   const { toast } = useToast();
   const { user } = useAuth();
   const queryClient = useQueryClient();
+  const [, setLocation] = useLocation();
   const [selectedFirmId, setSelectedFirmId] = useState<string>('');
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [editingCrew, setEditingCrew] = useState<Crew | null>(null);
@@ -704,13 +706,22 @@ export default function CrewsNew() {
             <p className="text-gray-600">Команды для выполнения проектов установки солнечных панелей</p>
           </div>
 
-          <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
-            <DialogTrigger asChild>
-              <Button>
-                <Plus className="h-4 w-4 mr-2" />
-                Создать бригаду
-              </Button>
-            </DialogTrigger>
+          <div className="flex items-center gap-3">
+            <Button
+              variant="outline"
+              onClick={() => setLocation('/crews/statistics')}
+            >
+              <BarChart className="h-4 w-4 mr-2" />
+              Статистика бригад
+            </Button>
+            
+            <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
+              <DialogTrigger asChild>
+                <Button>
+                  <Plus className="h-4 w-4 mr-2" />
+                  Создать бригаду
+                </Button>
+              </DialogTrigger>
             <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
               <DialogHeader>
                 <DialogTitle>Создание новой бригады</DialogTitle>
@@ -935,6 +946,7 @@ export default function CrewsNew() {
               </Form>
             </DialogContent>
           </Dialog>
+          </div>
         </div>
 
         {/* Список бригад */}

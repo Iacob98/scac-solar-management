@@ -16,6 +16,7 @@ import Projects from "@/pages/Projects";
 import Clients from "@/pages/Clients";
 import Crews from "@/pages/Crews";
 import CrewsNew from "@/pages/CrewsNew";
+import CrewStatistics from "@/pages/CrewStatistics";
 import Invoices from "@/pages/Invoices";
 import Users from "@/pages/admin/Users";
 import FirmsManagement from "@/pages/admin/FirmsManagement";
@@ -54,6 +55,7 @@ function Router() {
       <Route path="/projects/:id" component={() => <ProtectedRoute component={Projects} />} />
       <Route path="/clients" component={() => <ProtectedRoute component={Clients} />} />
       <Route path="/crews" component={() => <ProtectedRoute component={CrewsNew} />} />
+      <Route path="/crews/statistics" component={() => <ProtectedRoute component={CrewStatistics} />} />
       <Route path="/invoices" component={() => <ProtectedRoute component={Invoices} />} />
       <Route path="/files" component={() => <ProtectedRoute component={FileStorage} />} />
       <Route path="/calendar" component={() => <ProtectedRoute component={Calendar} />} />
