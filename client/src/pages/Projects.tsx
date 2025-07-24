@@ -69,9 +69,10 @@ function ProjectsList({ selectedFirm, onViewProject, onManageServices }: Project
     refetchInterval: 30000, // Автообновление каждые 30 секунд
   });
 
-  // Добавляем логирование загруженных проектов
-  console.log('📊 Загружено проектов:', projects.length);
-  console.log('📋 Данные проектов:', projects);
+  // Простое логирование для отладки
+  console.log('PROJECTS COUNT:', projects?.length || 0);
+  console.log('PROJECTS DATA:', projects);
+  console.log('PROJECTS LOADING:', projectsLoading);
 
   const { data: clients = [] } = useQuery({
     queryKey: ['/api/clients', selectedFirm],
@@ -196,21 +197,14 @@ function ProjectsList({ selectedFirm, onViewProject, onManageServices }: Project
     updateProjectStatusMutation.mutate({ projectId, status });
   };
 
-  console.log('🔍 Начинаем фильтрацию. Фильтр:', filter, 'Статус фильтр:', statusFilter);
+  console.log('FILTER VALUE:', filter);
+  console.log('STATUS FILTER:', statusFilter);
   
-  const filteredProjects = (projects as Project[]).filter((project: Project & { client?: Client; crew?: Crew }) => {
+  const filteredProjects = projects.filter((project: any) => {
+    console.log('FILTERING PROJECT:', project.id, 'UNIQUE ID:', project.installationPersonUniqueId);
+    
     const clientName = getClientName(project.clientId);
     const searchTerm = filter.toLowerCase();
-    
-    // Добавляем логирование для отладки
-    if (filter) {
-      console.log('🔍 Поиск:', filter);
-      console.log('📋 Проект ID:', project.id);
-      console.log('🆔 Уникальный ID:', project.installationPersonUniqueId);
-      console.log('👤 Имя клиента:', clientName);
-      console.log('📝 Заметки:', project.notes);
-      console.log('🔢 Номер бригады:', project.teamNumber);
-    }
     
     const matchesSearch = !filter || 
       (project.notes && project.notes.toLowerCase().includes(searchTerm)) ||
@@ -218,11 +212,9 @@ function ProjectsList({ selectedFirm, onViewProject, onManageServices }: Project
       (project.teamNumber && project.teamNumber.toLowerCase().includes(searchTerm)) ||
       (project.installationPersonUniqueId && project.installationPersonUniqueId.toLowerCase().includes(searchTerm));
     
-    if (filter) {
-      console.log('✅ Результат поиска для проекта', project.id, ':', matchesSearch);
-    }
-    
     const matchesStatus = statusFilter === 'all' || project.status === statusFilter;
+    
+    console.log('SEARCH RESULT FOR PROJECT', project.id, ':', matchesSearch);
     
     return matchesSearch && matchesStatus;
   });
