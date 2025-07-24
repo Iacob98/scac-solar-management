@@ -380,29 +380,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Statistics routes
-  app.get('/api/stats/:firmId', isAuthenticated, async (req: any, res) => {
-    try {
-      const { firmId } = req.params;
-      const userId = req.user?.claims?.sub || req.session?.userId;
-      const user = await storage.getUser(userId);
-      
-      if (!user) {
-        return res.status(404).json({ message: "User not found" });
-      }
-      
-      // Only admins can view full statistics
-      if (user.role !== 'admin') {
-        return res.status(403).json({ message: "Access denied. Only administrators can view statistics." });
-      }
-      
-      const stats = await storage.getProjectStats(firmId);
-      res.json(stats);
-    } catch (error) {
-      console.error("Error fetching stats:", error);
-      res.status(500).json({ message: "Failed to fetch stats" });
-    }
-  });
+
 
   // Invoice payment status synchronization routes
   app.post('/api/invoices/sync-payment-status', isAuthenticated, async (req: any, res) => {
@@ -1003,7 +981,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Home page statistics
+  // Home page statistics - MUST be before parameterized route
   app.get('/api/stats/home', isAuthenticated, async (req: any, res: Response) => {
     try {
       const userId = req.user?.claims?.sub || req.session?.userId;
@@ -1058,6 +1036,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(stats);
     } catch (error) {
       console.error("Error fetching home stats:", error);
+      res.status(500).json({ message: "Failed to fetch stats" });
+    }
+  });
+
+  // Statistics routes
+  app.get('/api/stats/:firmId', isAuthenticated, async (req: any, res) => {
+    try {
+      const { firmId } = req.params;
+      const stats = await storage.getProjectStats(firmId);
+      res.json(stats);
+    } catch (error) {
+      console.error("Error fetching firm stats:", error);
       res.status(500).json({ message: "Failed to fetch statistics" });
     }
   });
