@@ -10,6 +10,7 @@ import { Separator } from "@/components/ui/separator";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line } from "recharts";
 import { CalendarDays, Clock, CheckCircle, AlertTriangle, ArrowLeft } from "lucide-react";
 import { useLocation } from "wouter";
+import { MainLayout } from "@/components/Layout/MainLayout";
 
 interface Crew {
   id: number;
@@ -57,6 +58,7 @@ interface CrewProjectsResponse {
 export default function CrewStatistics() {
   const [, setLocation] = useLocation();
   const [selectedCrewId, setSelectedCrewId] = useState<number | null>(null);
+  const [selectedFirmId, setSelectedFirmId] = useState<string>('');
   const [dateFrom, setDateFrom] = useState(() => {
     const date = new Date();
     date.setMonth(date.getMonth() - 12);
@@ -69,10 +71,23 @@ export default function CrewStatistics() {
   const [projectStatus, setProjectStatus] = useState("all");
   const [currentPage, setCurrentPage] = useState(1);
 
+  // Get firm ID from localStorage
+  useEffect(() => {
+    const firmId = localStorage.getItem('selectedFirmId');
+    if (firmId) {
+      setSelectedFirmId(firmId);
+    }
+  }, []);
+
   // Fetch crews list
   const { data: crews = [] } = useQuery<Crew[]>({
-    queryKey: ['/api/crews'],
-    enabled: true,
+    queryKey: ['/api/crews', selectedFirmId],
+    queryFn: async () => {
+      const response = await fetch(`/api/crews?firmId=${selectedFirmId}`);
+      if (!response.ok) throw new Error('Failed to fetch crews');
+      return response.json();
+    },
+    enabled: !!selectedFirmId,
   });
 
   // Fetch crew statistics
@@ -119,16 +134,19 @@ export default function CrewStatistics() {
 
   if (!crews || crews.length === 0) {
     return (
-      <div className="container mx-auto p-6">
-        <div className="text-center py-12">
-          <p className="text-muted-foreground">Бригады не найдены</p>
+      <MainLayout>
+        <div className="container mx-auto p-6">
+          <div className="text-center py-12">
+            <p className="text-muted-foreground">Бригады не найдены</p>
+          </div>
         </div>
-      </div>
+      </MainLayout>
     );
   }
 
   return (
-    <div className="container mx-auto p-6 space-y-6">
+    <MainLayout>
+      <div className="container mx-auto p-6 space-y-6">
       {/* Header */}
       <div className="flex items-center gap-4 mb-6">
         <Button
@@ -410,6 +428,7 @@ export default function CrewStatistics() {
           </Card>
         </>
       )}
-    </div>
+      </div>
+    </MainLayout>
   );
 }
