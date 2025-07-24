@@ -275,3 +275,15 @@ The application follows a monolithic architecture with clear separation between 
 - Removed updateCrewSnapshotsForProjects function and related automatic update mechanisms
 - Crew snapshots are created ONLY when crew is initially assigned to project, never updated afterwards
 - This maintains the "snapshot" concept - capturing crew state at a specific moment in time
+
+### Enhanced Crew Statistics Interface with Full Admin Access (July 24, 2025)
+- Redesigned crew statistics page to display all crews with project counts on single page
+- Added tooltip explanations for statistics like "доля просроченных" (overdue percentage) and "средний срок" (average duration)
+- Implemented clickable project navigation from crew statistics to individual project details
+- Created new API endpoint `/api/crews/stats/summary` for aggregated crew statistics display
+- FIXED admin access control: Administrators now have full unrestricted access to all crew information
+- Simplified access logic for admin role across all crew-related endpoints:
+  - `/api/crews/stats/summary` - shows all crews without access restrictions for admins
+  - `/api/crews/:id/stats` - provides unrestricted crew statistics access for admins
+  - `/api/crews/:id/projects` - allows full crew project access for administrators
+- Enhanced UX with comprehensive crew overview, explanatory tooltips, and seamless navigation

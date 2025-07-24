@@ -868,14 +868,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const allCrews = await storage.getCrewsByFirmId(firmId);
       const crewsSummary = [];
       
-      for (const crew of allCrews) {
-        // Check access permissions for each crew
-        let hasAccess = false;
-        
-        if (user.role === 'admin') {
-          hasAccess = true;
-        } else {
-          // For non-admin users, check if they have access to any projects this crew worked on
+      if (user.role === 'admin') {
+        // Администратор видит все бригады компании без ограничений
+        for (const crew of allCrews) {
+          const projectsData = await storage.getCrewProjects(crew.id, { from, to, status: 'all', page: 1, size: 1000 });
+          const stats = await storage.getCrewStatistics(crew.id, from, to);
+          
+          crewsSummary.push({
+            id: crew.id,
+            name: crew.name,
+            uniqueNumber: crew.uniqueNumber,
+            projectsCount: parseInt(projectsData.total.toString()),
+            completedProjects: stats.metrics.completedObjects,
+            overduePercentage: stats.metrics.overdueShare,
+            avgCompletionTime: stats.metrics.avgDurationDays
+          });
+        }
+      } else {
+        // Для неадминов проверяем доступ к каждой бригаде через проекты
+        for (const crew of allCrews) {
+          let hasAccess = false;
+          
           const crewProjects = await storage.getProjectsByCrewId(crew.id);
           for (const project of crewProjects) {
             if (project.leiterId === userId) {
@@ -890,22 +903,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
               }
             }
           }
-        }
-        
-        if (hasAccess) {
-          // Get projects count for this crew in the date range
-          const projectsData = await storage.getCrewProjects(crew.id, { from, to, status: 'all', page: 1, size: 1000 });
-          const stats = await storage.getCrewStatistics(crew.id, from, to);
           
-          crewsSummary.push({
-            id: crew.id,
-            name: crew.name,
-            uniqueNumber: crew.uniqueNumber,
-            projectsCount: parseInt(projectsData.total.toString()),
-            completedProjects: stats.metrics.completedObjects,
-            overduePercentage: stats.metrics.overdueShare,
-            avgCompletionTime: stats.metrics.avgDurationDays
-          });
+          if (hasAccess) {
+            const projectsData = await storage.getCrewProjects(crew.id, { from, to, status: 'all', page: 1, size: 1000 });
+            const stats = await storage.getCrewStatistics(crew.id, from, to);
+            
+            crewsSummary.push({
+              id: crew.id,
+              name: crew.name,
+              uniqueNumber: crew.uniqueNumber,
+              projectsCount: parseInt(projectsData.total.toString()),
+              completedProjects: stats.metrics.completedObjects,
+              overduePercentage: stats.metrics.overdueShare,
+              avgCompletionTime: stats.metrics.avgDurationDays
+            });
+          }
         }
       }
       
@@ -946,13 +958,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       // Check access permissions
-      let hasAccess = false;
-      
-      if (user.role === 'admin') {
-        hasAccess = true;
-      } else {
-        // For non-admin users, check if they have access to any projects this crew worked on
+      if (user.role !== 'admin') {
+        // Для неадминов проверяем доступ через проекты бригады
+        let hasAccess = false;
         const crewProjects = await storage.getProjectsByCrewId(crewId);
+        
         for (const project of crewProjects) {
           if (project.leiterId === userId) {
             hasAccess = true;
@@ -966,11 +976,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
             }
           }
         }
+        
+        if (!hasAccess) {
+          return res.status(403).json({ message: "Access denied to this crew" });
+        }
       }
-      
-      if (!hasAccess) {
-        return res.status(403).json({ message: "Access denied to this crew" });
-      }
+      // Администраторы имеют полный доступ без дополнительных проверок
       
       // Get crew statistics
       const stats = await storage.getCrewStatistics(crewId, from, to);
@@ -1013,13 +1024,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Crew not found" });
       }
       
-      // Check access permissions (same as stats endpoint)
-      let hasAccess = false;
-      
-      if (user.role === 'admin') {
-        hasAccess = true;
-      } else {
+      // Check access permissions
+      if (user.role !== 'admin') {
+        // Для неадминов проверяем доступ через проекты бригады
+        let hasAccess = false;
         const crewProjects = await storage.getProjectsByCrewId(crewId);
+        
         for (const project of crewProjects) {
           if (project.leiterId === userId) {
             hasAccess = true;
@@ -1033,11 +1043,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
             }
           }
         }
+        
+        if (!hasAccess) {
+          return res.status(403).json({ message: "Access denied to this crew" });
+        }
       }
-      
-      if (!hasAccess) {
-        return res.status(403).json({ message: "Access denied to this crew" });
-      }
+      // Администраторы имеют полный доступ без дополнительных проверок
       
       // Get crew projects with filtering
       const projects = await storage.getCrewProjects(crewId, { from, to, status, page, size });
