@@ -258,3 +258,11 @@ The application follows a monolithic architecture with clear separation between 
 - Added crew snapshot history entries with crewSnapshotId references for tracking
 - Removed unnecessary "Update" button from Invoices page per user request
 - Fixed TypeScript errors in ProjectsWrapper.tsx by correcting form default values
+
+### Enhanced Project Creation History (July 24, 2025)
+- Fixed project creation workflow to include complete crew assignment information in history
+- When creating project with assigned crew, history now shows: "Бригада '[Name]' назначена (участники: [Member Names])"
+- Added clickable crew assignment entries in project history that display crew snapshots
+- Retroactively fixed Project #38 history by adding missing crew assignment entry with proper snapshot reference
+- Project creation now automatically generates descriptive history entries showing actual crew member names
+- Consistent history format between project creation and crew changes for better tracking
