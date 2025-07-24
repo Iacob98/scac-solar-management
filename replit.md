@@ -319,3 +319,8 @@ The application follows a monolithic architecture with clear separation between 
   - Added getCrewProjects function to crews module for displaying crew project lists in statistics interface
   - Restored `/api/crews/:id/projects` endpoint that was missing from modular architecture refactor
   - Fixed "Ошибка загрузки проектов" error in crew statistics interface by implementing complete project pagination API
+- **FIXED missing project history endpoint**: Added getProjectHistory function to projects module (July 24, 2025)
+  - Added `/api/projects/:id/history` endpoint to projects routes
+  - Created getProjectHistory controller function with proper access control
+  - Fixed project history API returning HTML instead of JSON in modular architecture
+  - All project history functionality now working correctly in new module system

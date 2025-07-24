@@ -14,7 +14,8 @@ import {
   getProjectById,
   createProject,
   updateProject,
-  deleteProject
+  deleteProject,
+  getProjectHistory
 } from './projects.controller';
 
 const router = Router();
@@ -50,5 +51,11 @@ router.patch('/:id', isAuthenticated, updateProject);
  * Удалить проект
  */
 router.delete('/:id', isAuthenticated, deleteProject);
+
+/**
+ * GET /api/projects/:id/history
+ * Получить историю изменений проекта
+ */
+router.get('/:id/history', isAuthenticated, getProjectHistory);
 
 export default router;

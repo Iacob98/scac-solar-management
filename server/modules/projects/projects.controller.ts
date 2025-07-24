@@ -193,3 +193,54 @@ export const deleteProject = async (req: any, res: Response) => {
     res.status(500).json({ message: "Failed to delete project" });
   }
 };
+
+/**
+ * Получить историю изменений проекта
+ * @param req HTTP запрос с ID проекта
+ * @param res HTTP ответ
+ */
+export const getProjectHistory = async (req: any, res: Response) => {
+  try {
+    const projectId = parseInt(req.params.id);
+    
+    if (isNaN(projectId)) {
+      return res.status(400).json({ message: "Invalid project ID" });
+    }
+    
+    const userId = req.user?.claims?.sub || req.session?.userId;
+    const user = await storage.getUser(userId);
+    
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+    
+    // Проверяем доступ к проекту
+    const project = await storage.getProjectById(projectId);
+    if (!project) {
+      return res.status(404).json({ message: "Project not found" });
+    }
+    
+    // Проверка прав доступа
+    let hasAccess = false;
+    
+    if (user.role === 'admin') {
+      hasAccess = true;
+    } else if (project.leiterId === userId) {
+      hasAccess = true;
+    } else {
+      // Проверяем, расшарен ли проект с пользователем
+      const shares = await storage.getProjectShares(projectId);
+      hasAccess = shares.some(share => share.sharedWith === userId);
+    }
+    
+    if (!hasAccess) {
+      return res.status(403).json({ message: "Access denied to this project" });
+    }
+    
+    const history = await storage.getProjectHistory(projectId);
+    res.json(history);
+  } catch (error) {
+    console.error("Error fetching project history:", error);
+    res.status(500).json({ message: "Failed to fetch project history" });
+  }
+};
