@@ -266,3 +266,12 @@ The application follows a monolithic architecture with clear separation between 
 - Retroactively fixed Project #38 history by adding missing crew assignment entry with proper snapshot reference
 - Project creation now automatically generates descriptive history entries showing actual crew member names
 - Consistent history format between project creation and crew changes for better tracking
+
+### Fixed Historical Crew Snapshot Preservation (July 24, 2025)
+- CRITICAL FIX: Removed automatic crew snapshot updates when brigade composition changes
+- Historical crew snapshots now remain PERMANENTLY unchanged when crew members are added/deleted/modified
+- This preserves the exact crew composition that worked on each project at the time of assignment
+- Ensures historical accuracy - you can always see who specifically worked on a project regardless of future crew changes
+- Removed updateCrewSnapshotsForProjects function and related automatic update mechanisms
+- Crew snapshots are created ONLY when crew is initially assigned to project, never updated afterwards
+- This maintains the "snapshot" concept - capturing crew state at a specific moment in time

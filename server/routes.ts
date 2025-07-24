@@ -810,85 +810,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Функция для обновления снимков бригады во всех проектах
-  async function updateCrewSnapshotsForProjects(crewId: number, userId: string) {
-    try {
-      console.log(`Updating crew snapshots for crew ${crewId} by user ${userId}`);
-      
-      // Найти все проекты с этой бригадой
-      const allProjects = await storage.getAllProjects();
-      const projectsWithCrew = allProjects.filter((project: any) => project.crewId === crewId);
-      
-      console.log(`Found ${projectsWithCrew.length} projects with crew ${crewId}`);
-      
-      for (const project of projectsWithCrew) {
-        try {
-          // Создать новый снимок
-          const snapshot = await storage.createProjectCrewSnapshot(project.id, crewId, userId);
-          
-          // Получаем информацию о бригаде и участниках из снепшота
-          const crewData = snapshot.crewData as any;
-          const membersData = snapshot.membersData as any[];
-          
-          // Формируем список участников для отображения
-          let membersList = '';
-          if (membersData && membersData.length > 0) {
-            const memberNames = membersData.map(member => 
-              `${member.firstName || ''} ${member.lastName || ''}`.trim()
-            ).filter(name => name.length > 0);
-            
-            if (memberNames.length > 0) {
-              membersList = memberNames.join(', ');
-            }
-          }
-          
-          // Формируем описание с именами участников
-          let description = `Состав бригады "${crewData.name}" обновлён`;
-          if (membersList) {
-            description += ` (участники: ${membersList})`;
-          }
-          
-          // Добавляем запись в историю об обновлении состава
-          await storage.createProjectHistoryEntry({
-            projectId: project.id,
-            userId,
-            changeType: 'assignment_change',
-            fieldName: 'crew',
-            oldValue: `Предыдущий состав бригады`,
-            newValue: `Обновлённый состав бригады (ID: ${crewId})`,
-            description,
-            crewSnapshotId: snapshot.id,
-          });
-          
-          console.log(`Updated snapshot for project ${project.id}: snapshot ${snapshot.id}`);
-        } catch (projectError) {
-          console.error(`Failed to update snapshot for project ${project.id}:`, projectError);
-        }
-      }
-    } catch (error) {
-      console.error('Error updating crew snapshots:', error);
-      throw error;
-    }
-  }
+
 
   app.post('/api/crew-members', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
       const memberData = insertCrewMemberSchema.parse(req.body);
       const member = await storage.createCrewMember(memberData);
-      
-      console.log(`Created crew member ${member.id} for crew ${memberData.crewId}`);
-      
-      // Обновляем снимки бригады во всех проектах
-      try {
-        console.log(`About to update snapshots for crew ${memberData.crewId}`);
-        await updateCrewSnapshotsForProjects(memberData.crewId, userId);
-        console.log(`Successfully updated snapshots for crew ${memberData.crewId}`);
-      } catch (snapshotError) {
-        console.error("Error updating crew snapshots:", snapshotError);
-        // Не падаем, если обновление снимков неудачно
-      }
-      
       res.json(member);
     } catch (error) {
       console.error("Error creating crew member:", error);
@@ -898,21 +825,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.put('/api/crew-members/:id', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
       const memberId = parseInt(req.params.id);
       const updateData = req.body;
-      
-      // Получаем информацию о участнике до обновления чтобы знать crewId
-      const existingMember = await storage.getCrewMemberById(memberId);
-      if (!existingMember) {
-        return res.status(404).json({ message: "Crew member not found" });
-      }
-      
       const member = await storage.updateCrewMember(memberId, updateData);
-      
-      // Обновляем снимки бригады во всех проектах
-      await updateCrewSnapshotsForProjects(existingMember.crewId, userId);
-      
       res.json(member);
     } catch (error) {
       console.error("Error updating crew member:", error);
@@ -922,23 +837,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.delete('/api/crew-members/:id', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
       const memberId = parseInt(req.params.id);
-      
-      // Получаем информацию о участнике до удаления чтобы знать crewId
-      const existingMember = await storage.getCrewMemberById(memberId);
-      if (!existingMember) {
-        return res.status(404).json({ message: "Crew member not found" });
-      }
-      
-      const crewId = existingMember.crewId;
-      
-      // Удаляем участника
       await storage.deleteCrewMember(memberId);
-      
-      // Обновляем снимки бригады во всех проектах
-      await updateCrewSnapshotsForProjects(crewId, userId);
-      
       res.json({ message: "Crew member deleted successfully" });
     } catch (error) {
       console.error("Error deleting crew member:", error);
