@@ -8,7 +8,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Plus, Users, Phone, Edit, Trash2, Archive, Settings, MapPin, User, Building2, BarChart } from 'lucide-react';
+import { Plus, Users, Phone, Edit, Trash2, Archive, Settings, MapPin, User, Building2, BarChart, Calendar, CheckCircle } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -143,6 +143,10 @@ function EditCrewForm({ crew, onUpdate }: { crew: Crew, onUpdate: any }) {
         role: 'worker',
       });
       setShowAddMemberForm(false);
+      // Принудительно обновляем кеш для участников бригады
+      queryClient.invalidateQueries({ queryKey: ['/api/crew-members', crew.id] });
+      // Также обновляем историю бригады
+      queryClient.invalidateQueries({ queryKey: ['crew-history', crew.id] });
       refreshMembers();
     },
     onError: (error: any) => {
@@ -158,6 +162,10 @@ function EditCrewForm({ crew, onUpdate }: { crew: Crew, onUpdate: any }) {
     },
     onSuccess: () => {
       toast({ title: 'Участник удален', description: 'Участник удален из бригады' });
+      // Принудительно обновляем кеш для участников бригады
+      queryClient.invalidateQueries({ queryKey: ['/api/crew-members', crew.id] });
+      // Также обновляем историю бригады
+      queryClient.invalidateQueries({ queryKey: ['crew-history', crew.id] });
       refreshMembers();
     },
     onError: (error: any) => {
@@ -522,9 +530,6 @@ function EditCrewForm({ crew, onUpdate }: { crew: Crew, onUpdate: any }) {
         </div>
       )}
         
-      <div className="mt-6">
-        <CrewHistory crewId={crew.id} crewName={crew.name} />
-      </div>
       </div>
     </div>
   );
@@ -556,6 +561,7 @@ export default function CrewsNew() {
   const [editingCrew, setEditingCrew] = useState<Crew | null>(null);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [viewingMembers, setViewingMembers] = useState<number | null>(null);
+  const [expandedHistory, setExpandedHistory] = useState<number | null>(null);
 
   useEffect(() => {
     const firmId = localStorage.getItem('selectedFirmId');
@@ -1069,7 +1075,7 @@ export default function CrewsNew() {
                   </div>
                 </CardHeader>
                 <CardContent>
-                  <div className="flex justify-between items-center">
+                  <div className="flex justify-between items-center mb-4">
                     <Button
                       variant="outline"
                       size="sm"
@@ -1079,6 +1085,14 @@ export default function CrewsNew() {
                       Участники
                     </Button>
                     <div className="flex space-x-2">
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        onClick={() => setExpandedHistory(expandedHistory === crew.id ? null : crew.id)}
+                      >
+                        <Calendar className="h-4 w-4 mr-2" />
+                        История
+                      </Button>
                       <Button variant="outline" size="sm" onClick={() => {
                         setEditingCrew(crew);
                         setIsEditDialogOpen(true);
@@ -1088,6 +1102,13 @@ export default function CrewsNew() {
                       </Button>
                     </div>
                   </div>
+                  
+                  {/* Компонент истории бригады */}
+                  {expandedHistory === crew.id && (
+                    <div className="border-t pt-4">
+                      <CrewHistory crewId={crew.id} crewName={crew.name} />
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             ))}

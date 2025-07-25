@@ -30,7 +30,7 @@ interface CrewHistoryProps {
 }
 
 export function CrewHistory({ crewId, crewName }: CrewHistoryProps) {
-  const [isExpanded, setIsExpanded] = useState(false);
+  const [isExpanded, setIsExpanded] = useState(true); // Всегда раскрыта, так как используется внутри карточки
 
   const { data: history = [], isLoading, error } = useQuery({
     queryKey: ['crew-history', crewId],
@@ -41,7 +41,7 @@ export function CrewHistory({ crewId, crewName }: CrewHistoryProps) {
       }
       return response.json() as CrewHistoryEntry[];
     },
-    enabled: isExpanded,
+    enabled: true, // Всегда загружаем данные
   });
 
   const getChangeIcon = (changeType: string) => {
@@ -84,25 +84,14 @@ export function CrewHistory({ crewId, crewName }: CrewHistoryProps) {
   };
 
   return (
-    <Card className="w-full">
-      <CardHeader className="pb-3">
-        <div className="flex items-center justify-between">
-          <CardTitle className="text-lg font-medium">
-            История изменения состава
-          </CardTitle>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setIsExpanded(!isExpanded)}
-          >
-            {isExpanded ? 'Скрыть' : 'Показать историю'}
-          </Button>
-        </div>
-      </CardHeader>
+    <div className="w-full">
+      <div className="mb-4">
+        <h4 className="text-sm font-medium text-gray-900 dark:text-gray-100">
+          История изменения состава
+        </h4>
+      </div>
 
-      {isExpanded && (
-        <CardContent>
-          {isLoading ? (
+        {isLoading ? (
             <div className="flex justify-center py-8">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
             </div>
@@ -166,8 +155,6 @@ export function CrewHistory({ crewId, crewName }: CrewHistoryProps) {
               </div>
             </ScrollArea>
           )}
-        </CardContent>
-      )}
-    </Card>
+    </div>
   );
 }

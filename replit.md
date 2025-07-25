@@ -314,3 +314,14 @@ The application follows a monolithic architecture with clear separation between 
 - UI component shows expandable history with icons, badges, and detailed change descriptions
 - Automatic user attribution for all history entries with timestamps
 - Enhanced crew management interface with integrated history display showing member work periods and change tracking
+
+### Crew Management Interface Improvements (July 25, 2025)
+- Fixed critical crew member deletion issue by adding proper cache invalidation with queryClient.invalidateQueries
+- Moved crew history component from settings panel to main crew descriptions as expandable interface
+- Added Calendar icon and "История" button to each crew card for easy access to composition history
+- Enhanced crew card layout with properly spaced action buttons and integrated history display
+- Implemented expandedHistory state management to track which crew's history is currently visible
+- Fixed React Query cache updates for both member additions and deletions to ensure immediate UI refresh
+- Crew history now appears directly within crew cards when "История" button is clicked
+- Simplified CrewHistory component styling for better integration with main crew interface
+- All crew member operations (add/delete) now properly update both member lists and history displays
