@@ -2196,6 +2196,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Generate crew upload token endpoint
+  app.post('/api/generate-crew-token/:projectId', isAuthenticated, async (req: any, res) => {
+    try {
+      const projectId = parseInt(req.params.projectId);
+      
+      if (isNaN(projectId)) {
+        return res.status(400).json({ message: "Invalid project ID" });
+      }
+
+      const token = await storage.generateCrewUploadToken(projectId);
+      
+      res.json({
+        success: true,
+        token,
+        uploadUrl: `${process.env.NODE_ENV === 'development' ? 'http://localhost:5000' : 'https://scac.app'}/upload/${projectId}/${token}`
+      });
+    } catch (error) {
+      console.error("Error generating crew upload token:", error);
+      res.status(500).json({ message: "Failed to generate token" });
+    }
+  });
+
   // Crew Upload API endpoints
   app.get('/api/crew-upload/:projectId/:token/validate', async (req: any, res) => {
     try {
