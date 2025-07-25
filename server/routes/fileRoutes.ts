@@ -245,8 +245,21 @@ router.get('/project/:projectId', isAuthenticated, async (req, res) => {
     // Получаем файлы из legacy таблицы project_files
     const legacyFiles = await storage.getFilesByProjectId(projectId);
     
-    // Пока используем только legacy файлы, так как новая система требует дополнительной настройки
-    const combinedFiles = legacyFiles;
+    // Получаем файлы из новой системы file_storage
+    const newFiles = await storage.getProjectFiles(projectId);
+    
+    // Преобразуем новые файлы в формат совместимый с legacy
+    const transformedNewFiles = newFiles.map(file => ({
+      id: file.id,
+      projectId: file.projectId || projectId,
+      fileUrl: `/api/files/${file.fileId}`, // Используем fileId для новой системы
+      fileName: file.originalName,
+      fileType: file.category,
+      uploadedAt: file.uploadedAt
+    }));
+    
+    // Объединяем legacy и новые файлы
+    const combinedFiles = [...legacyFiles, ...transformedNewFiles];
 
     res.json(combinedFiles);
 
