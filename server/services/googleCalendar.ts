@@ -395,7 +395,7 @@ export class GoogleCalendarService {
         return process.env.NODE_ENV === 'development' ? 'http://localhost:5000' : 'https://scac.app';
       };
       const baseUrl = getBaseUrl();
-      parts.push(``, `📸 Фото-отчёт бригады:`, `${baseUrl}/crew-upload/${project.crewUploadToken}`);
+      parts.push(``, `📸 Фото-отчёт бригады:`, `${baseUrl}/crew-upload/${project.id}/${project.crewUploadToken}`);
     }
 
     parts.push(``, `---`, `Система SCAC - Управление проектами`);
