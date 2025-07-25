@@ -349,3 +349,10 @@ The application follows a monolithic architecture with clear separation between 
   - Filters out projects with status 'paid' (оплачен) and 'invoice_sent' (отправлен) when enabled
   - Helps reduce clutter in projects list by hiding projects that don't require active management
   - Toggle state preserved in session for user convenience
+- **FIXED Invoice Ninja status synchronization bug**: Fixed invoice status not updating from Draft to Sent when emails are sent (July 25, 2025)
+  - Added markInvoiceAsSent method to InvoiceNinjaService for updating invoice status to "Sent" (status_id: 2)
+  - Fixed duplicate /api/invoice/send-email endpoints causing API conflicts
+  - When sending invoice via email, system now properly updates Invoice Ninja status from 1 (Draft) to 2 (Sent)
+  - Removed problematic second endpoint with incorrect PostmarkService API calls
+  - Fixed LSP type errors in routes.ts for better code reliability
+  - Invoice status flow now correctly reflects: Draft → Sent → Paid progression in both SCAC and Invoice Ninja systems

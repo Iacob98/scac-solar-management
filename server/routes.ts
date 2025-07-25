@@ -297,20 +297,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Invoice not found in database" });
       }
 
-      // Create postmark service and send email
-      const postmarkService = new PostmarkService(
-        firm.postmarkServerToken,
-        firm.postmarkFromEmail,
-        firm.postmarkMessageStream || 'main'
-      );
+      // Mark invoice as sent in Invoice Ninja (status 1 -> 2)
+      const invoiceNinja = new InvoiceNinjaService(firm.token, firm.invoiceNinjaUrl);
+      try {
+        const invoiceUrl = project.invoiceUrl;
+        if (invoiceUrl && invoiceUrl.includes('invoices/')) {
+          const urlParts = invoiceUrl.split('invoices/');
+          if (urlParts.length > 1) {
+            const invoiceId = urlParts[1];
+            console.log(`🔄 Marking invoice ${invoiceId} as sent in Invoice Ninja`);
+            await invoiceNinja.markInvoiceAsSent(invoiceId);
+            console.log(`✅ Invoice ${invoiceId} marked as sent in Invoice Ninja`);
+          }
+        }
+      } catch (ninjaError: any) {
+        console.warn(`⚠️ Failed to mark invoice as sent in Invoice Ninja: ${ninjaError.message}`);
+        // Continue with email sending even if status update fails
+      }
 
-      await postmarkService.sendInvoiceEmail(
-        client.email,
-        client.firstName || 'Клиент',
-        project.invoiceNumber || 'N/A',
-        invoice.totalAmount?.toString() || '0',
-        project
-      );
+      // Create postmark service and send email
+      const postmarkService = new PostmarkService(firm.postmarkServerToken);
+
+      await postmarkService.sendInvoiceEmail({
+        from: firm.postmarkFromEmail,
+        to: client.email,
+        invoiceNumber: project.invoiceNumber || 'N/A',
+        clientName: client.name,
+        amount: invoice.totalAmount?.toString() || '0',
+        messageStream: firm.postmarkMessageStream || 'outbound'
+      });
 
       // Update project status to invoice_sent
       await storage.updateProject(parseInt(projectId), { status: 'invoice_sent' });
@@ -330,7 +345,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         message: "Invoice sent successfully",
         email: client.email 
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error sending invoice email:", error);
       res.status(500).json({ message: "Failed to send invoice email", error: error.message });
     }
@@ -522,85 +537,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Send invoice via email using Postmark
-  app.post('/api/invoice/send-email/:projectId', isAuthenticated, async (req: any, res) => {
-    try {
-      const { projectId } = req.params;
-      const userId = req.user?.claims?.sub || req.session?.userId;
-      const user = await storage.getUser(userId);
-      
-      if (!user) {
-        return res.status(404).json({ message: "User not found" });
-      }
 
-      // Get project details
-      const project = await storage.getProjectById(Number(projectId));
-      if (!project) {
-        return res.status(404).json({ message: "Project not found" });
-      }
-
-      // Check access rights
-      if (user.role !== 'admin' && project.leiterId !== userId) {
-        return res.status(403).json({ message: "Access denied" });
-      }
-
-      // Get firm and client details
-      const firm = await storage.getFirmById(project.firmId);
-      const client = await storage.getClientById(project.clientId);
-      
-      if (!firm || !client) {
-        return res.status(404).json({ message: "Firm or client not found" });
-      }
-
-      if (!client.email) {
-        return res.status(400).json({ message: "Client has no email address" });
-      }
-
-      // Check if firm has Postmark configuration
-      if (!firm.postmarkServerToken || !firm.postmarkFromEmail) {
-        return res.status(400).json({ message: "Postmark not configured for this firm" });
-      }
-
-      // Get invoice PDF from Invoice Ninja
-      const invoiceNinja = new InvoiceNinjaService(firm.token, firm.invoiceNinjaUrl);
-      const pdfBuffer = await invoiceNinja.getInvoicePdf(project.invoiceNumber!);
-
-      // Send email using Postmark
-      const postmark = new PostmarkService(firm.postmarkServerToken);
-      await postmark.sendInvoiceEmail({
-        to: client.email,
-        from: firm.postmarkFromEmail,
-        messageStream: firm.postmarkMessageStream || 'outbound',
-        clientName: client.name,
-        projectId: project.id,
-        invoiceNumber: project.invoiceNumber!,
-        pdfBuffer,
-        firmName: firm.name
-      });
-
-      // Update project status and create history entry
-      await storage.updateProject(Number(projectId), { status: 'invoice_sent' });
-      
-      await storage.createProjectHistoryEntry({
-        projectId: Number(projectId),
-        userId,
-        changeType: 'status_change',
-        fieldName: 'status',
-        oldValue: 'send_invoice',
-        newValue: 'invoice_sent',
-        description: `Счет ${project.invoiceNumber} отправлен клиенту ${client.name} на email ${client.email}`,
-      });
-
-      res.json({ 
-        success: true, 
-        message: "Invoice sent successfully",
-        sentTo: client.email 
-      });
-    } catch (error) {
-      console.error("Error sending invoice email:", error);
-      res.status(500).json({ message: "Failed to send invoice email" });
-    }
-  });
 
   // Test Postmark email configuration
   app.post('/api/postmark/test', isAuthenticated, async (req: any, res) => {

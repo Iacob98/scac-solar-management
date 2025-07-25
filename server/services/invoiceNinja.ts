@@ -341,6 +341,41 @@ export class InvoiceNinjaService {
 
 
 
+  async markInvoiceAsSent(invoiceId: string): Promise<InvoiceNinjaInvoice> {
+    try {
+      // Try v5 bulk action method first  
+      const bulkResponse = await axios.post(
+        `${this.baseUrl}/api/v1/invoices/bulk`,
+        {
+          action: 'mark_sent',
+          ids: [invoiceId]
+        },
+        { headers: this.getHeaders() }
+      );
+      
+      if (bulkResponse.data && bulkResponse.data.data && bulkResponse.data.data.length > 0) {
+        return bulkResponse.data.data[0];
+      }
+      
+      throw new Error('Bulk action did not return data');
+    } catch (bulkError: any) {
+      console.log('Bulk action failed, trying direct update:', bulkError.response?.data || bulkError.message);
+      
+      // Fallback - try updating status directly to 2 (Sent)
+      try {
+        const updateResponse = await axios.put(
+          `${this.baseUrl}/api/v1/invoices/${invoiceId}`,
+          { status_id: 2 }, // Status ID 2 = Sent in Invoice Ninja
+          { headers: this.getHeaders() }
+        );
+        return updateResponse.data.data;
+      } catch (updateError: any) {
+        console.error('Failed to mark invoice as sent:', updateError.response?.data || updateError.message);
+        throw new Error(`Failed to mark invoice as sent: ${updateError.message}`);
+      }
+    }
+  }
+
   async markInvoiceAsPaid(invoiceId: string): Promise<InvoiceNinjaInvoice> {
     try {
       // Try v5 bulk action method first
