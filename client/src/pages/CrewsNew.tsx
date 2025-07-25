@@ -610,7 +610,16 @@ export default function CrewsNew() {
       leaderName: '',
       phone: '',
       address: '',
-      members: [],
+      members: [{
+        firstName: '',
+        lastName: '',
+        address: '',
+        uniqueNumber: `WRK-${Date.now().toString().slice(-4)}`,
+        phone: '',
+        role: 'worker',
+        memberEmail: '',
+        googleCalendarId: ''
+      }],
     },
   });
 
@@ -709,6 +718,8 @@ export default function CrewsNew() {
         uniqueNumber: `WRK-${String(Date.now()).slice(-4)}`,
         phone: '',
         role: 'worker',
+        memberEmail: '',
+        googleCalendarId: ''
       }
     ]);
   };
@@ -760,34 +771,38 @@ export default function CrewsNew() {
 
   return (
     <MainLayout>
-      <div className="p-6 space-y-6">
+      <div className="p-3 sm:p-6 space-y-4 sm:space-y-6">
         {/* Header */}
-        <div className="flex justify-between items-center">
+        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
           <div>
-            <h1 className="text-2xl font-bold">Управление бригадами</h1>
-            <p className="text-gray-600">Команды для выполнения проектов установки солнечных панелей</p>
+            <h1 className="text-xl sm:text-2xl font-bold">Управление бригадами</h1>
+            <p className="text-sm sm:text-base text-gray-600">Команды для выполнения проектов установки солнечных панелей</p>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-3">
             <Button
               variant="outline"
+              size="sm"
               onClick={() => setLocation('/crews/statistics')}
+              className="w-full sm:w-auto"
             >
               <BarChart className="h-4 w-4 mr-2" />
-              Статистика бригад
+              <span className="hidden sm:inline">Статистика бригад</span>
+              <span className="sm:hidden">Статистика</span>
             </Button>
             
             <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
               <DialogTrigger asChild>
-                <Button>
+                <Button size="sm" className="w-full sm:w-auto">
                   <Plus className="h-4 w-4 mr-2" />
-                  Создать бригаду
+                  <span className="hidden sm:inline">Создать бригаду</span>
+                  <span className="sm:hidden">Создать</span>
                 </Button>
               </DialogTrigger>
-            <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+            <DialogContent className="w-[95vw] max-w-4xl max-h-[90vh] overflow-y-auto mx-2">
               <DialogHeader>
-                <DialogTitle>Создание новой бригады</DialogTitle>
-                <DialogDescription>
+                <DialogTitle className="text-lg sm:text-xl">Создание новой бригады</DialogTitle>
+                <DialogDescription className="text-sm">
                   Заполните информацию о новой бригаде и добавьте участников команды
                 </DialogDescription>
               </DialogHeader>
@@ -797,7 +812,7 @@ export default function CrewsNew() {
                   onSubmit(data);
                 })} className="space-y-6">
                   {/* Основная информация о бригаде */}
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <FormField
                       control={form.control}
                       name="name"
@@ -818,11 +833,11 @@ export default function CrewsNew() {
                       render={({ field }) => (
                         <FormItem>
                           <FormLabel>Уникальный номер</FormLabel>
-                          <div className="flex space-x-2">
+                          <div className="flex flex-col sm:flex-row gap-2">
                             <FormControl>
                               <Input placeholder="BR-001234" {...field} />
                             </FormControl>
-                            <Button type="button" variant="outline" onClick={generateUniqueNumber}>
+                            <Button type="button" variant="outline" onClick={generateUniqueNumber} size="sm" className="whitespace-nowrap">
                               Генерировать
                             </Button>
                           </div>
@@ -832,7 +847,7 @@ export default function CrewsNew() {
                     />
                   </div>
 
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <FormField
                       control={form.control}
                       name="leaderName"
@@ -903,7 +918,7 @@ export default function CrewsNew() {
                             )}
                           </div>
                           
-                          <div className="grid grid-cols-2 gap-4">
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <FormField
                               control={form.control}
                               name={`members.${index}.firstName`}
@@ -1032,40 +1047,40 @@ export default function CrewsNew() {
             {crews.map((crew) => (
               <Card key={crew.id}>
                 <CardHeader className="pb-3">
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <CardTitle className="text-lg flex items-center">
-                        {crew.name}
-                        <Badge variant="secondary" className="ml-2">
+                  <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-3">
+                    <div className="flex-1 min-w-0">
+                      <CardTitle className="text-base sm:text-lg flex flex-col sm:flex-row sm:items-center gap-2">
+                        <span className="truncate">{crew.name}</span>
+                        <Badge variant="secondary" className="self-start sm:self-center">
                           {crew.uniqueNumber}
                         </Badge>
                       </CardTitle>
-                      <div className="flex items-center space-x-4 text-sm text-gray-500 mt-1">
+                      <div className="flex flex-col sm:flex-row sm:items-center sm:space-x-4 text-xs sm:text-sm text-gray-500 mt-2 gap-1 sm:gap-0">
                         <span className="flex items-center">
-                          <User className="h-4 w-4 mr-1" />
-                          {crew.leaderName}
+                          <User className="h-3 w-3 sm:h-4 sm:w-4 mr-1 flex-shrink-0" />
+                          <span className="truncate">{crew.leaderName}</span>
                         </span>
                         {crew.phone && (
                           <span className="flex items-center">
-                            <Phone className="h-4 w-4 mr-1" />
-                            {crew.phone}
+                            <Phone className="h-3 w-3 sm:h-4 sm:w-4 mr-1 flex-shrink-0" />
+                            <span className="truncate">{crew.phone}</span>
                           </span>
                         )}
                         {crew.address && (
                           <span className="flex items-center">
-                            <MapPin className="h-4 w-4 mr-1" />
-                            {crew.address}
+                            <MapPin className="h-3 w-3 sm:h-4 sm:w-4 mr-1 flex-shrink-0" />
+                            <span className="truncate">{crew.address}</span>
                           </span>
                         )}
                       </div>
                     </div>
-                    <div className="flex items-center space-x-2">
+                    <div className="flex items-center">
                       <Badge variant={
                         crew.status === 'active' ? 'default' :
                         crew.status === 'vacation' ? 'secondary' :
                         crew.status === 'equipment_issue' ? 'destructive' :
                         'outline'
-                      }>
+                      } className="text-xs">
                         {crew.status === 'active' ? 'Активна' :
                          crew.status === 'vacation' ? 'В отпуске' :
                          crew.status === 'equipment_issue' ? 'Проблемы с техникой' :
@@ -1075,28 +1090,31 @@ export default function CrewsNew() {
                   </div>
                 </CardHeader>
                 <CardContent>
-                  <div className="flex justify-between items-center mb-4">
+                  <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 mb-4">
                     <Button
                       variant="outline"
                       size="sm"
                       onClick={() => setViewingMembers(crew.id)}
+                      className="w-full sm:w-auto"
                     >
                       <Users className="h-4 w-4 mr-2" />
                       Участники
                     </Button>
-                    <div className="flex space-x-2">
+                    <div className="flex flex-col sm:flex-row gap-2">
                       <Button 
                         variant="outline" 
                         size="sm" 
                         onClick={() => setExpandedHistory(expandedHistory === crew.id ? null : crew.id)}
+                        className="w-full sm:w-auto"
                       >
                         <Calendar className="h-4 w-4 mr-2" />
-                        История
+                        <span className="hidden sm:inline">История</span>
+                        <span className="sm:hidden">История изменений</span>
                       </Button>
                       <Button variant="outline" size="sm" onClick={() => {
                         setEditingCrew(crew);
                         setIsEditDialogOpen(true);
-                      }}>
+                      }} className="w-full sm:w-auto">
                         <Edit className="h-4 w-4 mr-2" />
                         Редактировать
                       </Button>
@@ -1125,9 +1143,9 @@ export default function CrewsNew() {
 
         {/* Диалог редактирования бригады */}
         <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-          <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+          <DialogContent className="w-[95vw] max-w-2xl max-h-[90vh] overflow-y-auto mx-2">
             <DialogHeader>
-              <DialogTitle>Редактировать бригаду</DialogTitle>
+              <DialogTitle className="text-lg sm:text-xl">Редактировать бригаду</DialogTitle>
             </DialogHeader>
             {editingCrew && <EditCrewForm crew={editingCrew} onUpdate={updateCrewMutation} />}
           </DialogContent>
@@ -1135,9 +1153,9 @@ export default function CrewsNew() {
 
         {/* Модальное окно участников */}
         <Dialog open={!!viewingMembers} onOpenChange={() => setViewingMembers(null)}>
-          <DialogContent className="max-w-2xl">
+          <DialogContent className="w-[95vw] max-w-2xl max-h-[90vh] overflow-y-auto mx-2">
             <DialogHeader>
-              <DialogTitle>Участники бригады</DialogTitle>
+              <DialogTitle className="text-lg sm:text-xl">Участники бригады</DialogTitle>
             </DialogHeader>
             {membersLoading ? (
               <div className="flex justify-center py-4">
@@ -1147,19 +1165,19 @@ export default function CrewsNew() {
               <div className="space-y-3">
                 {crewMembers.map((member) => (
                   <Card key={member.id} className="p-3">
-                    <div className="flex justify-between items-start">
-                      <div>
-                        <h4 className="font-medium">
+                    <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-3">
+                      <div className="flex-1 min-w-0">
+                        <h4 className="font-medium text-sm sm:text-base">
                           {member.firstName} {member.lastName}
                         </h4>
-                        <div className="text-sm text-gray-500 space-y-1">
+                        <div className="text-xs sm:text-sm text-gray-500 space-y-1">
                           <p>Номер: {member.uniqueNumber}</p>
                           <p>Роль: {member.role === 'leader' ? 'Руководитель' : member.role === 'specialist' ? 'Специалист' : 'Рабочий'}</p>
-                          {member.phone && <p>Телефон: {member.phone}</p>}
-                          {member.address && <p>Адрес: {member.address}</p>}
+                          {member.phone && <p className="truncate">Телефон: {member.phone}</p>}
+                          {member.address && <p className="truncate">Адрес: {member.address}</p>}
                         </div>
                       </div>
-                      <Badge variant={member.role === 'leader' ? 'default' : 'secondary'}>
+                      <Badge variant={member.role === 'leader' ? 'default' : 'secondary'} className="text-xs self-start">
                         {member.role === 'leader' ? 'Руководитель' : member.role === 'specialist' ? 'Специалист' : 'Рабочий'}
                       </Badge>
                     </div>
