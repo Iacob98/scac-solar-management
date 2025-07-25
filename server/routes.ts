@@ -785,6 +785,230 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Invoice creation route
+  app.post('/api/invoice/create', isAuthenticated, async (req: any, res) => {
+    try {
+      console.log('Invoice creation request:', req.body);
+      const { projectId } = req.body;
+      const userId = req.user?.claims?.sub || req.session?.userId;
+      console.log('User ID:', userId, 'Project ID:', projectId);
+      
+      if (!projectId) {
+        console.log('Error: Project ID is required');
+        return res.status(400).json({ message: "Project ID is required" });
+      }
+
+      const project = await storage.getProjectById(projectId);
+      if (!project) {
+        return res.status(404).json({ message: "Project not found" });
+      }
+
+      const services = await storage.getServicesByProjectId(projectId);
+      if (services.length === 0) {
+        return res.status(400).json({ message: "No services found for this project" });
+      }
+
+      // Get firm details for Invoice Ninja integration
+      const firms = await storage.getFirmsByUserId(userId);
+      const firm = firms.find(f => f.id === project.firmId);
+      
+      if (!firm) {
+        return res.status(404).json({ message: "Firm not found" });
+      }
+
+      const clients = await storage.getClientsByFirmId(firm.id);
+      const projectClient = clients.find(c => c.id === project.clientId);
+      
+      if (!projectClient) {
+        return res.status(404).json({ message: "Client not found" });
+      }
+
+      // Create Invoice Ninja service instance
+      const invoiceNinja = new InvoiceNinjaService(firm.token, firm.invoiceNinjaUrl);
+
+      // Prepare invoice data for Invoice Ninja
+      const invoiceItems = services.map(service => ({
+        product_key: service.productKey || '',
+        notes: service.description,
+        cost: parseFloat(service.price),
+        qty: parseInt(service.quantity),
+      }));
+
+      // Installation person details for invoice notes
+      const installationNotes = `Installationsdetails:
+${project.installationPersonFirstName} ${project.installationPersonLastName}
+${project.installationPersonAddress}
+Tel: ${project.installationPersonPhone}
+Kunden-ID: ${project.installationPersonUniqueId}`;
+
+      const ninjaInvoiceData = {
+        client_id: projectClient.ninjaClientId,
+        line_items: invoiceItems,
+        public_notes: installationNotes,
+        custom_value3: project.installationPersonUniqueId, // Customer ID
+        custom_value4: project.installationPersonPhone, // Phone number
+        date: new Date().toISOString().split('T')[0], // Today's date
+        due_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // 30 days from now
+      };
+
+      console.log('Creating invoice in Invoice Ninja with data:', ninjaInvoiceData);
+      
+      // Create invoice in Invoice Ninja
+      const ninjaInvoice = await invoiceNinja.createInvoice(ninjaInvoiceData);
+      console.log('Invoice created in Invoice Ninja:', ninjaInvoice);
+
+      // Calculate total amount
+      const totalAmount = services.reduce((sum, service) => {
+        return sum + (parseFloat(service.price) * parseInt(service.quantity));
+      }, 0);
+
+      // Create invoice record in our database
+      const today = new Date().toISOString().split('T')[0];
+      const defaultDueDate = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+      
+      console.log('Date fields from Invoice Ninja:', {
+        date: ninjaInvoice.date,
+        due_date: ninjaInvoice.due_date,
+        today,
+        defaultDueDate
+      });
+      
+      const invoiceData = {
+        projectId: project.id,
+        invoiceId: ninjaInvoice.id,
+        invoiceNumber: ninjaInvoice.number,
+        invoiceDate: ninjaInvoice.date || today,
+        dueDate: ninjaInvoice.due_date && ninjaInvoice.due_date !== '' ? ninjaInvoice.due_date : defaultDueDate,
+        totalAmount: totalAmount.toString(),
+        isPaid: false,
+      };
+      
+      console.log('Creating invoice with data:', invoiceData);
+      const localInvoice = await storage.createInvoice(invoiceData);
+
+      // Update project with invoice information
+      await storage.updateProject(project.id, {
+        status: 'invoiced',
+        invoiceNumber: ninjaInvoice.number,
+        invoiceUrl: `${firm.invoiceNinjaUrl}/invoices/${ninjaInvoice.id}`,
+      });
+
+      // Create project history entry
+      await storage.createProjectHistoryEntry({
+        projectId: project.id,
+        userId,
+        changeType: 'status_change',
+        fieldName: 'invoiceNumber',
+        oldValue: null,
+        newValue: ninjaInvoice.number,
+        description: `Счет №${ninjaInvoice.number} создан на сумму ${totalAmount.toFixed(2)}€`,
+      });
+
+      console.log('Invoice creation completed successfully');
+      res.json({
+        success: true,
+        invoice: localInvoice,
+        invoiceNumber: ninjaInvoice.number,
+        totalAmount: totalAmount,
+        invoiceUrl: `${firm.invoiceNinjaUrl}/invoices/${ninjaInvoice.id}`,
+      });
+
+    } catch (error: any) {
+      console.error('Error creating invoice:', error);
+      res.status(500).json({ 
+        message: "Failed to create invoice", 
+        error: error.message 
+      });
+    }
+  });
+
+  // Invoice PDF download route
+  app.post('/api/invoice/download-pdf/:projectId', isAuthenticated, async (req: any, res) => {
+    try {
+      const { projectId } = req.params;
+      const userId = req.user?.claims?.sub || req.session?.userId;
+      
+      const project = await storage.getProjectById(parseInt(projectId));
+      if (!project) {
+        return res.status(404).json({ message: 'Project not found' });
+      }
+      
+      if (!project.invoiceNumber) {
+        return res.status(400).json({ message: 'Project has no invoice to download' });
+      }
+      
+      // Get firm details
+      const firms = await storage.getFirmsByUserId(userId);
+      const firm = firms.find(f => f.id === project.firmId);
+      
+      if (!firm) {
+        return res.status(404).json({ message: 'Firm not found' });
+      }
+      
+      const invoiceNinja = new InvoiceNinjaService(firm.token, firm.invoiceNinjaUrl);
+      
+      // Get invoice ID from Invoice Ninja
+      let invoiceId = null;
+      if (project.invoiceUrl && project.invoiceUrl.includes('invoices/')) {
+        const urlParts = project.invoiceUrl.split('invoices/');
+        if (urlParts.length > 1) {
+          invoiceId = urlParts[1];
+        }
+      } else {
+        // Search for invoice by number
+        const invoices = await invoiceNinja.getInvoices();
+        const invoice = invoices.find((inv: any) => 
+          inv.number === project.invoiceNumber || 
+          inv.invoice_number === project.invoiceNumber
+        );
+        if (invoice) {
+          invoiceId = invoice.id;
+        }
+      }
+      
+      if (!invoiceId) {
+        return res.status(404).json({ message: 'Invoice not found in Invoice Ninja' });
+      }
+      
+      // Download PDF
+      const pdfBuffer = await invoiceNinja.downloadInvoicePDF(invoiceId);
+      
+      // Save to file storage
+      const fileName = `invoice_${project.invoiceNumber}.pdf`;
+      const filePath = `uploads/${fileName}`;
+      
+      const fs = await import('fs/promises');
+      await fs.writeFile(filePath, pdfBuffer);
+      
+      // Create file storage record (simplified for now)
+      console.log(`PDF saved to ${filePath}, size: ${pdfBuffer.length} bytes`);
+      
+      // Create history entry
+      await storage.createProjectHistoryEntry({
+        projectId: project.id,
+        userId,
+        changeType: 'file_added',
+        fieldName: 'files',
+        oldValue: null,
+        newValue: fileName,
+        description: `PDF счета ${project.invoiceNumber} скачан из Invoice Ninja`,
+      });
+      
+      res.json({
+        success: true,
+        message: 'Invoice PDF downloaded successfully',
+        fileName: fileName,
+      });
+      
+    } catch (error: any) {
+      console.error('Error downloading invoice PDF:', error);
+      res.status(500).json({ 
+        message: 'Failed to download invoice PDF', 
+        error: error.message 
+      });
+    }
+  });
+
   // User management routes
   app.get('/api/users', isAuthenticated, async (req: any, res) => {
     try {
