@@ -338,3 +338,11 @@ The application follows a monolithic architecture with clear separation between 
 - Maintained desktop table view for larger screens while providing optimal mobile experience
 - Added gradient icons and improved spacing across all page elements for consistent mobile-friendly design
 - Platform now 100% mobile-responsive across all major modules: Home dashboard, Clients, Invoices, Calendar, Users/Admin, Crews, Projects
+
+### Invoices Page Restoration and Enhancement (July 25, 2025)
+- Restored original table layout for invoices page on all screen sizes (removed mobile card adaptation per user request)
+- Added clickable invoice icon (Receipt) navigation that redirects to corresponding project detail page
+- Integrated wouter useLocation hook for seamless project navigation from invoice records
+- Maintained all existing functionality: payment marking, synchronization, PDF viewing
+- Enhanced table structure with proper project information display and status badges
+- Improved user experience with clear visual feedback for clickable invoice elements

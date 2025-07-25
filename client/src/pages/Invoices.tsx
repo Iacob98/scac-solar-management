@@ -4,13 +4,14 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
 import { apiRequest } from '@/lib/queryClient';
+import { useLocation } from 'wouter';
 import type { Invoice, Project } from '@shared/schema';
 import { MainLayout } from '@/components/Layout/MainLayout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { 
@@ -33,6 +34,7 @@ export default function Invoices() {
   const { toast } = useToast();
   const { user } = useAuth();
   const queryClient = useQueryClient();
+  const [, setLocation] = useLocation();
   const [selectedFirmId, setSelectedFirmId] = useState<string>('');
   const [filters, setFilters] = useState({
     status: 'all',
@@ -218,6 +220,10 @@ export default function Invoices() {
     return diffDays;
   };
 
+  const navigateToProject = (projectId: number) => {
+    setLocation(`/projects/${projectId}`);
+  };
+
   const handleFilterChange = (key: string, value: string) => {
     setFilters(prev => ({ ...prev, [key]: value }));
   };
@@ -356,134 +362,148 @@ export default function Invoices() {
           </div>
         </div>
 
-        {/* Invoices Cards */}
-        {isLoading ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {[...Array(6)].map((_, i) => (
-              <Card key={i} className="animate-pulse">
-                <CardContent className="p-4">
-                  <div className="h-4 bg-gray-200 rounded mb-3"></div>
-                  <div className="h-3 bg-gray-200 rounded mb-2 w-3/4"></div>
-                  <div className="h-3 bg-gray-200 rounded mb-2 w-1/2"></div>
-                  <div className="h-3 bg-gray-200 rounded w-2/3"></div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        ) : filteredInvoices.length === 0 ? (
-          <div className="text-center py-12">
-            <div className="bg-gradient-to-br from-purple-50 to-blue-50 rounded-2xl p-8 border border-purple-100">
-              <div className="bg-purple-100 rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-4">
-                <Receipt className="h-8 w-8 text-purple-600" />
-              </div>
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                Нет счетов
-              </h3>
-              <p className="text-gray-600 mb-4 max-w-sm mx-auto">
-                Создайте проекты и выставите счета для их отображения здесь
-              </p>
-              <div className="flex items-center justify-center text-sm text-purple-600">
-                <FileText className="h-4 w-4 mr-1" />
-                Счета будут создаваться автоматически из проектов
+        {/* Invoices Table */}
+        <div className="bg-white rounded-lg shadow-sm border overflow-hidden">
+          {isLoading ? (
+            <div className="p-6">
+              <div className="animate-pulse space-y-4">
+                {[...Array(5)].map((_, i) => (
+                  <div key={i} className="h-16 bg-gray-200 rounded"></div>
+                ))}
               </div>
             </div>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {filteredInvoices.map((invoice: any) => {
-              const project = getProject(invoice.projectId);
-              const daysUntilDue = getDaysUntilDue(invoice.dueDate);
-              
-              return (
-                <Card key={invoice.id} className="hover:shadow-md transition-shadow duration-200">
-                  <CardHeader className="pb-3">
-                    <div className="flex items-start justify-between">
-                      <CardTitle className="text-lg font-semibold text-gray-900 flex items-center gap-2">
-                        <Receipt className="h-5 w-5 text-blue-600" />
-                        #{invoice.invoiceNumber}
-                      </CardTitle>
-                      <div className="flex flex-col items-end gap-2">
+          ) : filteredInvoices.length === 0 ? (
+            <div className="text-center py-12">
+              <div className="bg-gradient-to-br from-purple-50 to-blue-50 rounded-2xl p-8 border border-purple-100">
+                <div className="bg-purple-100 rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-4">
+                  <Receipt className="h-8 w-8 text-purple-600" />
+                </div>
+                <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                  Нет счетов
+                </h3>
+                <p className="text-gray-600 mb-4 max-w-sm mx-auto">
+                  Создайте проекты и выставите счета для их отображения здесь
+                </p>
+                <div className="flex items-center justify-center text-sm text-purple-600">
+                  <FileText className="h-4 w-4 mr-1" />
+                  Счета будут создаваться автоматически из проектов
+                </div>
+              </div>
+            </div>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Счет</TableHead>
+                  <TableHead>Проект</TableHead>
+                  <TableHead>Статус</TableHead>
+                  <TableHead>Сумма</TableHead>
+                  <TableHead>Создан</TableHead>
+                  <TableHead>Срок</TableHead>
+                  <TableHead>Действия</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {filteredInvoices.map((invoice: any) => {
+                  const project = getProject(invoice.projectId);
+                  const daysUntilDue = getDaysUntilDue(invoice.dueDate);
+                  
+                  return (
+                    <TableRow key={invoice.id} className="hover:bg-gray-50">
+                      <TableCell>
+                        <div className="flex items-center space-x-3">
+                          <button
+                            onClick={() => navigateToProject(invoice.projectId)}
+                            className="flex items-center space-x-2 hover:text-blue-600 transition-colors"
+                            title="Перейти к проекту"
+                          >
+                            <Receipt className="h-5 w-5 text-blue-600" />
+                            <span className="font-medium">#{invoice.invoiceNumber}</span>
+                          </button>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex flex-col">
+                          <span className="font-medium text-gray-900">PROJ-{project?.id}</span>
+                          <span className="text-sm text-gray-500 truncate max-w-xs">
+                            {project?.notes || 'Нет описания'}
+                          </span>
+                        </div>
+                      </TableCell>
+                      <TableCell>
                         {getStatusBadge(invoice.isPaid, invoice.dueDate)}
-                        <span className="text-lg font-bold text-gray-900">
+                      </TableCell>
+                      <TableCell>
+                        <span className="font-semibold text-gray-900">
                           {formatCurrency(invoice.totalAmount)}
                         </span>
-                      </div>
-                    </div>
-                  </CardHeader>
-                  <CardContent className="pt-0 space-y-3">
-                    <div className="flex items-center gap-2 text-sm text-gray-600">
-                      <FileText className="w-4 h-4 text-gray-400 flex-shrink-0" />
-                      <span className="font-medium">PROJ-{project?.id}</span>
-                      <span className="text-gray-400">•</span>
-                      <span className="truncate">{project?.notes || 'Нет описания'}</span>
-                    </div>
-                    
-                    <div className="flex items-center gap-2 text-sm text-gray-600">
-                      <Calendar className="w-4 h-4 text-gray-400 flex-shrink-0" />
-                      <span>Создан: {formatDate(invoice.invoiceDate)}</span>
-                    </div>
-                    
-                    <div className="flex items-center gap-2 text-sm text-gray-600">
-                      <Clock className="w-4 h-4 text-gray-400 flex-shrink-0" />
-                      <span>Срок: {formatDate(invoice.dueDate)}</span>
-                    </div>
-                    
-                    <div className="flex items-center gap-2 text-sm">
-                      <AlertCircle className="w-4 h-4 text-gray-400 flex-shrink-0" />
-                      <span className={`font-medium ${
-                        daysUntilDue < 0 ? 'text-red-600' : 
-                        daysUntilDue <= 7 ? 'text-yellow-600' : 'text-green-600'
-                      }`}>
-                        {invoice.isPaid ? 'Оплачен' : 
-                         daysUntilDue < 0 ? `${Math.abs(daysUntilDue)} дней просрочки` :
-                         daysUntilDue === 0 ? 'Срок сегодня' :
-                         `${daysUntilDue} дней до срока`}
-                      </span>
-                    </div>
-                    
-                    <div className="flex flex-wrap gap-2 pt-2 border-t">
-                      {!invoice.isPaid && (
-                        <Button
-                          size="sm" 
-                          onClick={() => markPaidMutation.mutate({ invoiceNumber: invoice.invoiceNumber })}
-                          disabled={markPaidMutation.isPending}
-                          className="flex-1 min-w-0"
-                        >
-                          <CheckCircle className="w-4 h-4 mr-1" />
-                          <span className="hidden sm:inline">Отметить как оплаченный</span>
-                          <span className="sm:hidden">Оплачен</span>
-                        </Button>
-                      )}
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => syncPaymentMutation.mutate({ invoiceNumber: invoice.invoiceNumber })}
-                        disabled={syncPaymentMutation.isPending}
-                        title="Проверить статус оплаты в Invoice Ninja"
-                        className="h-9 w-9 p-0"
-                      >
-                        <RotateCw className={`w-4 h-4 ${syncPaymentMutation.isPending ? 'animate-spin' : ''}`} />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => {
-                          if (project?.invoiceUrl) {
-                            window.open(project.invoiceUrl, '_blank');
-                          }
-                        }}
-                        title="Открыть PDF счета"
-                        className="h-9 w-9 p-0"
-                      >
-                        <FileText className="w-4 h-4" />
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-              );
-            })}
-          </div>
-        )}
+                      </TableCell>
+                      <TableCell>
+                        <span className="text-sm text-gray-600">
+                          {formatDate(invoice.invoiceDate)}
+                        </span>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex flex-col">
+                          <span className="text-sm text-gray-600">
+                            {formatDate(invoice.dueDate)}
+                          </span>
+                          <span className={`text-xs font-medium ${
+                            daysUntilDue < 0 ? 'text-red-600' : 
+                            daysUntilDue <= 7 ? 'text-yellow-600' : 'text-green-600'
+                          }`}>
+                            {invoice.isPaid ? 'Оплачен' : 
+                             daysUntilDue < 0 ? `${Math.abs(daysUntilDue)} дней просрочки` :
+                             daysUntilDue === 0 ? 'Срок сегодня' :
+                             `${daysUntilDue} дней до срока`}
+                          </span>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center space-x-2">
+                          {!invoice.isPaid && (
+                            <Button
+                              size="sm" 
+                              onClick={() => markPaidMutation.mutate({ invoiceNumber: invoice.invoiceNumber })}
+                              disabled={markPaidMutation.isPending}
+                              title="Отметить как оплаченный"
+                            >
+                              <CheckCircle className="w-4 h-4 mr-1" />
+                              Оплачен
+                            </Button>
+                          )}
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => syncPaymentMutation.mutate({ invoiceNumber: invoice.invoiceNumber })}
+                            disabled={syncPaymentMutation.isPending}
+                            title="Проверить статус оплаты в Invoice Ninja"
+                            className="h-9 w-9 p-0"
+                          >
+                            <RotateCw className={`w-4 h-4 ${syncPaymentMutation.isPending ? 'animate-spin' : ''}`} />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => {
+                              if (project?.invoiceUrl) {
+                                window.open(project.invoiceUrl, '_blank');
+                              }
+                            }}
+                            title="Открыть PDF счета"
+                            className="h-9 w-9 p-0"
+                          >
+                            <FileText className="w-4 h-4" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
+          )}
+        </div>
       </div>
     </MainLayout>
   );
