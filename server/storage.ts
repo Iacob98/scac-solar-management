@@ -238,11 +238,51 @@ export class DatabaseStorage implements IStorage {
 
   // Firm operations
   async getFirms(): Promise<Firm[]> {
-    return await db.select().from(firms).orderBy(desc(firms.createdAt));
+    return await db
+      .select({
+        id: firms.id,
+        name: firms.name,
+        invoiceNinjaUrl: firms.invoiceNinjaUrl,
+        token: firms.token,
+        address: firms.address,
+        taxId: firms.taxId,
+        logoUrl: firms.logoUrl,
+        createdAt: firms.createdAt,
+        gcalMasterId: firms.gcalMasterId,
+        postmarkServerToken: firms.postmarkServerToken,
+        postmarkFromEmail: firms.postmarkFromEmail,
+        postmarkMessageStream: firms.postmarkMessageStream,
+        emailSubjectTemplate: firms.emailSubjectTemplate,
+        emailBodyTemplate: firms.emailBodyTemplate,
+        calendarEventTitle: firms.calendarEventTitle,
+        calendarEventDescription: firms.calendarEventDescription,
+      })
+      .from(firms)
+      .orderBy(desc(firms.createdAt));
   }
 
   async getFirmById(id: string): Promise<Firm | undefined> {
-    const [firm] = await db.select().from(firms).where(eq(firms.id, id));
+    const [firm] = await db
+      .select({
+        id: firms.id,
+        name: firms.name,
+        invoiceNinjaUrl: firms.invoiceNinjaUrl,
+        token: firms.token,
+        address: firms.address,
+        taxId: firms.taxId,
+        logoUrl: firms.logoUrl,
+        createdAt: firms.createdAt,
+        gcalMasterId: firms.gcalMasterId,
+        postmarkServerToken: firms.postmarkServerToken,
+        postmarkFromEmail: firms.postmarkFromEmail,
+        postmarkMessageStream: firms.postmarkMessageStream,
+        emailSubjectTemplate: firms.emailSubjectTemplate,
+        emailBodyTemplate: firms.emailBodyTemplate,
+        calendarEventTitle: firms.calendarEventTitle,
+        calendarEventDescription: firms.calendarEventDescription,
+      })
+      .from(firms)
+      .where(eq(firms.id, id));
     return firm;
   }
 
