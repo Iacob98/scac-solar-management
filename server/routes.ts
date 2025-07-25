@@ -315,6 +315,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Continue with email sending even if status update fails
       }
 
+      // Get invoice PDF from Invoice Ninja  
+      let pdfBase64: string | undefined = undefined;
+      try {
+        const invoiceUrl = project.invoiceUrl;
+        if (invoiceUrl && invoiceUrl.includes('invoices/')) {
+          const urlParts = invoiceUrl.split('invoices/');
+          if (urlParts.length > 1) {
+            const invoiceId = urlParts[1];
+            console.log(`📄 Downloading PDF for invoice ${invoiceId}`);
+            const pdfBuffer = await invoiceNinja.downloadInvoicePDF(invoiceId);
+            pdfBase64 = pdfBuffer.toString('base64');
+            console.log(`✅ PDF downloaded, size: ${pdfBuffer.length} bytes`);
+          }
+        }
+      } catch (pdfError: any) {
+        console.warn(`⚠️ Failed to download PDF: ${pdfError.message}`);
+        // Continue without PDF attachment
+      }
+
       // Create postmark service and send email
       const postmarkService = new PostmarkService(firm.postmarkServerToken);
 
@@ -324,6 +343,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         invoiceNumber: project.invoiceNumber || 'N/A',
         clientName: client.name,
         amount: invoice.totalAmount?.toString() || '0',
+        pdfBase64,
         messageStream: firm.postmarkMessageStream || 'outbound'
       });
 
