@@ -76,15 +76,37 @@ router.post('/create-demo-events/:projectId/:crewId', requireAuth, async (req, r
 router.post('/create-real-events/:projectId/:crewId', isAuthenticated, async (req, res) => {
   try {
     const { projectId, crewId } = req.params;
+    const projectIdInt = parseInt(projectId);
+    
+    // Получаем проект для проверки токена
+    const project = await storage.getProjectById(projectIdInt);
+    if (!project) {
+      return res.status(404).json({ message: 'Project not found' });
+    }
+    
+    // Если нет токена для загрузки фотографий, создаем его
+    if (!project.crewUploadToken) {
+      const { randomUUID } = await import('crypto');
+      const uploadToken = randomUUID();
+      const tokenExpires = new Date();
+      tokenExpires.setDate(tokenExpires.getDate() + 30); // 30 дней
+      
+      await storage.updateProject(projectIdInt, {
+        crewUploadToken: uploadToken,
+        crewUploadTokenExpires: tokenExpires
+      });
+      
+      console.log(`🔗 Created crew upload token for project ${projectId}: ${uploadToken}`);
+    }
     
     const result = await googleCalendarService.createProjectEventForCrewMembers(
-      parseInt(projectId), 
+      projectIdInt, 
       parseInt(crewId)
     );
     
     res.json({ 
       success: true, 
-      message: 'Календарные события успешно созданы в Google Calendar',
+      message: 'Календарные события успешно созданы в Google Calendar с ссылкой для загрузки фотографий',
       result 
     });
   } catch (error) {
