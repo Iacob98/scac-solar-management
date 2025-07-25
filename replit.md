@@ -346,3 +346,12 @@ The application follows a monolithic architecture with clear separation between 
 - Maintained all existing functionality: payment marking, synchronization, PDF viewing
 - Enhanced table structure with proper project information display and status badges
 - Improved user experience with clear visual feedback for clickable invoice elements
+
+### Clients Page Table Layout Restoration (July 25, 2025)
+- Reverted clients page from card-based layout back to table format on all screen sizes per user request
+- Created comprehensive table structure displaying: client name, email, phone, address, sync status, and actions
+- Added Table components from shadcn/ui for consistent styling across the platform
+- Maintained all existing functionality: client editing, Invoice Ninja synchronization status indicators
+- Preserved all icons and visual elements: User, Mail, Phone, MapPin icons for better information hierarchy
+- Enhanced loading states and empty state preservation for better user experience
+- Kept dialog-based client creation and editing forms unchanged
