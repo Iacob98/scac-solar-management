@@ -330,3 +330,12 @@ The application follows a monolithic architecture with clear separation between 
   - Integrated Invoice Ninja API synchronization for payment status updates
   - Added proper error handling for Invoice Ninja API failures with local database fallback
   - Fixed payment marking functionality that was failing due to validation mismatch
+- **FIXED crew snapshots API endpoint**: Restored `/api/crew-snapshots/:id` endpoint that was lost during refactoring (July 25, 2025)
+  - Added missing endpoint directly to main routes.ts for crew snapshot data retrieval
+  - Fixed "Не удалось загрузить данные снимка" errors in project history dialogs
+  - Crew snapshot dialogs now display historical brigade compositions correctly
+- **FIXED administrator firm access permissions**: Corrected getFirmsByUserId logic for admin users (July 25, 2025)
+  - Administrators now automatically receive access to ALL firms in the system
+  - Fixed issue where admin users only saw firms they were explicitly assigned to
+  - Leiter users continue to see only their assigned firms through user_firms table
+  - Proper role-based access control implementation for firm management
