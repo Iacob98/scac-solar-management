@@ -16,6 +16,7 @@ import { insertCrewSchema, insertCrewMemberSchema, type Crew, type CrewMember } 
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
 import { MainLayout } from '@/components/Layout/MainLayout';
+import { CrewHistory } from '@/components/CrewHistory';
 import { apiRequest } from '@/lib/queryClient';
 import { useLocation } from 'wouter';
 
@@ -520,6 +521,10 @@ function EditCrewForm({ crew, onUpdate }: { crew: Crew, onUpdate: any }) {
           )}
         </div>
       )}
+        
+      <div className="mt-6">
+        <CrewHistory crewId={crew.id} crewName={crew.name} />
+      </div>
       </div>
     </div>
   );

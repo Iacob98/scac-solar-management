@@ -15,6 +15,7 @@ import {
   fileStorage,
   projectNotes,
   projectCrewSnapshots,
+  crewHistory,
   type User,
   type UpsertUser,
   type Firm,
@@ -43,6 +44,8 @@ import {
   type InsertFileStorage,
   type ProjectCrewSnapshot,
   type InsertProjectCrewSnapshot,
+  type CrewHistory,
+  type InsertCrewHistory,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, desc, sql, gte, lte } from "drizzle-orm";
@@ -186,6 +189,12 @@ export interface IStorage {
   hasProjectAccess(userId: string, projectId: number): Promise<boolean>;
   getFileStorageStats(): Promise<{ totalFiles: number; totalSize: number }>;
   addProjectHistory(entry: InsertProjectHistory): Promise<void>;
+
+  // Crew history operations
+  createCrewHistoryEntry(entry: InsertCrewHistory): Promise<CrewHistory>;
+  getCrewHistory(crewId: number): Promise<CrewHistory[]>;
+  logCrewMemberAdded(crewId: number, member: CrewMember, startDate: string, createdBy: string): Promise<void>;
+  logCrewMemberRemoved(crewId: number, memberName: string, specialization: string, startDate: string, endDate: string, createdBy: string): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -452,6 +461,14 @@ export class DatabaseStorage implements IStorage {
       .from(crewMembers)
       .where(eq(crewMembers.crewId, crewId))
       .orderBy(desc(crewMembers.createdAt));
+  }
+
+  async getCrewMemberById(id: number): Promise<CrewMember | undefined> {
+    const [member] = await db
+      .select()
+      .from(crewMembers)
+      .where(eq(crewMembers.id, id));
+    return member || undefined;
   }
 
   async createCrewMember(member: InsertCrewMember): Promise<CrewMember> {
@@ -1241,6 +1258,47 @@ export class DatabaseStorage implements IStorage {
       );
 
     return !!member;
+  }
+
+  // Crew history operations
+  async createCrewHistoryEntry(entry: InsertCrewHistory): Promise<CrewHistory> {
+    const [result] = await db.insert(crewHistory).values(entry).returning();
+    return result;
+  }
+
+  async getCrewHistory(crewId: number): Promise<CrewHistory[]> {
+    return await db
+      .select()
+      .from(crewHistory)
+      .where(eq(crewHistory.crewId, crewId))
+      .orderBy(desc(crewHistory.createdAt));
+  }
+
+  async logCrewMemberAdded(crewId: number, member: CrewMember, startDate: string, createdBy: string): Promise<void> {
+    await this.createCrewHistoryEntry({
+      crewId,
+      changeType: 'member_added',
+      memberId: member.id,
+      memberName: `${member.firstName} ${member.lastName}`,
+      memberSpecialization: member.specialization,
+      memberGoogleCalendarId: member.googleCalendarId,
+      startDate,
+      changeDescription: `Участник ${member.firstName} ${member.lastName} добавлен в бригаду`,
+      createdBy,
+    });
+  }
+
+  async logCrewMemberRemoved(crewId: number, memberName: string, specialization: string, startDate: string, endDate: string, createdBy: string): Promise<void> {
+    await this.createCrewHistoryEntry({
+      crewId,
+      changeType: 'member_removed',
+      memberName,
+      memberSpecialization: specialization,
+      startDate,
+      endDate,
+      changeDescription: `Участник ${memberName} исключен из бригады (работал с ${startDate} по ${endDate})`,
+      createdBy,
+    });
   }
 }
 

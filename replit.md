@@ -302,3 +302,15 @@ The application follows a monolithic architecture with clear separation between 
 - Files stored in uploads directory with UUID naming for security
 - Express-fileupload middleware configured for robust file handling
 - Complete integration with existing project workflow and authentication system
+
+### Crew Composition History Tracking System (July 25, 2025)
+- Implemented comprehensive crew composition history tracking with crew_history database table
+- Added automatic logging of crew member additions and removals with work period details
+- Created CrewHistory.tsx React component for displaying chronological member changes timeline
+- Added API endpoints: GET/POST /api/crews/:crewId/history for history management
+- Integrated history logging into existing crew member add/remove operations
+- History entries include change types (crew_created, member_added, member_removed), member names, specializations, and work periods
+- Added getCrewMemberById method to storage.ts for proper member data retrieval before deletion
+- UI component shows expandable history with icons, badges, and detailed change descriptions
+- Automatic user attribution for all history entries with timestamps
+- Enhanced crew management interface with integrated history display showing member work periods and change tracking

@@ -265,6 +265,24 @@ export const projectCrewSnapshots = pgTable("project_crew_snapshots", {
   createdBy: varchar("created_by").notNull().references(() => users.id),
 });
 
+// Crew History table - история изменений состава бригад  
+export const crewHistory = pgTable("crew_history", {
+  id: serial("id").primaryKey(),
+  crewId: integer("crew_id").notNull().references(() => crews.id),
+  changeType: varchar("change_type", { 
+    enum: ["crew_created", "member_added", "member_removed"] 
+  }).notNull(),
+  memberId: integer("member_id").references(() => crewMembers.id), // null для crew_created
+  memberName: varchar("member_name"), // Имя участника на момент изменения
+  memberSpecialization: varchar("member_specialization"), // Специализация участника
+  memberGoogleCalendarId: varchar("member_google_calendar_id"), // Google Calendar ID
+  startDate: date("start_date"), // Дата начала работы участника
+  endDate: date("end_date"), // Дата окончания работы (для удаленных)
+  changeDescription: text("change_description"), // Описание изменения
+  createdAt: timestamp("created_at").defaultNow(),
+  createdBy: varchar("created_by").references(() => users.id), // Кто внес изменение
+});
+
 // Project History table - для отслеживания всех изменений в проекте
 export const projectHistory = pgTable("project_history", {
   id: serial("id").primaryKey(),
@@ -322,10 +340,18 @@ export const crewsRelations = relations(crews, ({ one, many }) => ({
   firm: one(firms, { fields: [crews.firmId], references: [firms.id] }),
   projects: many(projects),
   members: many(crewMembers),
+  history: many(crewHistory),
 }));
 
-export const crewMembersRelations = relations(crewMembers, ({ one }) => ({
+export const crewMembersRelations = relations(crewMembers, ({ one, many }) => ({
   crew: one(crews, { fields: [crewMembers.crewId], references: [crews.id] }),
+  history: many(crewHistory),
+}));
+
+export const crewHistoryRelations = relations(crewHistory, ({ one }) => ({
+  crew: one(crews, { fields: [crewHistory.crewId], references: [crews.id] }),
+  member: one(crewMembers, { fields: [crewHistory.memberId], references: [crewMembers.id] }),
+  createdByUser: one(users, { fields: [crewHistory.createdBy], references: [users.id] }),
 }));
 
 export const projectsRelations = relations(projects, ({ one, many }) => ({
@@ -470,6 +496,13 @@ export const insertProjectNoteSchema = createInsertSchema(projectNotes).omit({
 });
 export type InsertProjectNote = z.infer<typeof insertProjectNoteSchema>;
 export type ProjectNote = typeof projectNotes.$inferSelect;
+
+export const insertCrewHistorySchema = createInsertSchema(crewHistory).omit({ 
+  id: true, 
+  createdAt: true 
+});
+export type InsertCrewHistory = z.infer<typeof insertCrewHistorySchema>;
+export type CrewHistory = typeof crewHistory.$inferSelect;
 
 // Google Tokens table - хранит OAuth токены фирмы
 export const googleTokens = pgTable("google_tokens", {

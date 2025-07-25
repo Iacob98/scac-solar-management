@@ -785,7 +785,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("❌ Error creating crew:", error);
       console.error("Error details:", JSON.stringify(error, null, 2));
-      res.status(500).json({ message: "Failed to create crew", error: error.message });
+      res.status(500).json({ message: "Failed to create crew", error: error instanceof Error ? error.message : String(error) });
     }
   });
 
@@ -846,6 +846,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const memberData = insertCrewMemberSchema.parse(req.body);
       const member = await storage.createCrewMember(memberData);
+      
+      // Записываем в историю бригады добавление участника
+      const today = new Date().toISOString().split('T')[0];
+      const userId = req.user?.claims?.sub || req.session?.userId;
+      if (userId) {
+        await storage.logCrewMemberAdded(memberData.crewId, member, today, userId);
+      }
+      
       res.json(member);
     } catch (error) {
       console.error("Error creating crew member:", error);
@@ -868,11 +876,62 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.delete('/api/crew-members/:id', isAuthenticated, async (req: any, res) => {
     try {
       const memberId = parseInt(req.params.id);
+      
+      // Получаем данные участника перед удалением для истории
+      const member = await storage.getCrewMemberById(memberId);
+      if (member) {
+        const today = new Date().toISOString().split('T')[0];
+        const userId = req.user?.claims?.sub || req.session?.userId;
+        
+        // Определяем дату начала работы (можно использовать дату создания или задать)
+        const startDate = '2025-01-01'; // Упрощено для демонстрации
+        
+        if (userId) {
+          await storage.logCrewMemberRemoved(
+            member.crewId,
+            `${member.firstName} ${member.lastName}`,
+            member.specialization || 'Не указана',
+            startDate,
+            today,
+            userId
+          );
+        }
+      }
+      
       await storage.deleteCrewMember(memberId);
       res.json({ message: "Crew member deleted successfully" });
     } catch (error) {
       console.error("Error deleting crew member:", error);
       res.status(500).json({ message: "Failed to delete crew member" });
+    }
+  });
+
+  // Crew History Endpoints
+  app.get('/api/crews/:crewId/history', isAuthenticated, async (req: any, res) => {
+    try {
+      const crewId = parseInt(req.params.crewId);
+      const history = await storage.getCrewHistory(crewId);
+      res.json(history);
+    } catch (error) {
+      console.error('Error fetching crew history:', error);
+      res.status(500).json({ message: 'Failed to fetch crew history' });
+    }
+  });
+
+  app.post('/api/crews/:crewId/history', isAuthenticated, async (req: any, res) => {
+    try {
+      const crewId = parseInt(req.params.crewId);
+      const entry = {
+        ...req.body,
+        crewId,
+        createdBy: req.user?.claims?.sub || req.session?.userId
+      };
+      
+      const historyEntry = await storage.createCrewHistoryEntry(entry);
+      res.json(historyEntry);
+    } catch (error) {
+      console.error('Error creating crew history entry:', error);
+      res.status(500).json({ message: 'Failed to create crew history entry' });
     }
   });
 
