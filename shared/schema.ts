@@ -57,6 +57,29 @@ export const firms = pgTable("firms", {
   // Email template fields
   emailSubjectTemplate: varchar("email_subject_template").default("Счет №{{invoiceNumber}} от {{firmName}}"),
   emailBodyTemplate: text("email_body_template").default("Уважаемый {{clientName}},\n\nВо вложении находится счет №{{invoiceNumber}} за установку солнечных панелей.\n\nС уважением,\n{{firmName}}"),
+  
+  // Google Calendar template fields
+  calendarEventTitle: varchar("calendar_event_title").default("Проект: {{projectId}} - Установка солнечных панелей"),
+  calendarEventDescription: text("calendar_event_description").default(`🏗️ Установка солнечных панелей
+
+📋 Детали проекта:
+• Проект №{{projectId}}
+• Статус: {{status}}
+• Клиент: {{clientName}}
+• Адрес: {{installationAddress}}
+• Телефон: {{clientPhone}}
+
+📦 Ожидание оборудования: {{equipmentExpectedDate}}
+✅ Оборудование поступило: {{equipmentArrivedDate}}
+🚀 Начало работ: {{workStartDate}}
+🏁 Окончание работ: {{workEndDate}}
+📝 Примечания: {{notes}}
+
+📸 Фото-отчёт бригады:
+{{uploadLink}}
+
+---
+Система SCAC - Управление проектами`),
   createdAt: timestamp("created_at").defaultNow(),
 });
 

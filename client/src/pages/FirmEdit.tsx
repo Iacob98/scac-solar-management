@@ -29,6 +29,9 @@ const firmEditSchema = z.object({
   // Email template fields
   emailSubjectTemplate: z.string().optional(),
   emailBodyTemplate: z.string().optional(),
+  // Google Calendar template fields
+  calendarEventTitle: z.string().optional(),
+  calendarEventDescription: z.string().optional(),
 });
 
 export default function FirmEdit() {
@@ -61,6 +64,8 @@ export default function FirmEdit() {
       postmarkMessageStream: 'outbound',
       emailSubjectTemplate: 'Счет №{{invoiceNumber}} от {{firmName}}',
       emailBodyTemplate: 'Уважаемый {{clientName}},\n\nВо вложении находится счет №{{invoiceNumber}} за установку солнечных панелей.\n\nС уважением,\n{{firmName}}',
+      calendarEventTitle: 'Проект: {{projectId}} - Установка солнечных панелей',
+      calendarEventDescription: `🏗️ Установка солнечных панелей\n\n📋 Детали проекта:\n• Проект №{{projectId}}\n• Статус: {{status}}\n• Клиент: {{clientName}}\n• Адрес: {{installationAddress}}\n• Телефон: {{clientPhone}}\n\n📦 Ожидание оборудования: {{equipmentExpectedDate}}\n✅ Оборудование поступило: {{equipmentArrivedDate}}\n🚀 Начало работ: {{workStartDate}}\n🏁 Окончание работ: {{workEndDate}}\n📝 Примечания: {{notes}}\n\n📸 Фото-отчёт бригады:\n{{uploadLink}}\n\n---\nСистема SCAC - Управление проектами`,
     },
   });
 
@@ -77,13 +82,15 @@ export default function FirmEdit() {
         postmarkMessageStream: firm.postmarkMessageStream || 'outbound',
         emailSubjectTemplate: firm.emailSubjectTemplate || 'Счет №{{invoiceNumber}} от {{firmName}}',
         emailBodyTemplate: firm.emailBodyTemplate || 'Уважаемый {{clientName}},\n\nВо вложении находится счет №{{invoiceNumber}} за установку солнечных панелей.\n\nС уважением,\n{{firmName}}',
+        calendarEventTitle: firm.calendarEventTitle || 'Проект: {{projectId}} - Установка солнечных панелей',
+        calendarEventDescription: firm.calendarEventDescription || `🏗️ Установка солнечных панелей\n\n📋 Детали проекта:\n• Проект №{{projectId}}\n• Статус: {{status}}\n• Клиент: {{clientName}}\n• Адрес: {{installationAddress}}\n• Телефон: {{clientPhone}}\n\n📦 Ожидание оборудования: {{equipmentExpectedDate}}\n✅ Оборудование поступило: {{equipmentArrivedDate}}\n🚀 Начало работ: {{workStartDate}}\n🏁 Окончание работ: {{workEndDate}}\n📝 Примечания: {{notes}}\n\n📸 Фото-отчёт бригады:\n{{uploadLink}}\n\n---\nСистема SCAC - Управление проектами`,
       });
     }
   }, [firm, form]);
 
   const updateFirmMutation = useMutation({
     mutationFn: (data: z.infer<typeof firmEditSchema>) => {
-      return apiRequest(`/api/firms/${id}`, 'PATCH', data);
+      return apiRequest(`/api/firms/${id}`, 'PUT', data);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/firms'] });
@@ -424,6 +431,52 @@ export default function FirmEdit() {
                             {...field} 
                             rows={6}
                             placeholder="Уважаемый {{clientName}},&#10;&#10;Во вложении находится счет №{{invoiceNumber}} за установку солнечных панелей.&#10;&#10;С уважением,&#10;{{firmName}}"
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+
+                {/* Google Calendar Templates */}
+                <div className="space-y-4 pt-6 border-t">
+                  <h3 className="text-lg font-semibold">Шаблоны Google Calendar</h3>
+                  <p className="text-sm text-gray-600 mb-4">
+                    Настройте шаблоны для календарных событий. Доступные переменные:
+                    <code className="bg-gray-100 px-1 mx-1">{"{{projectId}}"}</code>- ID проекта,
+                    <code className="bg-gray-100 px-1 mx-1">{"{{status}}"}</code>- статус,
+                    <code className="bg-gray-100 px-1 mx-1">{"{{clientName}}"}</code>- имя клиента,
+                    <code className="bg-gray-100 px-1 mx-1">{"{{installationAddress}}"}</code>- адрес,
+                    <code className="bg-gray-100 px-1 mx-1">{"{{workStartDate}}"}</code>- дата начала,
+                    <code className="bg-gray-100 px-1 mx-1">{"{{uploadLink}}"}</code>- ссылка для фото
+                  </p>
+
+                  <FormField
+                    control={form.control}
+                    name="calendarEventTitle"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Заголовок события</FormLabel>
+                        <FormControl>
+                          <Input {...field} placeholder="Проект: {{projectId}} - Установка солнечных панелей" />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="calendarEventDescription"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Описание события</FormLabel>
+                        <FormControl>
+                          <Textarea 
+                            {...field} 
+                            rows={12}
+                            placeholder="🏗️ Установка солнечных панелей&#10;&#10;📋 Детали проекта:&#10;• Проект №{{projectId}}&#10;• Статус: {{status}}&#10;• Клиент: {{clientName}}"
                           />
                         </FormControl>
                         <FormMessage />

@@ -66,6 +66,7 @@ export interface IStorage {
   getFirmById(id: string): Promise<Firm | undefined>;
   getFirmsByUserId(userId: string): Promise<Firm[]>;
   createFirm(firm: InsertFirm): Promise<Firm>;
+  updateFirm(id: string, updates: Partial<InsertFirm>): Promise<Firm>;
   assignUserToFirm(userId: string, firmId: string): Promise<void>;
   removeUserFromFirm(userId: string, firmId: string): Promise<void>;
   getUsersByFirmId(firmId: string): Promise<User[]>;
@@ -262,6 +263,8 @@ export class DatabaseStorage implements IStorage {
         postmarkMessageStream: firms.postmarkMessageStream,
         emailSubjectTemplate: firms.emailSubjectTemplate,
         emailBodyTemplate: firms.emailBodyTemplate,
+        calendarEventTitle: firms.calendarEventTitle,
+        calendarEventDescription: firms.calendarEventDescription,
       })
       .from(firms)
       .innerJoin(userFirms, eq(firms.id, userFirms.firmId))

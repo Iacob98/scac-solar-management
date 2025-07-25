@@ -1,6 +1,6 @@
 import { google } from 'googleapis';
 import { db } from '../db';
-import { googleTokens, calendarLogs, googleCalendarSettings, projects, crewMembers, type GoogleToken, type InsertCalendarLog } from '@shared/schema';
+import { googleTokens, calendarLogs, googleCalendarSettings, projects, crewMembers, firms, type GoogleToken, type InsertCalendarLog } from '@shared/schema';
 import { eq, and, isNotNull } from 'drizzle-orm';
 
 export interface CalendarEvent {
@@ -245,15 +245,19 @@ export class GoogleCalendarService {
    */
   async createProjectEventForCrewMembers(projectId: number, crewId: number): Promise<void> {
     try {
-      // Получаем данные проекта
-      const [project] = await db
+      // Получаем данные проекта и фирмы
+      const [result] = await db
         .select()
         .from(projects)
+        .innerJoin(firms, eq(projects.firmId, firms.id))
         .where(eq(projects.id, projectId));
 
-      if (!project) {
+      if (!result) {
         throw new Error('Project not found');
       }
+
+      const project = result.projects;
+      const firm = result.firms;
 
       // Получаем участников бригады с Google Calendar ID
       const members = await db
@@ -293,9 +297,9 @@ export class GoogleCalendarService {
       for (const member of members) {
         if (member.googleCalendarId) {
           const eventData = {
-            summary: `Проект: ${project.id} - Установка солнечных панелей`,
+            summary: this.buildProjectEventTitle(project, firm),
             location: project.installationPersonAddress || 'Адрес установки не указан',
-            description: this.buildProjectEventDescription(project),
+            description: this.buildProjectEventDescription(project, firm),
             start: {
               date: project.workStartDate || project.startDate,
               timeZone: 'Europe/Berlin'
@@ -336,71 +340,97 @@ export class GoogleCalendarService {
   }
 
   /**
-   * Создать описание события для проекта
+   * Создать описание события для проекта используя настраиваемый шаблон
    */
-  private buildProjectEventDescription(project: any): string {
-    const parts = [
-      `🏗️ Установка солнечных панелей`,
-      ``,
-      `📋 Детали проекта:`,
-      `• Проект №${project.id}`,
-      `• Статус: ${project.status}`,
-    ];
+  private buildProjectEventDescription(project: any, firm: any): string {
+    // Используем настраиваемый шаблон или дефолтный
+    const template = firm.calendarEventDescription || `🏗️ Установка солнечных панелей
 
-    if (project.installationPersonFirstName || project.installationPersonLastName) {
-      const name = [project.installationPersonFirstName, project.installationPersonLastName]
-        .filter(Boolean).join(' ');
-      parts.push(`• Клиент: ${name}`);
+📋 Детали проекта:
+• Проект №{{projectId}}
+• Статус: {{status}}
+• Клиент: {{clientName}}
+• Адрес: {{installationAddress}}
+• Телефон: {{clientPhone}}
+
+📦 Ожидание оборудования: {{equipmentExpectedDate}}
+✅ Оборудование поступило: {{equipmentArrivedDate}}
+🚀 Начало работ: {{workStartDate}}
+🏁 Окончание работ: {{workEndDate}}
+📝 Примечания: {{notes}}
+
+📸 Фото-отчёт бригады:
+{{uploadLink}}
+
+---
+Система SCAC - Управление проектами`;
+
+    // Подготавливаем переменные для замены
+    const variables = {
+      projectId: project.id?.toString() || '',
+      status: project.status || '',
+      clientName: [project.installationPersonFirstName, project.installationPersonLastName]
+        .filter(Boolean).join(' ') || '',
+      clientPhone: project.installationPersonPhone || '',
+      installationAddress: project.installationPersonAddress || '',
+      equipmentExpectedDate: project.equipmentExpectedDate || '',
+      equipmentArrivedDate: project.equipmentArrivedDate || '',
+      workStartDate: project.workStartDate || '',
+      workEndDate: project.workEndDate || '',
+      notes: project.notes || '',
+      uploadLink: this.getUploadLink(project)
+    };
+
+    // Заменяем переменные в шаблоне
+    return this.processTemplate(template, variables);
+  }
+
+  /**
+   * Получить заголовок события используя настраиваемый шаблон
+   */
+  private buildProjectEventTitle(project: any, firm: any): string {
+    const template = firm.calendarEventTitle || `Проект: {{projectId}} - Установка солнечных панелей`;
+    
+    const variables = {
+      projectId: project.id?.toString() || '',
+      status: project.status || '',
+      clientName: [project.installationPersonFirstName, project.installationPersonLastName]
+        .filter(Boolean).join(' ') || ''
+    };
+
+    return this.processTemplate(template, variables);
+  }
+
+  /**
+   * Получить ссылку для загрузки фотографий
+   */
+  private getUploadLink(project: any): string {
+    if (!project.crewUploadToken) {
+      return '';
     }
 
-    if (project.installationPersonAddress) {
-      parts.push(`• Адрес: ${project.installationPersonAddress}`);
-    }
+    const getBaseUrl = () => {
+      if (process.env.REPLIT_DOMAINS) {
+        return `https://${process.env.REPLIT_DOMAINS.split(',')[0]}`;
+      }
+      if (process.env.REPL_SLUG && process.env.REPL_OWNER) {
+        return `https://${process.env.REPL_SLUG}.${process.env.REPL_OWNER}.repl.co`;
+      }
+      return process.env.NODE_ENV === 'development' ? 'http://localhost:5000' : 'https://scac.app';
+    };
 
-    if (project.installationPersonPhone) {
-      parts.push(`• Телефон: ${project.installationPersonPhone}`);
-    }
+    const baseUrl = getBaseUrl();
+    return `${baseUrl}/crew-upload/${project.id}/${project.crewUploadToken}`;
+  }
 
-    parts.push(``);
-
-    if (project.equipmentExpectedDate) {
-      parts.push(`📦 Ожидание оборудования: ${project.equipmentExpectedDate}`);
-    }
-
-    if (project.equipmentArrivedDate) {
-      parts.push(`✅ Оборудование поступило: ${project.equipmentArrivedDate}`);
-    }
-
-    if (project.workStartDate) {
-      parts.push(`🚀 Начало работ: ${project.workStartDate}`);
-    }
-
-    if (project.workEndDate) {
-      parts.push(`🏁 Окончание работ: ${project.workEndDate}`);
-    }
-
-    if (project.notes) {
-      parts.push(`📝 Примечания: ${project.notes}`);
-    }
-
-    // Добавляем ссылку для загрузки фотографий бригадой
-    if (project.crewUploadToken) {
-      const getBaseUrl = () => {
-        if (process.env.REPLIT_DOMAINS) {
-          return `https://${process.env.REPLIT_DOMAINS.split(',')[0]}`;
-        }
-        if (process.env.REPL_SLUG && process.env.REPL_OWNER) {
-          return `https://${process.env.REPL_SLUG}.${process.env.REPL_OWNER}.repl.co`;
-        }
-        return process.env.NODE_ENV === 'development' ? 'http://localhost:5000' : 'https://scac.app';
-      };
-      const baseUrl = getBaseUrl();
-      parts.push(``, `📸 Фото-отчёт бригады:`, `${baseUrl}/crew-upload/${project.id}/${project.crewUploadToken}`);
-    }
-
-    parts.push(``, `---`, `Система SCAC - Управление проектами`);
-
-    return parts.join('\n');
+  /**
+   * Обработать шаблон заменив переменные
+   */
+  private processTemplate(template: string, variables: Record<string, string>): string {
+    return template.replace(/{{(\w+)}}/g, (match, key) => {
+      const value = variables[key as keyof typeof variables];
+      return value !== undefined && value !== null && value !== '' ? value : '';
+    });
   }
 
   /**
@@ -525,15 +555,19 @@ export class GoogleCalendarService {
    */
   async updateProjectDates(projectId: number, crewId: number, updatedDates: { workStartDate?: string; workEndDate?: string }): Promise<void> {
     try {
-      // Получаем данные проекта
-      const [project] = await db
+      // Получаем данные проекта и фирмы
+      const [result] = await db
         .select()
         .from(projects)
+        .innerJoin(firms, eq(projects.firmId, firms.id))
         .where(eq(projects.id, projectId));
 
-      if (!project) {
+      if (!result) {
         throw new Error('Project not found');
       }
+
+      const project = result.projects;
+      const firm = result.firms;
 
       // Получаем участников бригады с Google Calendar ID
       const members = await db
@@ -588,7 +622,7 @@ export class GoogleCalendarService {
                   const updatedEventData = {
                     summary: event.summary,
                     location: event.location,
-                    description: this.buildProjectEventDescription(project),
+                    description: this.buildProjectEventDescription(project, firm),
                     start: {
                       date: updatedDates.workStartDate || project.workStartDate || project.startDate,
                       timeZone: 'Europe/Berlin'

@@ -371,6 +371,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.get('/api/firms/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      const { id } = req.params;
+      const firm = await storage.getFirmById(id);
+      
+      if (!firm) {
+        return res.status(404).json({ message: "Firm not found" });
+      }
+      
+      res.json(firm);
+    } catch (error) {
+      console.error("Error fetching firm:", error);
+      res.status(500).json({ message: "Failed to fetch firm" });
+    }
+  });
+
+  app.put('/api/firms/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      const { id } = req.params;
+      const firmData = req.body;
+      
+      const updated = await storage.updateFirm(id, firmData);
+      
+      res.json(updated);
+    } catch (error) {
+      console.error("Error updating firm:", error);
+      res.status(500).json({ message: "Failed to update firm" });
+    }
+  });
+
   app.post('/api/firms/test-connection', isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
