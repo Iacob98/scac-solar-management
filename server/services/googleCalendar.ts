@@ -385,7 +385,16 @@ export class GoogleCalendarService {
 
     // Добавляем ссылку для загрузки фотографий бригадой
     if (project.crewUploadToken) {
-      const baseUrl = process.env.NODE_ENV === 'development' ? 'http://localhost:5000' : 'https://scac.app';
+      const getBaseUrl = () => {
+        if (process.env.REPLIT_DOMAINS) {
+          return `https://${process.env.REPLIT_DOMAINS.split(',')[0]}`;
+        }
+        if (process.env.REPL_SLUG && process.env.REPL_OWNER) {
+          return `https://${process.env.REPL_SLUG}.${process.env.REPL_OWNER}.repl.co`;
+        }
+        return process.env.NODE_ENV === 'development' ? 'http://localhost:5000' : 'https://scac.app';
+      };
+      const baseUrl = getBaseUrl();
       parts.push(``, `📸 Фото-отчёт бригады:`, `${baseUrl}/upload/${project.id}/${project.crewUploadToken}`);
     }
 

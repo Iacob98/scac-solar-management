@@ -2207,10 +2207,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const token = await storage.generateCrewUploadToken(projectId);
       
+      // Определяем базовый URL для Replit
+      const getBaseUrl = () => {
+        if (process.env.REPLIT_DOMAINS) {
+          return `https://${process.env.REPLIT_DOMAINS.split(',')[0]}`;
+        }
+        if (process.env.REPL_SLUG && process.env.REPL_OWNER) {
+          return `https://${process.env.REPL_SLUG}.${process.env.REPL_OWNER}.repl.co`;
+        }
+        return process.env.NODE_ENV === 'development' ? 'http://localhost:5000' : 'https://scac.app';
+      };
+
       res.json({
         success: true,
         token,
-        uploadUrl: `${process.env.NODE_ENV === 'development' ? 'http://localhost:5000' : 'https://scac.app'}/upload/${projectId}/${token}`
+        uploadUrl: `${getBaseUrl()}/upload/${projectId}/${token}`
       });
     } catch (error) {
       console.error("Error generating crew upload token:", error);
