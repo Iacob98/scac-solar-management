@@ -2019,7 +2019,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Check if it's a sandbox domain restriction error
       if (error.message && error.message.includes('pending approval')) {
-        const fromDomain = fromEmail.split('@')[1];
+        const { fromEmail } = req.body;
+        const fromDomain = fromEmail ? fromEmail.split('@')[1] : 'your-domain.com';
         res.status(400).json({ 
           message: `Ваш Postmark аккаунт находится в режиме песочницы. Вы можете отправлять письма только на адреса с доменом @${fromDomain}. Для снятия ограничений необходимо подать заявку на активацию аккаунта в Postmark.`,
           sandboxMode: true,
