@@ -140,6 +140,9 @@ export const projects = pgTable("projects", {
   installationPersonAddress: text("installation_person_address"),
   installationPersonPhone: varchar("installation_person_phone"),
   installationPersonUniqueId: varchar("installation_person_unique_id"),
+  // Токен для загрузки фотографий бригадой
+  crewUploadToken: varchar("crew_upload_token"),
+  crewUploadTokenExpires: timestamp("crew_upload_token_expires"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });

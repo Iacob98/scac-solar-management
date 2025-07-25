@@ -287,3 +287,18 @@ The application follows a monolithic architecture with clear separation between 
   - `/api/crews/:id/stats` - provides unrestricted crew statistics access for admins
   - `/api/crews/:id/projects` - allows full crew project access for administrators
 - Enhanced UX with comprehensive crew overview, explanatory tooltips, and seamless navigation
+
+### Crew Photo Upload System Implementation (July 25, 2025)
+- Implemented comprehensive "Фотоссылка бригады" (Crew Photo Link) system for secure field photo uploads
+- Added crew_upload_token and crew_upload_token_expires fields to projects schema
+- Created CrewUpload.tsx frontend component with drag-and-drop interface for file uploads
+- Implemented secure token-based access system with 30-day expiration
+- Added API endpoints for token validation, email verification, and file upload processing
+- Integrated email validation against crew_members table for access control
+- Added automatic token generation when crew is assigned to project
+- Enhanced Google Calendar event descriptions to include photo upload links
+- Security features: HTTPS-only, rate limiting, file type/size validation (JPEG/PNG ≤ 10MB, max 20 files)
+- Automatic project history logging for all photo uploads with user attribution
+- Files stored in uploads directory with UUID naming for security
+- Express-fileupload middleware configured for robust file handling
+- Complete integration with existing project workflow and authentication system

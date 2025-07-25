@@ -1460,6 +1460,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 } catch (calendarError) {
                   console.warn(`Failed to create Google Calendar events for project assignment:`, calendarError);
                 }
+
+                // Генерируем токен для загрузки фотографий бригадой
+                try {
+                  const uploadToken = await storage.generateCrewUploadToken(projectId);
+                  console.log(`Crew upload token generated for project ${projectId}: ${uploadToken}`);
+                } catch (tokenError) {
+                  console.warn(`Failed to generate crew upload token:`, tokenError);
+                }
               } catch (snapshotError) {
                 console.warn(`Failed to create crew snapshot:`, snapshotError);
               }
@@ -2185,6 +2193,171 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ 
         message: error.message || "Failed to send invoice email" 
       });
+    }
+  });
+
+  // Crew Upload API endpoints
+  app.get('/api/crew-upload/:projectId/:token/validate', async (req: any, res) => {
+    try {
+      const { projectId, token } = req.params;
+      
+      const validation = await storage.validateCrewUploadToken(parseInt(projectId), token);
+      
+      if (!validation.valid) {
+        return res.status(404).json({ 
+          valid: false, 
+          message: 'Ссылка недействительна или срок её действия истёк' 
+        });
+      }
+
+      const { project, crew } = validation;
+      const projectTitle = `#${project.id} - ${project.installationPersonFirstName} ${project.installationPersonLastName}`;
+      
+      res.json({
+        valid: true,
+        projectTitle,
+        crewName: crew?.name || 'Не назначена',
+        expiresAt: project.crewUploadTokenExpires,
+      });
+    } catch (error) {
+      console.error("Error validating crew upload token:", error);
+      res.status(500).json({ message: "Failed to validate token" });
+    }
+  });
+
+  app.post('/api/crew-upload/:projectId/:token/validate-email', async (req: any, res) => {
+    try {
+      const { projectId, token } = req.params;
+      const { email } = req.body;
+      
+      if (!email) {
+        return res.status(400).json({ message: 'Email обязателен' });
+      }
+
+      const validation = await storage.validateCrewUploadToken(parseInt(projectId), token);
+      
+      if (!validation.valid) {
+        return res.status(404).json({ message: 'Ссылка недействительна' });
+      }
+
+      const { project } = validation;
+      
+      if (!project.crewId) {
+        return res.status(400).json({ message: 'К проекту не назначена бригада' });
+      }
+
+      const isValidMember = await storage.validateCrewMemberEmail(project.crewId, email);
+      
+      if (!isValidMember) {
+        return res.status(403).json({ 
+          message: 'Email не найден среди участников назначенной бригады' 
+        });
+      }
+
+      res.json({ valid: true, message: 'Email подтверждён' });
+    } catch (error) {
+      console.error("Error validating crew member email:", error);
+      res.status(500).json({ message: "Failed to validate email" });
+    }
+  });
+
+  app.post('/api/crew-upload/:projectId/:token/upload', async (req: any, res) => {
+    try {
+      const { projectId, token } = req.params;
+      
+      const validation = await storage.validateCrewUploadToken(parseInt(projectId), token);
+      
+      if (!validation.valid) {
+        return res.status(404).json({ message: 'Ссылка недействительна' });
+      }
+
+      const { project } = validation;
+      const email = req.body.email;
+      
+      if (!email) {
+        return res.status(400).json({ message: 'Email обязателен' });
+      }
+
+      // Double-check email validation
+      if (!project.crewId) {
+        return res.status(400).json({ message: 'К проекту не назначена бригада' });
+      }
+
+      const isValidMember = await storage.validateCrewMemberEmail(project.crewId, email);
+      
+      if (!isValidMember) {
+        return res.status(403).json({ message: 'Доступ запрещён' });
+      }
+
+      // Handle file uploads
+      if (!req.files || !req.files.files) {
+        return res.status(400).json({ message: 'Файлы не получены' });
+      }
+
+      const files = Array.isArray(req.files.files) ? req.files.files : [req.files.files];
+      
+      if (files.length > 20) {
+        return res.status(400).json({ message: 'Превышен лимит файлов (максимум 20)' });
+      }
+
+      const uploadedFiles = [];
+      
+      for (const file of files) {
+        // Validate file type and size
+        if (!['image/jpeg', 'image/png'].includes(file.mimetype)) {
+          continue; // Skip invalid files
+        }
+        
+        if (file.size > 10 * 1024 * 1024) { // 10MB
+          continue; // Skip too large files
+        }
+
+        const fileId = crypto.randomUUID();
+        const fileName = `${fileId}_${file.name}`;
+        const filePath = path.join('uploads', fileName);
+        
+        // Save file
+        await file.mv(filePath);
+        
+        // Create file record
+        const fileRecord = await storage.createFileRecord({
+          fileId,
+          projectId: parseInt(projectId),
+          fileName: file.name,
+          filePath,
+          fileType: file.mimetype,
+          fileSize: file.size,
+          category: 'report_photo',
+          uploadedBy: email,
+          isDeleted: false,
+        });
+
+        uploadedFiles.push(fileRecord);
+      }
+
+      if (uploadedFiles.length === 0) {
+        return res.status(400).json({ message: 'Не удалось загрузить ни одного файла' });
+      }
+
+      // Create history entry
+      await storage.createProjectHistoryEntry({
+        projectId: parseInt(projectId),
+        userId: email, // Using email as userId for crew uploads
+        changeType: 'file_added',
+        fieldName: 'crew_photos',
+        oldValue: null,
+        newValue: `${uploadedFiles.length} файлов`,
+        description: `Фото-отчёт: добавлено ${uploadedFiles.length} файла\nПользователь: ${email}`,
+      });
+
+      res.json({
+        success: true,
+        filesUploaded: uploadedFiles.length,
+        message: `Успешно загружено ${uploadedFiles.length} файлов`,
+      });
+    } catch (error) {
+      console.error("Error uploading crew files:", error);
+      res.status(500).json({ message: "Failed to upload files" });
     }
   });
 

@@ -46,6 +46,8 @@ import {
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, desc, sql, gte, lte } from "drizzle-orm";
+import crypto from 'crypto';
+import path from 'path';
 
 export interface IStorage {
   // User operations (mandatory for Replit Auth)
@@ -1131,6 +1133,71 @@ export class DatabaseStorage implements IStorage {
     await db
       .insert(projectHistory)
       .values(entry);
+  }
+
+  // Crew Upload Token methods
+  async generateCrewUploadToken(projectId: number): Promise<string> {
+    const token = crypto.randomUUID();
+    const expiresAt = new Date();
+    expiresAt.setDate(expiresAt.getDate() + 30); // 30 days
+
+    await db
+      .update(projects)
+      .set({
+        crewUploadToken: token,
+        crewUploadTokenExpires: expiresAt,
+      })
+      .where(eq(projects.id, projectId));
+
+    return token;
+  }
+
+  async validateCrewUploadToken(projectId: number, token: string): Promise<{ valid: boolean; project?: any; crew?: any }> {
+    const [project] = await db
+      .select({
+        id: projects.id,
+        firmId: projects.firmId,
+        crewId: projects.crewId,
+        crewUploadToken: projects.crewUploadToken,
+        crewUploadTokenExpires: projects.crewUploadTokenExpires,
+        installationPersonFirstName: projects.installationPersonFirstName,
+        installationPersonLastName: projects.installationPersonLastName,
+        installationPersonAddress: projects.installationPersonAddress,
+      })
+      .from(projects)
+      .where(eq(projects.id, projectId));
+
+    if (!project || project.crewUploadToken !== token) {
+      return { valid: false };
+    }
+
+    if (!project.crewUploadTokenExpires || new Date() > project.crewUploadTokenExpires) {
+      return { valid: false };
+    }
+
+    let crew = null;
+    if (project.crewId) {
+      [crew] = await db
+        .select()
+        .from(crews)
+        .where(eq(crews.id, project.crewId));
+    }
+
+    return { valid: true, project, crew };
+  }
+
+  async validateCrewMemberEmail(crewId: number, email: string): Promise<boolean> {
+    const [member] = await db
+      .select()
+      .from(crewMembers)
+      .where(
+        and(
+          eq(crewMembers.crewId, crewId),
+          eq(crewMembers.memberEmail, email)
+        )
+      );
+
+    return !!member;
   }
 }
 

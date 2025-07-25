@@ -340,31 +340,56 @@ export class GoogleCalendarService {
    */
   private buildProjectEventDescription(project: any): string {
     const parts = [
-      `Проект ID: ${project.id}`,
-      `Статус: ${project.status}`,
+      `🏗️ Установка солнечных панелей`,
+      ``,
+      `📋 Детали проекта:`,
+      `• Проект №${project.id}`,
+      `• Статус: ${project.status}`,
     ];
 
     if (project.installationPersonFirstName || project.installationPersonLastName) {
       const name = [project.installationPersonFirstName, project.installationPersonLastName]
         .filter(Boolean).join(' ');
-      parts.push(`Клиент: ${name}`);
+      parts.push(`• Клиент: ${name}`);
+    }
+
+    if (project.installationPersonAddress) {
+      parts.push(`• Адрес: ${project.installationPersonAddress}`);
     }
 
     if (project.installationPersonPhone) {
-      parts.push(`Телефон: ${project.installationPersonPhone}`);
+      parts.push(`• Телефон: ${project.installationPersonPhone}`);
     }
 
+    parts.push(``);
+
     if (project.equipmentExpectedDate) {
-      parts.push(`Ожидание оборудования: ${project.equipmentExpectedDate}`);
+      parts.push(`📦 Ожидание оборудования: ${project.equipmentExpectedDate}`);
     }
 
     if (project.equipmentArrivedDate) {
-      parts.push(`Оборудование поступило: ${project.equipmentArrivedDate}`);
+      parts.push(`✅ Оборудование поступило: ${project.equipmentArrivedDate}`);
+    }
+
+    if (project.workStartDate) {
+      parts.push(`🚀 Начало работ: ${project.workStartDate}`);
+    }
+
+    if (project.workEndDate) {
+      parts.push(`🏁 Окончание работ: ${project.workEndDate}`);
     }
 
     if (project.notes) {
-      parts.push(`Примечания: ${project.notes}`);
+      parts.push(`📝 Примечания: ${project.notes}`);
     }
+
+    // Добавляем ссылку для загрузки фотографий бригадой
+    if (project.crewUploadToken) {
+      const baseUrl = process.env.NODE_ENV === 'development' ? 'http://localhost:5000' : 'https://scac.app';
+      parts.push(``, `📸 Фото-отчёт бригады:`, `${baseUrl}/upload/${project.id}/${project.crewUploadToken}`);
+    }
+
+    parts.push(``, `---`, `Система SCAC - Управление проектами`);
 
     return parts.join('\n');
   }
