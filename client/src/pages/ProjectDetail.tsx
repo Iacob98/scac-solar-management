@@ -1345,10 +1345,22 @@ export default function ProjectDetail({ projectId, selectedFirm, onBack }: Proje
                   {notesLoading ? (
                     <div className="text-center py-4">Загрузка примечаний...</div>
                   ) : notes.length === 0 ? (
-                    <div className="text-center py-8 text-gray-500">
-                      <MessageSquare className="h-12 w-12 mx-auto mb-4 text-gray-300" />
-                      <p>Примечания к проекту пока не добавлены</p>
-                      <p className="text-sm">Используйте кнопку выше для добавления первого примечания</p>
+                    <div className="text-center py-12">
+                      <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-2xl p-8 border border-blue-100">
+                        <div className="bg-blue-100 rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-4">
+                          <MessageSquare className="h-8 w-8 text-blue-600" />
+                        </div>
+                        <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                          Примечания к проекту
+                        </h3>
+                        <p className="text-gray-600 mb-4 max-w-sm mx-auto">
+                          Здесь будут отображаться важные заметки и комментарии к проекту
+                        </p>
+                        <div className="flex items-center justify-center text-sm text-blue-600">
+                          <Plus className="h-4 w-4 mr-1" />
+                          Добавьте первое примечание используя кнопку выше
+                        </div>
+                      </div>
                     </div>
                   ) : (
                     <div className="space-y-4">
