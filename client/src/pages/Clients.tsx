@@ -9,8 +9,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Plus, Edit, Mail, Phone, MapPin } from 'lucide-react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Plus, Edit, Mail, Phone, MapPin, User } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -134,7 +134,7 @@ export default function Clients() {
   if (!selectedFirmId) {
     return (
       <MainLayout>
-        <div className="p-6 text-center">
+        <div className="p-4 sm:p-6 text-center">
           <h1 className="text-2xl font-semibold text-gray-900 mb-4">
             Клиенты
           </h1>
@@ -148,20 +148,21 @@ export default function Clients() {
 
   return (
     <MainLayout>
-      <div className="p-6">
-        <div className="flex items-center justify-between mb-6">
+      <div className="p-4 sm:p-6">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
           <div>
             <h1 className="text-2xl font-semibold text-gray-900">Клиенты</h1>
             <p className="text-gray-600 mt-1">Синхронизированы с Invoice Ninja</p>
           </div>
           <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
             <DialogTrigger asChild>
-              <Button className="bg-primary hover:bg-primary-dark text-white">
+              <Button className="bg-primary hover:bg-primary-dark text-white w-full sm:w-auto">
                 <Plus className="w-4 h-4 mr-2" />
-                Добавить нового клиента
+                <span className="hidden sm:inline">Добавить нового клиента</span>
+                <span className="sm:hidden">Добавить клиента</span>
               </Button>
             </DialogTrigger>
-            <DialogContent className="max-w-md">
+            <DialogContent className="max-w-md mx-4 sm:mx-0">
               <DialogHeader>
                 <DialogTitle>
                   {editingClient ? 'Редактировать клиента' : 'Добавить нового клиента'}
@@ -237,91 +238,111 @@ export default function Clients() {
           </Dialog>
         </div>
 
-        <div className="bg-white rounded-lg shadow-sm border overflow-hidden">
-          {isLoading ? (
-            <div className="p-6">
-              <div className="animate-pulse space-y-4">
-                {[...Array(5)].map((_, i) => (
-                  <div key={i} className="h-16 bg-gray-200 rounded"></div>
-                ))}
+        {isLoading ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {[...Array(6)].map((_, i) => (
+              <Card key={i} className="animate-pulse">
+                <CardContent className="p-4">
+                  <div className="h-4 bg-gray-200 rounded mb-3"></div>
+                  <div className="h-3 bg-gray-200 rounded mb-2 w-3/4"></div>
+                  <div className="h-3 bg-gray-200 rounded mb-2 w-1/2"></div>
+                  <div className="h-3 bg-gray-200 rounded w-2/3"></div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        ) : clients.length === 0 ? (
+          <div className="text-center py-12">
+            <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-2xl p-8 border border-blue-100">
+              <div className="bg-blue-100 rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-4">
+                <User className="h-8 w-8 text-blue-600" />
+              </div>
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                Нет клиентов
+              </h3>
+              <p className="text-gray-600 mb-4 max-w-sm mx-auto">
+                Добавьте первого клиента для начала работы с проектами
+              </p>
+              <div className="flex items-center justify-center text-sm text-blue-600">
+                <Plus className="h-4 w-4 mr-1" />
+                Используйте кнопку выше для добавления клиента
               </div>
             </div>
-          ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Название</TableHead>
-                  <TableHead>Email</TableHead>
-                  <TableHead>Телефон</TableHead>
-                  <TableHead>Адрес</TableHead>
-                  <TableHead>Статус синхронизации</TableHead>
-                  <TableHead>Действия</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {clients.map((client) => (
-                  <TableRow key={client.id}>
-                    <TableCell>
-                      <div className="font-medium">{client.name}</div>
-                    </TableCell>
-                    <TableCell>
-                      {client.email ? (
-                        <div className="flex items-center space-x-2">
-                          <Mail className="w-4 h-4 text-gray-400" />
-                          <span>{client.email}</span>
-                        </div>
-                      ) : (
-                        <span className="text-gray-400">-</span>
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      {client.phone ? (
-                        <div className="flex items-center space-x-2">
-                          <Phone className="w-4 h-4 text-gray-400" />
-                          <span>{client.phone}</span>
-                        </div>
-                      ) : (
-                        <span className="text-gray-400">-</span>
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      {client.address ? (
-                        <div className="flex items-center space-x-2">
-                          <MapPin className="w-4 h-4 text-gray-400" />
-                          <span className="truncate max-w-xs">{client.address}</span>
-                        </div>
-                      ) : (
-                        <span className="text-gray-400">-</span>
-                      )}
-                    </TableCell>
-                    <TableCell>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {clients.map((client) => (
+              <Card key={client.id} className="hover:shadow-md transition-shadow duration-200">
+                <CardHeader className="pb-3">
+                  <div className="flex items-start justify-between">
+                    <CardTitle className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+                      <User className="h-5 w-5 text-blue-600" />
+                      {client.name}
+                    </CardTitle>
+                    <div className="flex items-center gap-2">
                       {client.ninjaClientId ? (
-                        <div className="flex items-center space-x-2">
+                        <div className="flex items-center gap-1">
                           <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                          <span className="text-sm text-green-600">Синхронизирован</span>
+                          <span className="text-xs text-green-600 hidden sm:inline">Синхронизирован</span>
                         </div>
                       ) : (
-                        <div className="flex items-center space-x-2">
+                        <div className="flex items-center gap-1">
                           <div className="w-2 h-2 bg-yellow-500 rounded-full"></div>
-                          <span className="text-sm text-yellow-600">Только локально</span>
+                          <span className="text-xs text-yellow-600 hidden sm:inline">Локально</span>
                         </div>
                       )}
-                    </TableCell>
-                    <TableCell>
                       <Button
                         variant="ghost"
                         size="sm"
                         onClick={() => openEditDialog(client)}
+                        className="h-8 w-8 p-0"
                       >
                         <Edit className="w-4 h-4" />
                       </Button>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          )}
-        </div>
+                    </div>
+                  </div>
+                </CardHeader>
+                <CardContent className="pt-0 space-y-3">
+                  {client.email ? (
+                    <div className="flex items-center gap-2 text-sm text-gray-600">
+                      <Mail className="w-4 h-4 text-gray-400 flex-shrink-0" />
+                      <span className="truncate">{client.email}</span>
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-2 text-sm text-gray-400">
+                      <Mail className="w-4 h-4 flex-shrink-0" />
+                      <span>Email не указан</span>
+                    </div>
+                  )}
+                  
+                  {client.phone ? (
+                    <div className="flex items-center gap-2 text-sm text-gray-600">
+                      <Phone className="w-4 h-4 text-gray-400 flex-shrink-0" />
+                      <span>{client.phone}</span>
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-2 text-sm text-gray-400">
+                      <Phone className="w-4 h-4 flex-shrink-0" />
+                      <span>Телефон не указан</span>
+                    </div>
+                  )}
+                  
+                  {client.address ? (
+                    <div className="flex items-start gap-2 text-sm text-gray-600">
+                      <MapPin className="w-4 h-4 text-gray-400 flex-shrink-0 mt-0.5" />
+                      <span className="break-words">{client.address}</span>
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-2 text-sm text-gray-400">
+                      <MapPin className="w-4 h-4 flex-shrink-0" />
+                      <span>Адрес не указан</span>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        )}
       </div>
     </MainLayout>
   );
