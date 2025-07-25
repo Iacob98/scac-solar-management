@@ -344,3 +344,8 @@ The application follows a monolithic architecture with clear separation between 
   - Fixed "Участники бригады" dialog that was showing empty content instead of crew member lists
   - Added proper empty state message for crews without members
   - All crew member viewing functionality now working correctly in crews management interface
+- **ADDED project filtering for completed projects**: Added toggle to hide completed projects from main projects list (July 25, 2025)
+  - Added "Скрыть завершенные" toggle switch in projects list interface
+  - Filters out projects with status 'paid' (оплачен) and 'invoice_sent' (отправлен) when enabled
+  - Helps reduce clutter in projects list by hiding projects that don't require active management
+  - Toggle state preserved in session for user convenience
