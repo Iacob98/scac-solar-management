@@ -89,11 +89,10 @@ export default function Invoices() {
   const { data: projects = [] } = useQuery<Project[]>({
     queryKey: ['/api/projects', selectedFirmId],
     queryFn: async () => {
-      const response = await apiRequest(`/api/projects?firmId=${selectedFirmId}`, 'GET');
+      const response = await apiRequest('/api/projects', 'GET');
       return response.json();
     },
     enabled: !!selectedFirmId,
-    staleTime: 0, // Всегда получать свежие данные
   });
 
   const markPaidMutation = useMutation({
@@ -109,10 +108,8 @@ export default function Invoices() {
       // Принудительно обновляем кэш всех связанных данных
       queryClient.invalidateQueries({ queryKey: ['/api/invoices'] });
       queryClient.invalidateQueries({ queryKey: ['/api/projects'] });
-      queryClient.invalidateQueries({ predicate: (query) => query.queryKey[0] === '/api/projects' });
       // Дополнительно рефетчим текущие данные
       queryClient.refetchQueries({ queryKey: ['/api/invoices', selectedFirmId] });
-      queryClient.refetchQueries({ predicate: (query) => query.queryKey[0] === '/api/projects' });
     },
     onError: (error) => {
       toast({
@@ -161,7 +158,7 @@ export default function Invoices() {
     onSuccess: (data) => {
       toast({
         title: 'Синхронизация завершена',
-        description: `Проверено счетов: ${data.totalChecked}, обновлено: ${data.updatedCount}`,
+        description: `Проверено счетов: ${data.totalInvoices}, обновлено: ${data.updatedCount}`,
       });
       queryClient.invalidateQueries({ queryKey: ['/api/invoices'] });
       queryClient.invalidateQueries({ queryKey: ['/api/projects'] });
@@ -184,13 +181,9 @@ export default function Invoices() {
     return projects.find((p) => p.id === projectId);
   };
 
-  const getStatusBadge = (isPaid: boolean, dueDate: string, projectId: number) => {
-    const project = getProject(projectId);
-    
-    // Определяем статус только на основе данных самого счета, не проекта
+  const getStatusBadge = (isPaid: boolean, dueDate: string) => {
     const isOverdue = new Date(dueDate) < new Date() && !isPaid;
     
-    // Если счет помечен как оплаченный в базе данных
     if (isPaid) {
       return (
         <Badge variant="default" className="bg-green-100 text-green-800">
@@ -200,17 +193,6 @@ export default function Invoices() {
       );
     }
     
-    // Если счет отправлен клиенту (статус проекта invoice_sent)
-    if (project?.status === 'invoice_sent') {
-      return (
-        <Badge variant="default" className="bg-blue-100 text-blue-800">
-          <Eye className="w-3 h-3 mr-1" />
-          Отправлен
-        </Badge>
-      );
-    }
-    
-    // Если счет просрочен
     if (isOverdue) {
       return (
         <Badge variant="destructive">
@@ -220,7 +202,6 @@ export default function Invoices() {
       );
     }
     
-    // В остальных случаях - ожидание оплаты
     return (
       <Badge variant="secondary">
         <Clock className="w-3 h-3 mr-1" />
@@ -243,12 +224,8 @@ export default function Invoices() {
 
   const filteredInvoices = invoices.filter((invoice) => {
     if (filters.status && filters.status !== 'all') {
-      const project = getProject(invoice.projectId);
-      
-      // Используем только реальный статус оплаты счета, не статус проекта
       if (filters.status === 'paid' && !invoice.isPaid) return false;
       if (filters.status === 'unpaid' && invoice.isPaid) return false;
-      if (filters.status === 'sent' && project?.status !== 'invoice_sent') return false;
       if (filters.status === 'overdue') {
         const isOverdue = new Date(invoice.dueDate) < new Date() && !invoice.isPaid;
         if (!isOverdue) return false;
@@ -351,7 +328,6 @@ export default function Invoices() {
                 <SelectContent>
                   <SelectItem value="all">Все статусы</SelectItem>
                   <SelectItem value="paid">Оплачен</SelectItem>
-                  <SelectItem value="sent">Отправлен</SelectItem>
                   <SelectItem value="unpaid">Неоплачен</SelectItem>
                   <SelectItem value="overdue">Просрочен</SelectItem>
                 </SelectContent>
@@ -437,7 +413,7 @@ export default function Invoices() {
                         <span className="font-medium">{formatCurrency(invoice.totalAmount)}</span>
                       </TableCell>
                       <TableCell>
-                        {getStatusBadge(invoice.isPaid, invoice.dueDate, invoice.projectId)}
+                        {getStatusBadge(invoice.isPaid, invoice.dueDate)}
                       </TableCell>
                       <TableCell>
                         <span className={`font-medium ${
@@ -445,7 +421,6 @@ export default function Invoices() {
                           daysUntilDue <= 7 ? 'text-yellow-600' : 'text-green-600'
                         }`}>
                           {invoice.isPaid ? 'Оплачен' : 
-                           project?.status === 'invoice_sent' ? 'Отправлен' :
                            daysUntilDue < 0 ? `${Math.abs(daysUntilDue)} дней просрочки` :
                            daysUntilDue === 0 ? 'Срок сегодня' :
                            `${daysUntilDue} дней`}

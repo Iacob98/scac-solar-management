@@ -244,15 +244,6 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getFirmsByUserId(userId: string): Promise<Firm[]> {
-    // Сначала проверяем роль пользователя
-    const user = await this.getUser(userId);
-    
-    // Если пользователь - администратор, возвращаем все фирмы
-    if (user?.role === 'admin') {
-      return await this.getFirms();
-    }
-    
-    // Для обычных пользователей (leiter) возвращаем только назначенные фирмы
     return await db
       .select({
         id: firms.id,

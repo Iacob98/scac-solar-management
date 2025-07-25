@@ -39,21 +39,15 @@ export default function TestLogin({ onLoginSuccess }: TestLoginProps) {
       return response.json();
     },
     onSuccess: () => {
-      // Очищаем localStorage для правильной работы фирм
-      localStorage.removeItem('selectedFirmId');
-      
-      // Очищаем весь кэш React Query
-      queryClient.clear();
-      
+      queryClient.invalidateQueries({ queryKey: ['/api/auth/user'] });
       toast({
         title: 'Вход выполнен',
         description: 'Добро пожаловать в систему!',
       });
-      
-      // Принудительная перезагрузка страницы для обновления сессии
+      // Небольшая задержка для обновления кэша
       setTimeout(() => {
-        window.location.reload();
-      }, 1000);
+        onLoginSuccess();
+      }, 500);
     },
     onError: (error: any) => {
       toast({

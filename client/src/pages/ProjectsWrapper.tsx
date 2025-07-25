@@ -6,8 +6,6 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Switch } from '@/components/ui/switch';
-import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from '@/components/ui/dialog';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Textarea } from '@/components/ui/textarea';
@@ -75,7 +73,6 @@ function ProjectsList({ selectedFirm, onViewProject, onManageServices }: { selec
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [filter, setFilter] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
-  const [hideCompleted, setHideCompleted] = useState(false);
   const [isTutorialOpen, setIsTutorialOpen] = useState(false);
 
 
@@ -282,11 +279,7 @@ function ProjectsList({ selectedFirm, onViewProject, onManageServices }: { selec
     
     const matchesStatus = statusFilter === 'all' || project.status === statusFilter;
     
-    // Скрыть завершенные проекты если включен фильтр
-    const isCompleted = project.status === 'paid' || project.status === 'invoice_sent';
-    const showProject = !hideCompleted || !isCompleted;
-    
-    return matchesFilter && matchesStatus && showProject;
+    return matchesFilter && matchesStatus;
   }).sort((a, b) => {
     // Сортировка по приоритету дат
     const now = new Date();
@@ -595,7 +588,7 @@ function ProjectsList({ selectedFirm, onViewProject, onManageServices }: { selec
         />
       </div>
 
-      <div className="flex space-x-4 items-center">
+      <div className="flex space-x-4">
         <Input
           placeholder="Поиск проектов..."
           value={filter}
@@ -613,17 +606,6 @@ function ProjectsList({ selectedFirm, onViewProject, onManageServices }: { selec
             ))}
           </SelectContent>
         </Select>
-        
-        <div className="flex items-center space-x-2">
-          <Switch
-            id="hide-completed"
-            checked={hideCompleted}
-            onCheckedChange={setHideCompleted}
-          />
-          <Label htmlFor="hide-completed" className="text-sm">
-            Скрыть завершенные
-          </Label>
-        </div>
       </div>
 
       {projectsLoading ? (
