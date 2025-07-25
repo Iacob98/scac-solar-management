@@ -1119,26 +1119,34 @@ export default function CrewsNew() {
               </div>
             ) : (
               <div className="space-y-3">
-                {crewMembers.map((member) => (
-                  <Card key={member.id} className="p-3">
-                    <div className="flex justify-between items-start">
-                      <div>
-                        <h4 className="font-medium">
-                          {member.firstName} {member.lastName}
-                        </h4>
-                        <div className="text-sm text-gray-500 space-y-1">
-                          <p>Номер: {member.uniqueNumber}</p>
-                          <p>Роль: {member.role === 'leader' ? 'Руководитель' : member.role === 'specialist' ? 'Специалист' : 'Рабочий'}</p>
-                          {member.phone && <p>Телефон: {member.phone}</p>}
-                          {member.address && <p>Адрес: {member.address}</p>}
+                {crewMembers.length > 0 ? (
+                  crewMembers.map((member) => (
+                    <Card key={member.id} className="p-3">
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <h4 className="font-medium">
+                            {member.firstName} {member.lastName}
+                          </h4>
+                          <div className="text-sm text-gray-500 space-y-1">
+                            <p>Номер: {member.uniqueNumber}</p>
+                            <p>Роль: {member.role === 'leader' ? 'Руководитель' : member.role === 'specialist' ? 'Специалист' : 'Рабочий'}</p>
+                            {member.phone && <p>Телефон: {member.phone}</p>}
+                            {member.address && <p>Адрес: {member.address}</p>}
+                          </div>
                         </div>
+                        <Badge variant={member.role === 'leader' ? 'default' : 'secondary'}>
+                          {member.role === 'leader' ? 'Руководитель' : member.role === 'specialist' ? 'Специалист' : 'Рабочий'}
+                        </Badge>
                       </div>
-                      <Badge variant={member.role === 'leader' ? 'default' : 'secondary'}>
-                        {member.role === 'leader' ? 'Руководитель' : member.role === 'specialist' ? 'Специалист' : 'Рабочий'}
-                      </Badge>
-                    </div>
-                  </Card>
-                ))}
+                    </Card>
+                  ))
+                ) : (
+                  <div className="text-center py-8">
+                    <Users className="h-12 w-12 mx-auto text-gray-400 mb-4" />
+                    <h3 className="text-lg font-medium text-gray-900 mb-2">Нет участников</h3>
+                    <p className="text-gray-500">В этой бригаде пока нет участников</p>
+                  </div>
+                )}
               </div>
             )}
           </DialogContent>

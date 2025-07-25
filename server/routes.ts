@@ -1028,6 +1028,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Crew members route (missing from modular refactor)
+  app.get('/api/crew-members', isAuthenticated, async (req: any, res) => {
+    try {
+      console.log('🔍 Crew members request:', req.query);
+      const crewId = parseInt(req.query.crewId as string);
+      if (!crewId) {
+        console.log('❌ No crew ID provided');
+        return res.status(400).json({ message: "Crew ID is required" });
+      }
+      
+      console.log('🔎 Fetching members for crew:', crewId);
+      const members = await storage.getCrewMembersByCrewId(crewId);
+      console.log('✅ Found crew members:', members.length, 'members');
+      res.json(members);
+    } catch (error) {
+      console.error("Error fetching crew members:", error);
+      res.status(500).json({ message: "Failed to fetch crew members" });
+    }
+  });
+
   // Create HTTP server
   const httpServer = createServer(app);
   return httpServer;

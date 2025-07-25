@@ -339,3 +339,8 @@ The application follows a monolithic architecture with clear separation between 
   - Fixed issue where admin users only saw firms they were explicitly assigned to
   - Leiter users continue to see only their assigned firms through user_firms table
   - Proper role-based access control implementation for firm management
+- **FIXED crew members dialog**: Restored missing `/api/crew-members` endpoint that was lost during refactoring (July 25, 2025)
+  - Added missing crew members API endpoint to main routes.ts
+  - Fixed "Участники бригады" dialog that was showing empty content instead of crew member lists
+  - Added proper empty state message for crews without members
+  - All crew member viewing functionality now working correctly in crews management interface
