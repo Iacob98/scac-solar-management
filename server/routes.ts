@@ -402,6 +402,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         if (project) {
           await storage.updateProject(project.id, { status: 'paid' });
           
+          // Also update invoice status in database
+          const invoice = await storage.getInvoiceByProjectId(project.id);
+          if (invoice) {
+            await storage.updateInvoice(invoice.id, { isPaid: true });
+          }
+          
           // Create history entry
           await storage.createProjectHistoryEntry({
             projectId: project.id,
@@ -418,8 +424,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json({ 
         success: true, 
         isPaid: paymentStatus.isPaid,
-        invoiceNumber,
-        projectId: paymentStatus.projectId 
+        invoiceNumber 
       });
     } catch (error) {
       console.error("Error syncing payment status:", error);
@@ -439,9 +444,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: 'Firm not found' });
       }
 
-      // Get all invoiced projects for this firm
+      // Get all projects with invoices for this firm (not just 'invoiced' status)
       const projects = await storage.getProjectsByFirmId(firmId);
-      const invoicedProjects = projects.filter(p => p.status === 'invoiced' && p.invoiceNumber);
+      const invoicedProjects = projects.filter(p => 
+        p.invoiceNumber && 
+        (p.status === 'invoiced' || p.status === 'invoice_sent') // Check both statuses
+      );
       
       console.log(`Found ${invoicedProjects.length} invoiced projects to check`);
 
@@ -457,6 +465,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
             
             await storage.updateProject(project.id, { status: 'paid' });
             
+            // Also update invoice status in database
+            const invoice = await storage.getInvoiceByProjectId(project.id);
+            if (invoice) {
+              await storage.updateInvoice(invoice.id, { isPaid: true });
+            }
+            
             // Create history entry
             await storage.createProjectHistoryEntry({
               projectId: project.id,
@@ -469,9 +483,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
             });
             
             updatedCount++;
+          } else {
+            // Если счет найден, но не оплачен - убедимся что статус корректный
+            console.log(`ℹ️ Invoice ${project.invoiceNumber} found but not paid (status: ${paymentStatus.statusId})`);
           }
         } catch (projectError: any) {
-          console.warn(`⚠️ Failed to sync project ${project.id}: ${projectError.message}`);
+          // Если счет не найден в Invoice Ninja, не обновляем статус
+          if (projectError.message.includes('not found')) {
+            console.warn(`⚠️ Invoice ${project.invoiceNumber} not found in Invoice Ninja - skipping sync for project ${project.id}`);
+          } else {
+            console.warn(`⚠️ Failed to sync project ${project.id}: ${projectError.message}`);
+          }
         }
       }
 
@@ -532,8 +554,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Continue with local update even if Invoice Ninja fails
       }
 
-      // Update project status in local database
+      // Update both project status and invoice status in local database
       await storage.updateProject(invoice.projectId, { status: 'paid' });
+      await storage.updateInvoice(invoice.id, { isPaid: true });
       
       // Create history entry
       await storage.createProjectHistoryEntry({

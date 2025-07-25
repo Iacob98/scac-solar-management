@@ -185,14 +185,13 @@ export default function Invoices() {
   };
 
   const getStatusBadge = (isPaid: boolean, dueDate: string, projectId: number) => {
-    // Проверяем статус проекта - если проект оплачен, то и счет оплачен
     const project = getProject(projectId);
-    const projectIsPaid = project?.status === 'paid';
-    const finalIsPaid = isPaid || projectIsPaid;
     
-    const isOverdue = new Date(dueDate) < new Date() && !finalIsPaid;
+    // Определяем статус только на основе данных самого счета, не проекта
+    const isOverdue = new Date(dueDate) < new Date() && !isPaid;
     
-    if (finalIsPaid) {
+    // Если счет помечен как оплаченный в базе данных
+    if (isPaid) {
       return (
         <Badge variant="default" className="bg-green-100 text-green-800">
           <CheckCircle className="w-3 h-3 mr-1" />
@@ -201,6 +200,17 @@ export default function Invoices() {
       );
     }
     
+    // Если счет отправлен клиенту (статус проекта invoice_sent)
+    if (project?.status === 'invoice_sent') {
+      return (
+        <Badge variant="default" className="bg-blue-100 text-blue-800">
+          <Eye className="w-3 h-3 mr-1" />
+          Отправлен
+        </Badge>
+      );
+    }
+    
+    // Если счет просрочен
     if (isOverdue) {
       return (
         <Badge variant="destructive">
@@ -210,6 +220,7 @@ export default function Invoices() {
       );
     }
     
+    // В остальных случаях - ожидание оплаты
     return (
       <Badge variant="secondary">
         <Clock className="w-3 h-3 mr-1" />
@@ -233,12 +244,13 @@ export default function Invoices() {
   const filteredInvoices = invoices.filter((invoice) => {
     if (filters.status && filters.status !== 'all') {
       const project = getProject(invoice.projectId);
-      const finalIsPaid = invoice.isPaid || project?.status === 'paid';
       
-      if (filters.status === 'paid' && !finalIsPaid) return false;
-      if (filters.status === 'unpaid' && finalIsPaid) return false;
+      // Используем только реальный статус оплаты счета, не статус проекта
+      if (filters.status === 'paid' && !invoice.isPaid) return false;
+      if (filters.status === 'unpaid' && invoice.isPaid) return false;
+      if (filters.status === 'sent' && project?.status !== 'invoice_sent') return false;
       if (filters.status === 'overdue') {
-        const isOverdue = new Date(invoice.dueDate) < new Date() && !finalIsPaid;
+        const isOverdue = new Date(invoice.dueDate) < new Date() && !invoice.isPaid;
         if (!isOverdue) return false;
       }
     }
@@ -250,10 +262,7 @@ export default function Invoices() {
   );
 
   const unpaidAmount = filteredInvoices
-    .filter((invoice) => {
-      const project = getProject(invoice.projectId);
-      return !invoice.isPaid && project?.status !== 'paid';
-    })
+    .filter((invoice) => !invoice.isPaid)
     .reduce((sum: number, invoice) => sum + parseFloat(invoice.totalAmount), 0);
 
   if (!selectedFirmId) {
@@ -342,6 +351,7 @@ export default function Invoices() {
                 <SelectContent>
                   <SelectItem value="all">Все статусы</SelectItem>
                   <SelectItem value="paid">Оплачен</SelectItem>
+                  <SelectItem value="sent">Отправлен</SelectItem>
                   <SelectItem value="unpaid">Неоплачен</SelectItem>
                   <SelectItem value="overdue">Просрочен</SelectItem>
                 </SelectContent>
@@ -434,7 +444,8 @@ export default function Invoices() {
                           daysUntilDue < 0 ? 'text-red-600' : 
                           daysUntilDue <= 7 ? 'text-yellow-600' : 'text-green-600'
                         }`}>
-                          {(invoice.isPaid || project?.status === 'paid') ? 'Оплачен' : 
+                          {invoice.isPaid ? 'Оплачен' : 
+                           project?.status === 'invoice_sent' ? 'Отправлен' :
                            daysUntilDue < 0 ? `${Math.abs(daysUntilDue)} дней просрочки` :
                            daysUntilDue === 0 ? 'Срок сегодня' :
                            `${daysUntilDue} дней`}
@@ -442,7 +453,7 @@ export default function Invoices() {
                       </TableCell>
                       <TableCell>
                         <div className="flex space-x-2">
-                          {!invoice.isPaid && project?.status !== 'paid' && (
+                          {!invoice.isPaid && (
                             <Button
                               size="sm"
                               onClick={() => markPaidMutation.mutate({ invoiceNumber: invoice.invoiceNumber })}
