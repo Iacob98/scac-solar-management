@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Calendar as CalendarIcon, Users, MapPin, Clock, Phone, AlertCircle, ExternalLink, ChevronLeft, ChevronRight, CalendarDays, CalendarRange, Move } from 'lucide-react';
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { format, addWeeks, subWeeks, startOfWeek, addDays, isSameDay, addMonths, subMonths, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth } from 'date-fns';
 import { ru } from 'date-fns/locale';
 import { MainLayout } from '@/components/Layout/MainLayout';
@@ -58,16 +58,16 @@ function CalendarDay({ day, dayString, events, isToday, isCurrentMonth, onEventC
   return (
     <div
       ref={setNodeRef}
-      className={`min-h-[200px] border rounded-lg p-3 ${
+      className={`min-h-[120px] md:min-h-[200px] border rounded-lg p-2 sm:p-3 ${
         isToday ? 'bg-blue-50 border-blue-200' : 
         isCurrentMonth ? 'bg-white border-gray-200' : 'bg-gray-50 border-gray-100'
       }`}
     >
-      <div className="text-center mb-2">
-        <div className="font-semibold text-xs text-gray-600">
+      <div className="text-center mb-1 sm:mb-2">
+        <div className="font-semibold text-xs sm:text-sm text-gray-600">
           {format(day, 'EEE', { locale: ru })}
         </div>
-        <div className={`text-lg font-bold ${
+        <div className={`text-sm sm:text-lg font-bold ${
           isToday ? 'text-blue-600' : 
           isCurrentMonth ? 'text-gray-900' : 'text-gray-400'
         }`}>
@@ -75,7 +75,7 @@ function CalendarDay({ day, dayString, events, isToday, isCurrentMonth, onEventC
         </div>
       </div>
       
-      <div className="space-y-2">
+      <div className="space-y-1 sm:space-y-2">
         {events.map((event, eventIndex) => (
           <DraggableEvent 
             key={eventIndex}
@@ -113,17 +113,17 @@ function DraggableEvent({ event, onClick }: DraggableEventProps) {
     <Card 
       ref={setNodeRef}
       style={style}
-      className={`p-2 hover:shadow-md transition-shadow border-l-4 ${
+      className={`p-1 sm:p-2 hover:shadow-md transition-shadow border-l-4 cursor-pointer ${
         event.type === 'start' ? 'border-l-green-500 bg-green-50 hover:bg-green-100' :
         event.type === 'end' ? 'border-l-blue-500 bg-blue-50 hover:bg-blue-100' :
         'border-l-orange-500 bg-orange-50 hover:bg-orange-100'
       } ${isDragging ? 'opacity-50' : ''}`}
     >
-      {/* Drag handle */}
+      {/* Drag handle - скрыт на мобильных */}
       <div 
         {...listeners}
         {...attributes}
-        className="flex items-center justify-end mb-1 cursor-move"
+        className="hidden sm:flex items-center justify-end mb-1 cursor-move"
       >
         <Move className="h-3 w-3 text-gray-400" />
       </div>
@@ -139,12 +139,12 @@ function DraggableEvent({ event, onClick }: DraggableEventProps) {
         <div className="font-semibold text-gray-900 truncate mb-1">
           {event.type === 'start' ? '🚀' : event.type === 'end' ? '✅' : '🔧'} Проект #{event.project.id}
         </div>
-        <div className="text-gray-600 mb-1">
+        <div className="text-gray-600 mb-1 truncate">
           <Users className="h-3 w-3 inline mr-1" />
           {event.crew.name}
         </div>
         {event.project.installationPersonAddress && (
-          <div className="text-gray-500 truncate">
+          <div className="text-gray-500 truncate hidden sm:block">
             <MapPin className="h-3 w-3 inline mr-1" />
             {event.project.installationPersonAddress}
           </div>
@@ -159,7 +159,23 @@ export default function Calendar() {
   const [viewType, setViewType] = useState<CalendarViewType>('week');
   const [, setLocation] = useLocation();
   const [draggedEvent, setDraggedEvent] = useState<CalendarEvent | null>(null);
+  const [isMobile, setIsMobile] = useState(false);
   const queryClient = useQueryClient();
+
+  // Определяем мобильное устройство
+  useEffect(() => {
+    const checkMobile = () => setIsMobile(window.innerWidth < 768);
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
+
+  // Автоматически устанавливаем вид "3 дня" на мобильных
+  useEffect(() => {
+    if (isMobile && viewType === 'week') {
+      setViewType('threeDays');
+    }
+  }, [isMobile, viewType]);
 
   // Получаем firm ID из localStorage для запросов
   const selectedFirmId = localStorage.getItem('selectedFirmId');
@@ -385,7 +401,7 @@ export default function Calendar() {
   if (projectsLoading || crewsLoading) {
     return (
       <MainLayout>
-        <div className="flex items-center justify-center h-64">
+        <div className="flex items-center justify-center h-64 p-4">
           <div className="text-center">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
             <p>Загрузка календаря...</p>
@@ -397,102 +413,133 @@ export default function Calendar() {
 
   return (
     <MainLayout>
-      <div className="p-6">
+      <div className="p-4 sm:p-6">
         <DndContext
           collisionDetection={closestCenter}
           onDragStart={handleDragStart}
           onDragEnd={handleDragEnd}
         >
-        <div className="flex items-center justify-between mb-6">
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 mb-6">
           <div className="flex items-center space-x-3">
-            <CalendarIcon className="h-8 w-8 text-blue-600" />
-            <h1 className="text-3xl font-bold">Календарь проектов</h1>
+            <CalendarIcon className="h-6 w-6 sm:h-8 sm:w-8 text-blue-600" />
+            <h1 className="text-xl sm:text-3xl font-bold">Календарь проектов</h1>
           </div>
           
-          <div className="flex items-center space-x-4">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4">
             {/* Переключатели видов */}
-            <div className="flex items-center space-x-1 bg-gray-100 rounded-lg p-1">
+            <div className="flex items-center space-x-1 bg-gray-100 rounded-lg p-1 w-full sm:w-auto">
               <Button
                 variant={viewType === 'threeDays' ? 'default' : 'ghost'}
                 size="sm"
                 onClick={() => setViewType('threeDays')}
-                className="px-3 py-1"
+                className="px-2 py-1 flex-1 sm:flex-none"
               >
                 <CalendarDays className="h-4 w-4 mr-1" />
-                3 дня
+                <span className="hidden sm:inline">3 дня</span>
+                <span className="sm:hidden">3</span>
               </Button>
               <Button
                 variant={viewType === 'week' ? 'default' : 'ghost'}
                 size="sm"
                 onClick={() => setViewType('week')}
-                className="px-3 py-1"
+                className="px-2 py-1 flex-1 sm:flex-none"
               >
                 <CalendarDays className="h-4 w-4 mr-1" />
-                Неделя
+                <span className="hidden sm:inline">Неделя</span>
+                <span className="sm:hidden">Нед</span>
               </Button>
               <Button
                 variant={viewType === 'month' ? 'default' : 'ghost'}
                 size="sm"
                 onClick={() => setViewType('month')}
-                className="px-3 py-1"
+                className="px-2 py-1 flex-1 sm:flex-none"
               >
                 <CalendarRange className="h-4 w-4 mr-1" />
-                Месяц
+                <span className="hidden sm:inline">Месяц</span>
+                <span className="sm:hidden">М</span>
               </Button>
             </div>
             
             {/* Навигация */}
-            <div className="flex items-center space-x-2">
-              <Button variant="outline" size="sm" onClick={navigatePrevious}>
+            <div className="flex items-center space-x-2 w-full sm:w-auto">
+              <Button variant="outline" size="sm" onClick={navigatePrevious} className="flex-1 sm:flex-none">
                 <ChevronLeft className="h-4 w-4" />
+                <span className="ml-1 sm:hidden">Назад</span>
               </Button>
-              <Button variant="outline" size="sm" onClick={navigateToday}>
-                Сегодня
+              <Button variant="outline" size="sm" onClick={navigateToday} className="flex-1 sm:flex-none">
+                <span className="hidden sm:inline">Сегодня</span>
+                <span className="sm:hidden">Сегодня</span>
               </Button>
-              <Button variant="outline" size="sm" onClick={navigateNext}>
+              <Button variant="outline" size="sm" onClick={navigateNext} className="flex-1 sm:flex-none">
                 <ChevronRight className="h-4 w-4" />
+                <span className="ml-1 sm:hidden">Вперед</span>
               </Button>
             </div>
           </div>
         </div>
 
         {/* Заголовок периода */}
-        <div className="text-center mb-6">
-          <h2 className="text-xl font-semibold text-gray-900 capitalize">
+        <div className="text-center mb-4 sm:mb-6">
+          <h2 className="text-lg sm:text-xl font-semibold text-gray-900 capitalize">
             {getPeriodTitle()}
           </h2>
         </div>
 
         {/* Календарная сетка */}
         <Card>
-          <CardContent className="p-4">
-            <div className={`grid gap-2 ${
-              viewType === 'month' ? 'grid-cols-7' : 
-              viewType === 'week' ? 'grid-cols-7' : 
-              'grid-cols-3'
-            }`}>
-              {displayDays.map((day, index) => {
-                const events = getEventsForDate(day);
-                const isToday = isSameDay(day, new Date());
-                const isCurrentMonth = viewType === 'month' ? isSameMonth(day, currentDate) : true;
-                const dayString = format(day, 'yyyy-MM-dd');
-                
-                return (
-                  <CalendarDay
-                    key={index}
-                    day={day}
-                    dayString={dayString}
-                    events={events}
-                    isToday={isToday}
-                    isCurrentMonth={isCurrentMonth}
-                    onEventClick={(event) => {
-                      localStorage.setItem('selectedProjectId', event.project.id.toString());
-                      setLocation('/projects');
-                    }}
-                  />
-                );
-              })}
-            </div>
+          <CardContent className="p-2 sm:p-4">
+            {projects.length === 0 ? (
+              <div className="text-center py-16">
+                <div className="relative mx-auto w-24 h-24 mb-6">
+                  <div className="absolute inset-0 bg-gradient-to-br from-blue-400 to-purple-600 rounded-full opacity-20"></div>
+                  <div className="absolute inset-2 bg-gradient-to-br from-blue-500 to-purple-700 rounded-full opacity-40"></div>
+                  <div className="absolute inset-4 bg-gradient-to-br from-blue-600 to-purple-800 rounded-full flex items-center justify-center">
+                    <CalendarIcon className="h-8 w-8 text-white" />
+                  </div>
+                </div>
+                <h3 className="text-xl font-semibold text-gray-900 mb-2">
+                  Календарь пуст
+                </h3>
+                <p className="text-gray-600 mb-6 max-w-md mx-auto">
+                  Проекты с назначенными датами появятся здесь автоматически. 
+                  Создайте проект и назначьте ему бригаду с датами работ.
+                </p>
+                <Button 
+                  onClick={() => setLocation('/projects')}
+                  className="bg-gradient-to-r from-blue-600 to-purple-700 hover:from-blue-700 hover:to-purple-800"
+                >
+                  Перейти к проектам
+                </Button>
+              </div>
+            ) : (
+              <div className={`grid gap-1 sm:gap-2 ${
+                viewType === 'month' ? 'grid-cols-2 sm:grid-cols-4 lg:grid-cols-7' : 
+                viewType === 'week' ? 'grid-cols-2 sm:grid-cols-4 lg:grid-cols-7' : 
+                'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3'
+              }`}>
+                {displayDays.map((day, index) => {
+                  const events = getEventsForDate(day);
+                  const isToday = isSameDay(day, new Date());
+                  const isCurrentMonth = viewType === 'month' ? isSameMonth(day, currentDate) : true;
+                  const dayString = format(day, 'yyyy-MM-dd');
+                  
+                  return (
+                    <CalendarDay
+                      key={index}
+                      day={day}
+                      dayString={dayString}
+                      events={events}
+                      isToday={isToday}
+                      isCurrentMonth={isCurrentMonth}
+                      onEventClick={(event) => {
+                        localStorage.setItem('selectedProjectId', event.project.id.toString());
+                        setLocation('/projects');
+                      }}
+                    />
+                  );
+                })}
+              </div>
+            )}
           </CardContent>
         </Card>
 
@@ -513,7 +560,7 @@ export default function Calendar() {
         </DndContext>
 
       {/* Статистика активных проектов */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 mt-6">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Активные проекты</CardTitle>
