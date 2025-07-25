@@ -2356,10 +2356,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const fileRecord = await storage.createFileRecord({
           fileId,
           projectId: parseInt(projectId),
-          fileName: file.name,
-          filePath,
-          fileType: file.mimetype,
-          fileSize: file.size,
+          originalName: file.name, // Оригинальное имя файла
+          fileName, // Имя файла на диске
+          mimeType: file.mimetype,
+          size: file.size,
           category: 'report_photo',
           uploadedBy: email,
           isDeleted: false,
