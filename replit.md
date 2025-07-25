@@ -325,3 +325,16 @@ The application follows a monolithic architecture with clear separation between 
 - Crew history now appears directly within crew cards when "История" button is clicked
 - Simplified CrewHistory component styling for better integration with main crew interface
 - All crew member operations (add/delete) now properly update both member lists and history displays
+
+### Complete Mobile UI Adaptation (July 25, 2025)
+- Successfully completed mobile adaptation of Users/Admin page with card-based responsive design
+- Replaced desktop table layout with responsive card format for mobile devices (screen width < 768px)
+- Added automatic device detection with useEffect and resize event listeners for seamless user experience
+- Implemented beautiful gradient empty state for users page with "Пользователи не найдены" message and call-to-action
+- Enhanced user cards display comprehensive user information: profile image, name, email, role badges, firm assignments, and creation dates
+- Optimized dialog forms for mobile with responsive grid layouts (single column on mobile, two columns on desktop)
+- Added vertical button stacking for form actions on mobile devices for better touch interaction
+- Fixed critical TypeScript compilation errors related to Firm type annotations in user.firms.map() function
+- Maintained desktop table view for larger screens while providing optimal mobile experience
+- Added gradient icons and improved spacing across all page elements for consistent mobile-friendly design
+- Platform now 100% mobile-responsive across all major modules: Home dashboard, Clients, Invoices, Calendar, Users/Admin, Crews, Projects

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useToast } from '@/hooks/use-toast';
 import { apiRequest } from '@/lib/queryClient';
@@ -13,7 +13,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Plus, Edit, User as UserIcon, Shield, Mail, Calendar, Building } from 'lucide-react';
+import { Plus, Edit, User as UserIcon, Shield, Mail, Calendar, Building, Users as UsersIcon } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -32,6 +32,15 @@ export default function Users() {
   const queryClient = useQueryClient();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingUser, setEditingUser] = useState<any>(null);
+  const [isMobile, setIsMobile] = useState(false);
+
+  // Определяем мобильное устройство
+  useEffect(() => {
+    const checkMobile = () => setIsMobile(window.innerWidth < 768);
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
 
   const form = useForm<z.infer<typeof userSchema>>({
     resolver: zodResolver(userSchema),
@@ -48,8 +57,15 @@ export default function Users() {
   if (user?.role !== 'admin') {
     return (
       <MainLayout>
-        <div className="p-6 text-center">
-          <h1 className="text-2xl font-semibold text-gray-900 mb-4">
+        <div className="p-4 sm:p-6 text-center">
+          <div className="relative mx-auto w-24 h-24 mb-6">
+            <div className="absolute inset-0 bg-gradient-to-br from-red-400 to-orange-600 rounded-full opacity-20"></div>
+            <div className="absolute inset-2 bg-gradient-to-br from-red-500 to-orange-700 rounded-full opacity-40"></div>
+            <div className="absolute inset-4 bg-gradient-to-br from-red-600 to-orange-800 rounded-full flex items-center justify-center">
+              <Shield className="h-8 w-8 text-white" />
+            </div>
+          </div>
+          <h1 className="text-xl sm:text-2xl font-semibold text-gray-900 mb-4">
             Доступ запрещен
           </h1>
           <p className="text-gray-600">
@@ -129,27 +145,31 @@ export default function Users() {
 
   return (
     <MainLayout>
-      <div className="p-6">
-        <div className="flex items-center justify-between mb-6">
+      <div className="p-4 sm:p-6">
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 mb-6">
           <div>
-            <h1 className="text-2xl font-semibold text-gray-900">Управление пользователями</h1>
-            <p className="text-gray-600 mt-1">Управляйте пользователями и их правами доступа</p>
+            <div className="flex items-center space-x-3 mb-2">
+              <UsersIcon className="h-6 w-6 sm:h-8 sm:w-8 text-blue-600" />
+              <h1 className="text-xl sm:text-2xl font-semibold text-gray-900">Управление пользователями</h1>
+            </div>
+            <p className="text-gray-600 text-sm sm:text-base">Управляйте пользователями и их правами доступа</p>
           </div>
           <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
             <DialogTrigger asChild>
-              <Button className="bg-primary hover:bg-primary-dark text-white">
+              <Button className="bg-primary hover:bg-primary-dark text-white w-full sm:w-auto">
                 <Plus className="w-4 h-4 mr-2" />
-                Добавить пользователя
+                <span className="sm:inline">Добавить пользователя</span>
+                <span className="sm:hidden">Добавить</span>
               </Button>
             </DialogTrigger>
-            <DialogContent className="max-w-2xl">
+            <DialogContent className="max-w-2xl mx-4 max-h-[90vh] overflow-y-auto">
               <DialogHeader>
                 <DialogTitle>
                   {editingUser ? 'Редактировать пользователя' : 'Добавить нового пользователя'}
                 </DialogTitle>
               </DialogHeader>
               <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
                     <Label htmlFor="firstName">Имя</Label>
                     <Input
@@ -245,7 +265,7 @@ export default function Users() {
                   </div>
                 )}
 
-                <div className="flex space-x-2">
+                <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2">
                   <Button
                     type="submit"
                     disabled={createUserMutation.isPending}
@@ -268,7 +288,7 @@ export default function Users() {
         </div>
 
         {/* User Statistics */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 mb-6">
           <Card>
             <CardHeader className="pb-3">
               <CardTitle className="text-sm font-medium text-gray-600">Всего пользователей</CardTitle>
@@ -303,17 +323,124 @@ export default function Users() {
           </Card>
         </div>
 
-        {/* Users Table */}
-        <div className="bg-white rounded-lg shadow-sm border overflow-hidden">
-          {loadingUsers ? (
-            <div className="p-6">
-              <div className="animate-pulse space-y-4">
-                {[...Array(5)].map((_, i) => (
-                  <div key={i} className="h-16 bg-gray-200 rounded"></div>
-                ))}
+        {/* Users Content */}
+        {loadingUsers ? (
+          <div className="space-y-4">
+            {[...Array(5)].map((_, i) => (
+              <Card key={i} className="animate-pulse">
+                <CardContent className="p-4">
+                  <div className="flex items-center space-x-4">
+                    <div className="h-12 w-12 bg-gray-200 rounded-full"></div>
+                    <div className="flex-1 space-y-2">
+                      <div className="h-4 bg-gray-200 rounded w-3/4"></div>
+                      <div className="h-3 bg-gray-200 rounded w-1/2"></div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        ) : users.length === 0 ? (
+          <Card>
+            <CardContent className="p-8">
+              <div className="text-center">
+                <div className="relative mx-auto w-24 h-24 mb-6">
+                  <div className="absolute inset-0 bg-gradient-to-br from-blue-400 to-purple-600 rounded-full opacity-20"></div>
+                  <div className="absolute inset-2 bg-gradient-to-br from-blue-500 to-purple-700 rounded-full opacity-40"></div>
+                  <div className="absolute inset-4 bg-gradient-to-br from-blue-600 to-purple-800 rounded-full flex items-center justify-center">
+                    <UsersIcon className="h-8 w-8 text-white" />
+                  </div>
+                </div>
+                <h3 className="text-xl font-semibold text-gray-900 mb-2">
+                  Пользователи не найдены
+                </h3>
+                <p className="text-gray-600 mb-6">
+                  Добавьте первого пользователя в систему для начала работы
+                </p>
+                <Button 
+                  onClick={() => setIsDialogOpen(true)}
+                  className="bg-gradient-to-r from-blue-600 to-purple-700 hover:from-blue-700 hover:to-purple-800"
+                >
+                  <Plus className="w-4 h-4 mr-2" />
+                  Добавить пользователя
+                </Button>
               </div>
-            </div>
-          ) : (
+            </CardContent>
+          </Card>
+        ) : isMobile ? (
+          <div className="space-y-4">
+            {users.map((user: any) => (
+              <Card key={user.id} className="hover:shadow-md transition-shadow">
+                <CardContent className="p-4">
+                  <div className="flex items-start justify-between mb-3">
+                    <div className="flex items-center space-x-3">
+                      <img
+                        src={user.profileImageUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(`${user.firstName || ''} ${user.lastName || ''}`)}&background=1976d2&color=fff`}
+                        alt={`${user.firstName || ''} ${user.lastName || ''}`}
+                        className="w-12 h-12 rounded-full object-cover"
+                      />
+                      <div>
+                        <h3 className="font-semibold text-gray-900">
+                          {user.firstName || 'N/A'} {user.lastName || 'N/A'}
+                        </h3>
+                        <p className="text-sm text-gray-500">ID: {user.id}</p>
+                      </div>
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => openEditDialog(user)}
+                    >
+                      <Edit className="w-4 h-4" />
+                    </Button>
+                  </div>
+                  
+                  <div className="space-y-3">
+                    <div className="flex items-center space-x-2">
+                      <Mail className="w-4 h-4 text-gray-400" />
+                      <span className="text-sm text-gray-700 truncate">{user.email}</span>
+                    </div>
+                    
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-gray-600">Роль:</span>
+                      {getRoleBadge(user.role)}
+                    </div>
+                    
+                    <div className="flex items-start justify-between">
+                      <span className="text-sm text-gray-600">Фирмы:</span>
+                      <div className="flex flex-col items-end space-y-1">
+                        {user.role === 'admin' ? (
+                          <Badge variant="default">Все фирмы</Badge>
+                        ) : (
+                          <>
+                            <Badge variant={user.firms?.length ? "secondary" : "outline"}>
+                              {user.firms?.length || 0} {user.firms?.length === 1 ? 'фирма' : 'фирм'}
+                            </Badge>
+                            {user.firms && user.firms.length > 0 && (
+                              <div className="text-xs text-gray-500 text-right max-w-[200px]">
+                                {user.firms.map((firm: Firm) => firm.name).join(', ')}
+                              </div>
+                            )}
+                          </>
+                        )}
+                      </div>
+                    </div>
+                    
+                    <div className="flex items-center justify-between pt-2 border-t">
+                      <div className="flex items-center space-x-2">
+                        <Calendar className="w-4 h-4 text-gray-400" />
+                        <span className="text-sm text-gray-600">
+                          {new Date(user.createdAt).toLocaleDateString('ru-RU')}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        ) : (
+          <div className="bg-white rounded-lg shadow-sm border overflow-hidden">
             <Table>
               <TableHeader>
                 <TableRow>
@@ -363,7 +490,7 @@ export default function Users() {
                               </Badge>
                               {user.firms && user.firms.length > 0 && (
                                 <div className="text-xs text-gray-500 max-w-xs">
-                                  {user.firms.map(firm => firm.name).join(', ')}
+                                  {user.firms.map((firm: Firm) => firm.name).join(', ')}
                                 </div>
                               )}
                             </>
@@ -392,8 +519,8 @@ export default function Users() {
                 ))}
               </TableBody>
             </Table>
-          )}
-        </div>
+          </div>
+        )}
       </div>
     </MainLayout>
   );
