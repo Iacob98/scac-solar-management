@@ -2352,7 +2352,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Save file
         await file.mv(filePath);
         
-        // Create file record
+        // Create file record - используем системный ID для загрузок бригады
         const fileRecord = await storage.createFileRecord({
           fileId,
           projectId: parseInt(projectId),
@@ -2360,8 +2360,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           fileName, // Имя файла на диске
           mimeType: file.mimetype,
           size: file.size,
-          category: 'report_photo',
-          uploadedBy: email,
+          category: 'image',
+          uploadedBy: 'crew_upload', // Специальный системный ID для загрузок бригады
           isDeleted: false,
         });
 
@@ -2375,12 +2375,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Create history entry
       await storage.createProjectHistoryEntry({
         projectId: parseInt(projectId),
-        userId: email, // Using email as userId for crew uploads
+        userId: 'crew_upload', // Using system ID for crew uploads
         changeType: 'file_added',
         fieldName: 'crew_photos',
         oldValue: null,
         newValue: `${uploadedFiles.length} файлов`,
-        description: `Фото-отчёт: добавлено ${uploadedFiles.length} файла\nПользователь: ${email}`,
+        description: `Фото-отчёт бригады: добавлено ${uploadedFiles.length} файла\nУчастник: ${email}`,
       });
 
       res.json({

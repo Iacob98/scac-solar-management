@@ -67,7 +67,7 @@ function Router() {
       <Route path="/admin/firms" component={() => <ProtectedRoute component={FirmsManagement} />} />
       <Route path="/admin/firms/:id/edit" component={() => <ProtectedRoute component={FirmEdit} />} />
       <Route path="/admin/users" component={() => <ProtectedRoute component={Users} />} />
-      <Route path="/upload/:projectId/:token" component={CrewUpload} />
+      <Route path="/crew-upload/:projectId/:token" component={CrewUpload} />
       <Route component={NotFound} />
     </Switch>
   );
