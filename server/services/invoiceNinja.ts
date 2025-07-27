@@ -442,12 +442,14 @@ export class InvoiceNinjaService {
     const id = typeof statusId === 'string' ? parseInt(statusId) : statusId;
     
     switch (id) {
-      case 1: return 'draft';
-      case 2: return 'sent';
-      case 3: return 'viewed';
-      case 4: return 'paid';
-      case 5: return 'partial';
-      case 6: return 'overdue';
+      case 1: return 'draft';      // Черновик
+      case 2: return 'sent';       // Отправлен  
+      case 3: return 'viewed';     // Просмотрен
+      case 4: return 'paid';       // Оплачен
+      case 5: return 'partial';    // Частично оплачен
+      case 6: return 'overdue';    // Просрочен
+      case -1: return 'overdue';   // Cancelled/Archived -> маппим в overdue
+      case -2: return 'overdue';   // Reversed -> маппим в overdue
       default: return 'draft';
     }
   }

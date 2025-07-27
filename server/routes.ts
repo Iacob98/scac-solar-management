@@ -2972,6 +2972,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       if (needsUpdate) {
+        console.log(`Updating invoice ${invoiceNumber} with data:`, updateData);
         await storage.updateInvoice(invoice.id, updateData);
 
         if (paymentStatus.isPaid) {
@@ -2990,7 +2991,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
           });
         }
 
-        console.log(`Updated invoice ${invoiceNumber} payment status: ${paymentStatus.isPaid ? 'paid' : 'unpaid'}, status: ${paymentStatus.status}`);
+        console.log(`Successfully updated invoice ${invoiceNumber}: payment=${paymentStatus.isPaid}, status=${paymentStatus.status}`);
+      } else {
+        console.log(`No update needed for invoice ${invoiceNumber}`);
       }
 
       res.json({ 
