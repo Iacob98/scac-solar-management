@@ -4,6 +4,8 @@ import { Button } from '@/components/ui/button';
 import { useLocation } from 'wouter';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from '@/components/ui/dialog';
@@ -73,6 +75,7 @@ function ProjectsList({ selectedFirm, onViewProject, onManageServices }: { selec
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [filter, setFilter] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
+  const [hideCompleted, setHideCompleted] = useState(false);
   const [isTutorialOpen, setIsTutorialOpen] = useState(false);
 
 
@@ -271,6 +274,11 @@ function ProjectsList({ selectedFirm, onViewProject, onManageServices }: { selec
   };
 
   const filteredProjects = (projects as Project[]).filter((project: Project) => {
+    // Скрытие завершенных проектов (отправлен счет или оплачен)
+    if (hideCompleted && (project.status === 'invoiced' || project.status === 'paid' || project.status === 'invoice_sent')) {
+      return false;
+    }
+    
     const matchesFilter = !filter || 
       getInstallationPersonName(project).toLowerCase().includes(filter.toLowerCase()) ||
       getClientName(project.clientId).toLowerCase().includes(filter.toLowerCase()) ||
@@ -588,7 +596,7 @@ function ProjectsList({ selectedFirm, onViewProject, onManageServices }: { selec
         />
       </div>
 
-      <div className="flex space-x-4">
+      <div className="flex flex-col space-y-4 md:flex-row md:space-y-0 md:space-x-4 md:items-center">
         <Input
           placeholder="Поиск проектов..."
           value={filter}
@@ -606,6 +614,16 @@ function ProjectsList({ selectedFirm, onViewProject, onManageServices }: { selec
             ))}
           </SelectContent>
         </Select>
+        <div className="flex items-center space-x-2">
+          <Switch
+            id="hide-completed"
+            checked={hideCompleted}
+            onCheckedChange={setHideCompleted}
+          />
+          <Label htmlFor="hide-completed" className="text-sm text-gray-600">
+            Скрыть завершенные
+          </Label>
+        </div>
       </div>
 
       {projectsLoading ? (

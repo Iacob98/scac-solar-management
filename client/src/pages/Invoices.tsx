@@ -11,6 +11,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Switch } from '@/components/ui/switch';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -41,6 +42,7 @@ export default function Invoices() {
     dateFrom: '',
     dateTo: '',
   });
+  const [hidePaid, setHidePaid] = useState(false);
 
   useEffect(() => {
     const firmId = localStorage.getItem('selectedFirmId');
@@ -264,6 +266,11 @@ export default function Invoices() {
   };
 
   const filteredInvoices = invoices.filter((invoice) => {
+    // Скрытие оплаченных счетов
+    if (hidePaid && invoice.isPaid) {
+      return false;
+    }
+    
     if (filters.status && filters.status !== 'all') {
       if (filters.status === 'paid' && !invoice.isPaid) return false;
       if (filters.status === 'unpaid' && invoice.isPaid) return false;
@@ -395,6 +402,19 @@ export default function Invoices() {
                 value={filters.dateTo}
                 onChange={(e) => handleFilterChange('dateTo', e.target.value)}
               />
+            </div>
+          </div>
+          
+          <div className="pt-4 border-t">
+            <div className="flex items-center space-x-2">
+              <Switch
+                id="hide-paid"
+                checked={hidePaid}
+                onCheckedChange={setHidePaid}
+              />
+              <Label htmlFor="hide-paid" className="text-sm text-gray-600">
+                Скрыть оплаченные счета
+              </Label>
             </div>
           </div>
         </div>
