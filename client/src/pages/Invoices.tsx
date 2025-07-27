@@ -91,7 +91,7 @@ export default function Invoices() {
   const { data: projects = [] } = useQuery<Project[]>({
     queryKey: ['/api/projects', selectedFirmId],
     queryFn: async () => {
-      const response = await apiRequest('/api/projects', 'GET');
+      const response = await apiRequest(`/api/projects?firmId=${selectedFirmId}`, 'GET');
       return response.json();
     },
     enabled: !!selectedFirmId,

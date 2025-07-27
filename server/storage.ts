@@ -776,6 +776,7 @@ export class DatabaseStorage implements IStorage {
         dueDate: invoices.dueDate,
         totalAmount: invoices.totalAmount,
         isPaid: invoices.isPaid,
+        status: invoices.status, // ДОБАВЛЯЕМ ПОЛЕ STATUS!
         createdAt: invoices.createdAt,
       })
       .from(invoices)
