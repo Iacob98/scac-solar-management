@@ -1767,6 +1767,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       const invoices = await storage.getInvoicesByFirmId(firmId);
+      
+      console.log(`Found ${invoices.length} invoices for firm ${firmId}`);
+      console.log('Sample invoice statuses:', invoices.slice(0, 5).map(inv => ({ 
+        number: inv.invoiceNumber, 
+        status: inv.status, 
+        isPaid: inv.isPaid 
+      })));
+      
       res.json(invoices);
     } catch (error) {
       console.error("Error fetching invoices:", error);
