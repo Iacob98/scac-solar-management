@@ -2952,14 +2952,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const updateData: any = {};
       let needsUpdate = false;
 
+      console.log(`Comparing statuses for invoice ${invoiceNumber}:`, {
+        currentStatus: invoice.status,
+        newStatus: paymentStatus.status,
+        currentPaid: invoice.isPaid,
+        newPaid: paymentStatus.isPaid
+      });
+
       if (paymentStatus.isPaid !== invoice.isPaid) {
         updateData.isPaid = paymentStatus.isPaid;
         needsUpdate = true;
+        console.log(`Payment status changed: ${invoice.isPaid} -> ${paymentStatus.isPaid}`);
       }
 
       if (paymentStatus.status && paymentStatus.status !== invoice.status) {
         updateData.status = paymentStatus.status;
         needsUpdate = true;
+        console.log(`Status changed: '${invoice.status}' -> '${paymentStatus.status}'`);
       }
 
       if (needsUpdate) {
@@ -2986,9 +2995,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       res.json({ 
         success: true, 
-        updated: paymentStatus.isPaid !== invoice.isPaid,
+        updated: needsUpdate,
         isPaid: paymentStatus.isPaid,
-        statusId: paymentStatus.statusId
+        statusId: paymentStatus.statusId,
+        status: paymentStatus.status
       });
 
     } catch (error) {
