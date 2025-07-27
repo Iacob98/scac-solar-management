@@ -3026,8 +3026,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
         try {
           const paymentStatus = await invoiceNinja.checkInvoicePaymentStatus(invoice.invoiceId);
           
+          // Update both payment status and Invoice Ninja status
+          const updateData: any = {};
+          let needsUpdate = false;
+
           if (paymentStatus.isPaid !== invoice.isPaid) {
-            await storage.updateInvoice(invoice.id, { isPaid: paymentStatus.isPaid });
+            updateData.isPaid = paymentStatus.isPaid;
+            needsUpdate = true;
+          }
+
+          if (paymentStatus.status && paymentStatus.status !== invoice.status) {
+            updateData.status = paymentStatus.status;
+            needsUpdate = true;
+          }
+
+          if (needsUpdate) {
+            await storage.updateInvoice(invoice.id, updateData);
             
             if (paymentStatus.isPaid) {
               await storage.updateProject(invoice.projectId, { status: 'paid' });
@@ -3046,13 +3060,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
             results.push({ 
               invoiceNumber: invoice.invoiceNumber, 
               status: 'updated', 
-              isPaid: paymentStatus.isPaid 
+              isPaid: paymentStatus.isPaid,
+              invoiceStatus: paymentStatus.status
             });
           } else {
             results.push({ 
               invoiceNumber: invoice.invoiceNumber, 
               status: 'no_change', 
-              isPaid: invoice.isPaid 
+              isPaid: invoice.isPaid,
+              invoiceStatus: invoice.status
             });
           }
         } catch (error) {
