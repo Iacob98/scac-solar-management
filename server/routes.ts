@@ -2948,9 +2948,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       console.log(`Invoice ${invoiceNumber} payment status in Invoice Ninja:`, paymentStatus);
 
-      // Update our database if status has changed
+      // Update our database with both payment status and Invoice Ninja status
+      const updateData: any = {};
+      let needsUpdate = false;
+
       if (paymentStatus.isPaid !== invoice.isPaid) {
-        await storage.updateInvoice(invoice.id, { isPaid: paymentStatus.isPaid });
+        updateData.isPaid = paymentStatus.isPaid;
+        needsUpdate = true;
+      }
+
+      if (paymentStatus.status && paymentStatus.status !== invoice.status) {
+        updateData.status = paymentStatus.status;
+        needsUpdate = true;
+      }
+
+      if (needsUpdate) {
+        await storage.updateInvoice(invoice.id, updateData);
 
         if (paymentStatus.isPaid) {
           // Update project status to paid
@@ -2968,7 +2981,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           });
         }
 
-        console.log(`Updated invoice ${invoiceNumber} payment status: ${paymentStatus.isPaid ? 'paid' : 'unpaid'}`);
+        console.log(`Updated invoice ${invoiceNumber} payment status: ${paymentStatus.isPaid ? 'paid' : 'unpaid'}, status: ${paymentStatus.status}`);
       }
 
       res.json({ 

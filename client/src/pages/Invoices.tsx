@@ -183,10 +183,12 @@ export default function Invoices() {
     return projects.find((p) => p.id === projectId);
   };
 
-  const getStatusBadge = (isPaid: boolean, dueDate: string) => {
-    const isOverdue = new Date(dueDate) < new Date() && !isPaid;
+  const getStatusBadge = (invoice: any) => {
+    const isOverdue = new Date(invoice.dueDate) < new Date() && !invoice.isPaid;
+    const status = invoice.status || 'draft';
     
-    if (isPaid) {
+    // Приоритет для статуса "Оплачен"
+    if (invoice.isPaid) {
       return (
         <Badge variant="default" className="bg-green-100 text-green-800">
           <CheckCircle className="w-3 h-3 mr-1" />
@@ -195,6 +197,7 @@ export default function Invoices() {
       );
     }
     
+    // Приоритет для просроченных счетов
     if (isOverdue) {
       return (
         <Badge variant="destructive">
@@ -204,12 +207,44 @@ export default function Invoices() {
       );
     }
     
-    return (
-      <Badge variant="secondary">
-        <Clock className="w-3 h-3 mr-1" />
-        В ожидании
-      </Badge>
-    );
+    // Статусы из Invoice Ninja API
+    switch (status) {
+      case 'sent':
+        return (
+          <Badge variant="default" className="bg-blue-100 text-blue-800">
+            <Clock className="w-3 h-3 mr-1" />
+            Отправлен
+          </Badge>
+        );
+      case 'viewed':
+        return (
+          <Badge variant="default" className="bg-indigo-100 text-indigo-800">
+            <Eye className="w-3 h-3 mr-1" />
+            Просмотрен
+          </Badge>
+        );
+      case 'partial':
+        return (
+          <Badge variant="default" className="bg-yellow-100 text-yellow-800">
+            <Clock className="w-3 h-3 mr-1" />
+            Частично оплачен
+          </Badge>
+        );
+      case 'draft':
+        return (
+          <Badge variant="secondary">
+            <FileText className="w-3 h-3 mr-1" />
+            Черновик
+          </Badge>
+        );
+      default:
+        return (
+          <Badge variant="secondary">
+            <Clock className="w-3 h-3 mr-1" />
+            В ожидании
+          </Badge>
+        );
+    }
   };
 
   const getDaysUntilDue = (dueDate: string) => {
@@ -232,6 +267,7 @@ export default function Invoices() {
     if (filters.status && filters.status !== 'all') {
       if (filters.status === 'paid' && !invoice.isPaid) return false;
       if (filters.status === 'unpaid' && invoice.isPaid) return false;
+      if (filters.status === 'sent' && invoice.status !== 'sent') return false;
       if (filters.status === 'overdue') {
         const isOverdue = new Date(invoice.dueDate) < new Date() && !invoice.isPaid;
         if (!isOverdue) return false;
@@ -336,6 +372,7 @@ export default function Invoices() {
                 <SelectContent>
                   <SelectItem value="all">Все статусы</SelectItem>
                   <SelectItem value="paid">Оплачен</SelectItem>
+                  <SelectItem value="sent">Отправлен</SelectItem>
                   <SelectItem value="unpaid">Неоплачен</SelectItem>
                   <SelectItem value="overdue">Просрочен</SelectItem>
                 </SelectContent>
@@ -431,7 +468,7 @@ export default function Invoices() {
                         </div>
                       </TableCell>
                       <TableCell>
-                        {getStatusBadge(invoice.isPaid, invoice.dueDate)}
+                        {getStatusBadge(invoice)}
                       </TableCell>
                       <TableCell>
                         <span className="font-semibold text-gray-900">

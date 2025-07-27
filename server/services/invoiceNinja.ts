@@ -401,7 +401,7 @@ export class InvoiceNinjaService {
     }
   }
 
-  async checkInvoicePaymentStatus(invoiceId: string): Promise<{ isPaid: boolean; statusId: string }> {
+  async checkInvoicePaymentStatus(invoiceId: string): Promise<{ isPaid: boolean; statusId: string; status: string }> {
     try {
       const invoice = await this.getInvoiceById(invoiceId);
       if (!invoice) {
@@ -424,14 +424,31 @@ export class InvoiceNinjaService {
       
       // ТОЛЬКО статус 4 означает оплаченный счет в Invoice Ninja
       const isPaid = invoice.status_id === '4';
+      const status = this.getStatusFromId(invoice.status_id);
       
       return {
         isPaid,
-        statusId: invoice.status_id
+        statusId: invoice.status_id,
+        status
       };
     } catch (error: any) {
       console.error('Error checking invoice payment status:', error);
       throw error;
+    }
+  }
+
+  // Функция для преобразования status_id в строковый статус
+  private getStatusFromId(statusId: number | string): string {
+    const id = typeof statusId === 'string' ? parseInt(statusId) : statusId;
+    
+    switch (id) {
+      case 1: return 'draft';
+      case 2: return 'sent';
+      case 3: return 'viewed';
+      case 4: return 'paid';
+      case 5: return 'partial';
+      case 6: return 'overdue';
+      default: return 'draft';
     }
   }
 
@@ -444,10 +461,18 @@ export class InvoiceNinjaService {
       const response = await axios.get(url, { headers: this.getHeaders() });
       const invoices = response.data.data || [];
       console.log(`Found ${invoices.length} invoices in Invoice Ninja`);
+      
+      // Добавляем статус в каждый счет
+      const invoicesWithStatus = invoices.map((invoice: any) => ({
+        ...invoice,
+        statusString: this.getStatusFromId(invoice.status_id)
+      }));
+      
       if (invoices.length > 0) {
         console.log('Invoice numbers found:', invoices.map((inv: any) => inv.number || inv.invoice_number).slice(0, 10));
+        console.log('Sample invoice status:', invoicesWithStatus[0]?.status_id, '->', invoicesWithStatus[0]?.statusString);
       }
-      return invoices;
+      return invoicesWithStatus;
     } catch (error: any) {
       console.error('Error fetching invoices from Invoice Ninja:', error.response?.data || error.message);
       console.error('URL attempted:', `${this.baseUrl}/api/v1/invoices`);

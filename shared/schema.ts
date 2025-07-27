@@ -192,6 +192,9 @@ export const invoices = pgTable("invoices", {
   dueDate: date("due_date").notNull(),
   totalAmount: decimal("total_amount", { precision: 10, scale: 2 }).notNull(),
   isPaid: boolean("is_paid").default(false),
+  status: varchar("status", { 
+    enum: ["draft", "sent", "viewed", "partial", "paid", "overdue"] 
+  }).default("draft"), // Статус из Invoice Ninja API
   createdAt: timestamp("created_at").defaultNow(),
 });
 
