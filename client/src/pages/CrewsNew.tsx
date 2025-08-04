@@ -19,7 +19,6 @@ import { MainLayout } from '@/components/Layout/MainLayout';
 import { CrewHistory } from '@/components/CrewHistory';
 import { apiRequest } from '@/lib/queryClient';
 import { useLocation } from 'wouter';
-import { useTranslations } from '@/hooks/useTranslations';
 
 // Схема для простого редактирования бригады
 const editCrewSchema = z.object({
@@ -183,7 +182,7 @@ function EditCrewForm({ crew, onUpdate }: { crew: Crew, onUpdate: any }) {
             name="name"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>{t('название_бригады', 'Название бригады')}</FormLabel>
+                <FormLabel>Название бригады</FormLabel>
                 <FormControl>
                   <Input {...field} />
                 </FormControl>
@@ -197,7 +196,7 @@ function EditCrewForm({ crew, onUpdate }: { crew: Crew, onUpdate: any }) {
             name="leaderName"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>{t('руководитель', 'Руководитель')}</FormLabel>
+                <FormLabel>Руководитель</FormLabel>
                 <FormControl>
                   <Input {...field} />
                 </FormControl>
@@ -211,7 +210,7 @@ function EditCrewForm({ crew, onUpdate }: { crew: Crew, onUpdate: any }) {
             name="phone"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>{t('телефон', 'Телефон')}</FormLabel>
+                <FormLabel>Телефон</FormLabel>
                 <FormControl>
                   <Input {...field} />
                 </FormControl>
@@ -225,7 +224,7 @@ function EditCrewForm({ crew, onUpdate }: { crew: Crew, onUpdate: any }) {
             name="address"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>{t('адрес', 'Адрес')}</FormLabel>
+                <FormLabel>Адрес</FormLabel>
                 <FormControl>
                   <Input {...field} />
                 </FormControl>
@@ -239,7 +238,7 @@ function EditCrewForm({ crew, onUpdate }: { crew: Crew, onUpdate: any }) {
             name="status"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>{t('статус', 'Статус')}</FormLabel>
+                <FormLabel>Статус</FormLabel>
                 <Select onValueChange={field.onChange} defaultValue={field.value}>
                   <FormControl>
                     <SelectTrigger>
@@ -247,10 +246,10 @@ function EditCrewForm({ crew, onUpdate }: { crew: Crew, onUpdate: any }) {
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent>
-                    <SelectItem value="active">{t('активна', 'Активна')}</SelectItem>
-                    <SelectItem value="vacation">{t('в_отпуске', 'В отпуске')}</SelectItem>
-                    <SelectItem value="equipment_issue">{t('проблемы_с_техникой', 'Проблемы с техникой')}</SelectItem>
-                    <SelectItem value="unavailable">{t('недоступна', 'Недоступна')}</SelectItem>
+                    <SelectItem value="active">Активна</SelectItem>
+                    <SelectItem value="vacation">В отпуске</SelectItem>
+                    <SelectItem value="equipment_issue">Проблемы с техникой</SelectItem>
+                    <SelectItem value="unavailable">Недоступна</SelectItem>
                   </SelectContent>
                 </Select>
                 <FormMessage />
@@ -260,7 +259,7 @@ function EditCrewForm({ crew, onUpdate }: { crew: Crew, onUpdate: any }) {
           
           <div className="flex space-x-2">
             <Button type="submit" disabled={onUpdate.isPending} className="flex-1">
-              {onUpdate.isPending ? t('сохранение', 'Сохранение...') : t('сохранить', 'Сохранить')}
+              {onUpdate.isPending ? 'Сохранение...' : 'Сохранить'}
             </Button>
           </div>
         </form>
@@ -268,7 +267,7 @@ function EditCrewForm({ crew, onUpdate }: { crew: Crew, onUpdate: any }) {
       
       <div className="mt-6 border-t pt-4">
         <div className="flex justify-between items-center mb-4">
-          <h3 className="text-lg font-medium">{t('участники_бригады', 'Участники бригады')}</h3>
+          <h3 className="text-lg font-medium">Участники бригады</h3>
           <Button 
             size="sm" 
             variant="outline"
@@ -555,7 +554,6 @@ type ExtendedCrewForm = z.infer<typeof extendedCrewSchema>;
 export default function CrewsNew() {
   const { toast } = useToast();
   const { user } = useAuth();
-  const { t } = useTranslations();
   const queryClient = useQueryClient();
   const [, setLocation] = useLocation();
   const [selectedFirmId, setSelectedFirmId] = useState<string>('');
@@ -670,15 +668,15 @@ export default function CrewsNew() {
       setIsCreateDialogOpen(false);
       form.reset();
       toast({
-        title: t('бригада_создана', 'Бригада создана'),
-        description: t('новая_бригада_успешно_добавлена', 'Новая бригада успешно добавлена в систему'),
+        title: 'Бригада создана',
+        description: 'Новая бригада успешно добавлена в систему',
       });
     },
     onError: (error: any) => {
       console.error('❌ Frontend: Mutation failed:', error);
       toast({
-        title: t('ошибка_создания_бригады', 'Ошибка создания бригады'),
-        description: error.message || t('не_удалось_создать_бригаду', 'Не удалось создать бригаду'),
+        title: 'Ошибка создания бригады',
+        description: error.message || 'Не удалось создать бригаду',
         variant: 'destructive',
       });
     },
@@ -694,14 +692,14 @@ export default function CrewsNew() {
       setIsEditDialogOpen(false);
       setEditingCrew(null);
       toast({
-        title: t('бригада_обновлена', 'Бригада обновлена'),
-        description: t('изменения_успешно_сохранены', 'Изменения успешно сохранены'),
+        title: 'Бригада обновлена',
+        description: 'Изменения успешно сохранены',
       });
     },
     onError: (error: any) => {
       toast({
-        title: t('ошибка_обновления_бригады', 'Ошибка обновления'),
-        description: error.message || t('не_удалось_обновить_бригаду', 'Не удалось обновить бригаду'),
+        title: 'Ошибка обновления',
+        description: error.message || 'Не удалось обновить бригаду',
         variant: 'destructive',
       });
     },
@@ -797,8 +795,8 @@ export default function CrewsNew() {
               <DialogTrigger asChild>
                 <Button size="sm" className="w-full sm:w-auto">
                   <Plus className="h-4 w-4 mr-2" />
-                  <span className="hidden sm:inline">{t('создать_бригаду', 'Создать бригаду')}</span>
-                  <span className="sm:hidden">{t('создать', 'Создать')}</span>
+                  <span className="hidden sm:inline">Создать бригаду</span>
+                  <span className="sm:hidden">Создать</span>
                 </Button>
               </DialogTrigger>
             <DialogContent className="w-[95vw] max-w-4xl max-h-[90vh] overflow-y-auto mx-2">
@@ -1029,7 +1027,7 @@ export default function CrewsNew() {
                       console.log('📊 Form values:', form.getValues());
                       console.log('✅ Form valid:', form.formState.isValid);
                     }}>
-                      {createCrewMutation.isPending ? t('создание', 'Создание...') : t('создать_бригаду', 'Создать бригаду')}
+                      {createCrewMutation.isPending ? 'Создание...' : 'Создать бригаду'}
                     </Button>
                   </div>
                 </form>
@@ -1118,7 +1116,7 @@ export default function CrewsNew() {
                         setIsEditDialogOpen(true);
                       }} className="w-full sm:w-auto">
                         <Edit className="h-4 w-4 mr-2" />
-                        {t('редактировать', 'Редактировать')}
+                        Редактировать
                       </Button>
                     </div>
                   </div>
@@ -1147,7 +1145,7 @@ export default function CrewsNew() {
         <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
           <DialogContent className="w-[95vw] max-w-2xl max-h-[90vh] overflow-y-auto mx-2">
             <DialogHeader>
-              <DialogTitle className="text-lg sm:text-xl">{t('редактировать', 'Редактировать')} {t('бригады', 'бригаду')}</DialogTitle>
+              <DialogTitle className="text-lg sm:text-xl">Редактировать бригаду</DialogTitle>
             </DialogHeader>
             {editingCrew && <EditCrewForm crew={editingCrew} onUpdate={updateCrewMutation} />}
           </DialogContent>
@@ -1157,7 +1155,7 @@ export default function CrewsNew() {
         <Dialog open={!!viewingMembers} onOpenChange={() => setViewingMembers(null)}>
           <DialogContent className="w-[95vw] max-w-2xl max-h-[90vh] overflow-y-auto mx-2">
             <DialogHeader>
-              <DialogTitle className="text-lg sm:text-xl">Участники {t('бригады', 'бригады')}</DialogTitle>
+              <DialogTitle className="text-lg sm:text-xl">Участники бригады</DialogTitle>
             </DialogHeader>
             {membersLoading ? (
               <div className="flex justify-center py-4">

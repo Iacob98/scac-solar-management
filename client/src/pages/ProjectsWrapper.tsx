@@ -22,7 +22,6 @@ import Tutorial from '@/components/Tutorial';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
 import { apiRequest } from '@/lib/queryClient';
-import { useTranslations } from '@/hooks/useTranslations';
 
 import ProjectDetail from './ProjectDetail';
 import Services from './Services';
@@ -34,38 +33,29 @@ interface ProjectsWrapperProps {
 
 type ViewMode = 'list' | 'detail' | 'services';
 
-const projectFormSchema = insertProjectSchema.omit({ 
-  id: true, 
-  firmId: true, 
-  leiterId: true, 
-  createdAt: true, 
-  updatedAt: true
-}).extend({
+const projectFormSchema = insertProjectSchema.omit({ id: true, firmId: true, leiterId: true, createdAt: true, updatedAt: true }).extend({
   startDate: z.string().min(1, 'Дата начала обязательна'),
   equipmentExpectedDate: z.string().min(1, 'Ожидаемая дата поставки обязательна'),
   workStartDate: z.string().optional(),
   clientId: z.number().min(1, 'Выберите клиента'),
-  crewId: z.number().optional(),
+  crewId: z.number().min(1, 'Выберите бригаду'),
   installationPersonFirstName: z.string().min(1, 'Имя обязательно'),
   installationPersonLastName: z.string().min(1, 'Фамилия обязательна'),
   installationPersonAddress: z.string().min(1, 'Адрес обязателен'),
   installationPersonPhone: z.string().min(1, 'Телефон обязателен'),
   installationPersonUniqueId: z.string().min(1, 'Уникальный ID обязателен'),
-  teamNumber: z.string().min(1, 'Номер команды обязателен'),
-  notes: z.string().optional(),
 });
 
-// Функция для получения переводов статусов
-const getStatusLabels = (t: (key: string, fallback: string) => string) => ({
-  planning: t('планирование', 'Планирование'),
-  equipment_waiting: t('ожидание_оборудования', 'Ожидание оборудования'),
-  equipment_arrived: t('оборудование_поступило', 'Оборудование поступило'),
-  work_scheduled: t('работы_запланированы', 'Работы запланированы'),
-  work_in_progress: t('работы_в_процессе', 'Работы в процессе'),
-  work_completed: t('работы_завершены', 'Работы завершены'),
-  invoiced: t('счет_выставлен', 'Счет выставлен'),
-  paid: t('оплачен', 'Оплачен')
-});
+const statusLabels = {
+  planning: 'Планирование',
+  equipment_waiting: 'Ожидание оборудования',
+  equipment_arrived: 'Оборудование поступило',
+  work_scheduled: 'Работы запланированы',
+  work_in_progress: 'Работы в процессе',
+  work_completed: 'Работы завершены',
+  invoiced: 'Счет выставлен',
+  paid: 'Оплачен'
+};
 
 const statusColors = {
   planning: 'bg-gray-100 text-gray-800',
@@ -82,8 +72,6 @@ function ProjectsList({ selectedFirm, onViewProject, onManageServices }: { selec
   const { toast } = useToast();
   const { user } = useAuth();
   const queryClient = useQueryClient();
-  const { t } = useTranslations();
-  const statusLabels = getStatusLabels(t);
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [filter, setFilter] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
@@ -135,8 +123,6 @@ function ProjectsList({ selectedFirm, onViewProject, onManageServices }: { selec
       installationPersonAddress: '',
       installationPersonPhone: '',
       installationPersonUniqueId: '',
-      teamNumber: '',
-      notes: '',
     },
   });
 
@@ -170,12 +156,12 @@ function ProjectsList({ selectedFirm, onViewProject, onManageServices }: { selec
       apiRequest(`/api/projects/${projectId}/status`, 'PATCH', { status }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/projects', selectedFirm] });
-      toast({ title: t('статус_обновлен', 'Статус проекта обновлен') });
+      toast({ title: 'Статус проекта обновлен' });
     },
     onError: (error: any) => {
       toast({
-        title: t('ошибка', 'Ошибка'),
-        description: error.message || t('ошибка_обновления_статуса', 'Не удалось обновить статус проекта'),
+        title: 'Ошибка',
+        description: error.message || 'Не удалось обновить статус проекта',
         variant: 'destructive'
       });
     },
@@ -186,8 +172,8 @@ function ProjectsList({ selectedFirm, onViewProject, onManageServices }: { selec
     onSuccess: async (data: any, projectId: number) => {
       queryClient.invalidateQueries({ queryKey: ['/api/projects', selectedFirm] });
       toast({ 
-        title: t('счет_создан', 'Счет создан успешно'),
-        description: `${t('счет_номер', 'Счет №')}${data.invoiceNumber} ${t('создан_в_invoice_ninja', 'создан в Invoice Ninja')}`
+        title: 'Счет создан успешно',
+        description: `Счет №${data.invoiceNumber} создан в Invoice Ninja`
       });
       
       // Автоматически скачиваем PDF
@@ -195,22 +181,22 @@ function ProjectsList({ selectedFirm, onViewProject, onManageServices }: { selec
         await apiRequest(`/api/invoice/download-pdf/${projectId}`, 'POST');
         queryClient.invalidateQueries({ queryKey: ['/api/files/project', projectId] });
         toast({ 
-          title: t('pdf_скачан', 'PDF скачан'),
-          description: t('pdf_добавлен_в_файлы', 'PDF счета добавлен в файлы проекта')
+          title: 'PDF скачан',
+          description: 'PDF счета добавлен в файлы проекта'
         });
       } catch (error: any) {
         console.error('Failed to download PDF:', error);
         toast({
-          title: t('предупреждение', 'Предупреждение'),
-          description: t('счет_создан_pdf_ошибка', 'Счет создан, но не удалось скачать PDF автоматически'),
+          title: 'Предупреждение',
+          description: 'Счет создан, но не удалось скачать PDF автоматически',
           variant: 'destructive'
         });
       }
     },
     onError: (error: any) => {
       toast({
-        title: t('ошибка', 'Ошибка'),
-        description: error.message || t('ошибка_создания_счета', 'Не удалось создать счет'),
+        title: 'Ошибка',
+        description: error.message || 'Не удалось создать счет',
         variant: 'destructive'
       });
     },
@@ -220,12 +206,12 @@ function ProjectsList({ selectedFirm, onViewProject, onManageServices }: { selec
     mutationFn: (invoiceNumber: string) => apiRequest('/api/invoice/mark-paid', 'PATCH', { invoiceNumber }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/projects', selectedFirm] });
-      toast({ title: t('счет_отмечен_оплаченным', 'Счет отмечен как оплаченный') });
+      toast({ title: 'Счет отмечен как оплаченный' });
     },
     onError: (error: any) => {
       toast({
-        title: t('ошибка', 'Ошибка'),
-        description: error.message || t('ошибка_отметки_оплаты', 'Не удалось отметить счет как оплаченный'),
+        title: 'Ошибка',
+        description: error.message || 'Не удалось отметить счет как оплаченный',
         variant: 'destructive'
       });
     },
@@ -252,7 +238,6 @@ function ProjectsList({ selectedFirm, onViewProject, onManageServices }: { selec
       ...data,
       leiterId: user?.id || '',
       firmId: selectedFirm,
-      crewId: data.crewId || undefined,
     });
   };
 
@@ -262,7 +247,7 @@ function ProjectsList({ selectedFirm, onViewProject, onManageServices }: { selec
 
   const getClientName = (clientId: number) => {
     const client = (clients as Client[]).find((c: Client) => c.id === clientId);
-    return client?.name || t('неизвестный_клиент', 'Неизвестный клиент');
+    return client?.name || 'Неизвестный клиент';
   };
 
   const getInstallationPersonName = (project: Project) => {
@@ -275,17 +260,15 @@ function ProjectsList({ selectedFirm, onViewProject, onManageServices }: { selec
     if (project.installationPersonLastName) {
       return project.installationPersonLastName;
     }
-    return t('не_указан_клиент_установки', 'Не указан клиент установки');
+    return 'Не указан клиент установки';
   };
 
-  const getCrewName = (crewId: number | null) => {
-    if (!crewId) return t('не_назначена', 'Не назначена');
+  const getCrewName = (crewId: number) => {
     const crew = (crews as Crew[]).find((c: Crew) => c.id === crewId);
-    return crew?.name || t('не_назначена', 'Не назначена');
+    return crew?.name || 'Не назначена';
   };
 
-  const getCrewUniqueNumber = (crewId: number | null) => {
-    if (!crewId) return '';
+  const getCrewUniqueNumber = (crewId: number) => {
     const crew = (crews as Crew[]).find((c: Crew) => c.id === crewId);
     return crew?.uniqueNumber || '';
   };
@@ -362,42 +345,42 @@ function ProjectsList({ selectedFirm, onViewProject, onManageServices }: { selec
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-2xl font-bold">{t('проекты', 'Проекты')}</h1>
-          <p className="text-gray-600">{t('управление_проектами_установки_солнечных_панелей', 'Управление проектами установки солнечных панелей')}</p>
+          <h1 className="text-2xl font-bold">Проекты</h1>
+          <p className="text-gray-600">Управление проектами установки солнечных панелей</p>
         </div>
 
         <div className="flex space-x-2">
           <Button variant="outline" onClick={() => setIsTutorialOpen(true)}>
             <Sun className="h-4 w-4 mr-2" />
-{t('руководство', 'Руководство')}
+            Руководство
           </Button>
           <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
             <DialogTrigger asChild>
               <Button>
                 <Plus className="h-4 w-4 mr-2" />
-{t('создать_проект', 'Создать проект')}
+                Создать проект
               </Button>
             </DialogTrigger>
-          <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogContent className="max-w-2xl">
             <DialogHeader>
-              <DialogTitle>{t('создание_нового_проекта', 'Создание нового проекта')}</DialogTitle>
+              <DialogTitle>Создание нового проекта</DialogTitle>
               <DialogDescription>
-                {t('заполните_форму_создания_проекта', 'Заполните форму для создания нового проекта установки солнечных панелей')}
+                Заполните форму для создания нового проекта установки солнечных панелей
               </DialogDescription>
             </DialogHeader>
             <Form {...form}>
               <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="grid grid-cols-2 gap-4">
                   <FormField
                     control={form.control}
                     name="clientId"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>{t('клиент', 'Клиент')}</FormLabel>
+                        <FormLabel>Клиент</FormLabel>
                         <Select onValueChange={(value) => field.onChange(parseInt(value))} value={field.value?.toString()}>
                           <FormControl>
                             <SelectTrigger>
-                              <SelectValue placeholder={t('выберите_клиента', 'Выберите клиента')} />
+                              <SelectValue placeholder="Выберите клиента" />
                             </SelectTrigger>
                           </FormControl>
                           <SelectContent>
@@ -418,11 +401,11 @@ function ProjectsList({ selectedFirm, onViewProject, onManageServices }: { selec
                     name="crewId"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>{t('бригада', 'Бригада')}</FormLabel>
+                        <FormLabel>Бригада</FormLabel>
                         <Select onValueChange={(value) => field.onChange(parseInt(value))} value={field.value?.toString()}>
                           <FormControl>
                             <SelectTrigger>
-                              <SelectValue placeholder={t('выберите_бригаду', 'Выберите бригаду')} />
+                              <SelectValue placeholder="Выберите бригаду" />
                             </SelectTrigger>
                           </FormControl>
                           <SelectContent>
@@ -439,13 +422,13 @@ function ProjectsList({ selectedFirm, onViewProject, onManageServices }: { selec
                   />
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="grid grid-cols-2 gap-4">
                   <FormField
                     control={form.control}
                     name="startDate"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>{t('дата_начала_проекта', 'Дата начала проекта')}</FormLabel>
+                        <FormLabel>Дата начала проекта</FormLabel>
                         <FormControl>
                           <Input type="date" {...field} />
                         </FormControl>
@@ -459,7 +442,7 @@ function ProjectsList({ selectedFirm, onViewProject, onManageServices }: { selec
                     name="equipmentExpectedDate"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>{t('ожидаемая_дата_поставки', 'Ожидаемая дата поставки оборудования')}</FormLabel>
+                        <FormLabel>Ожидаемая дата поставки оборудования</FormLabel>
                         <FormControl>
                           <Input type="date" {...field} />
                         </FormControl>
@@ -474,7 +457,7 @@ function ProjectsList({ selectedFirm, onViewProject, onManageServices }: { selec
                   name="workStartDate"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>{t('дата_начала_работ', 'Ожидаемая дата начала работ')} ({t('необязательно', 'необязательно')})</FormLabel>
+                      <FormLabel>Ожидаемая дата начала работ (необязательно)</FormLabel>
                       <FormControl>
                         <Input type="date" {...field} />
                       </FormControl>
@@ -484,17 +467,17 @@ function ProjectsList({ selectedFirm, onViewProject, onManageServices }: { selec
                 />
 
                 <div className="space-y-4">
-                  <h3 className="text-lg font-semibold">{t('информация_о_клиенте_установки', 'Информация о клиенте установки')}</h3>
+                  <h3 className="text-lg font-semibold">Информация о клиенте установки</h3>
                   
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="grid grid-cols-2 gap-4">
                     <FormField
                       control={form.control}
                       name="installationPersonFirstName"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>{t('имя', 'Имя')}</FormLabel>
+                          <FormLabel>Имя</FormLabel>
                           <FormControl>
-                            <Input placeholder={t('имя_клиента', 'Имя клиента')} {...field} />
+                            <Input placeholder="Имя клиента" {...field} />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -506,9 +489,9 @@ function ProjectsList({ selectedFirm, onViewProject, onManageServices }: { selec
                       name="installationPersonLastName"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>{t('фамилия', 'Фамилия')}</FormLabel>
+                          <FormLabel>Фамилия</FormLabel>
                           <FormControl>
-                            <Input placeholder={t('фамилия_клиента', 'Фамилия клиента')} {...field} />
+                            <Input placeholder="Фамилия клиента" {...field} />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -521,9 +504,9 @@ function ProjectsList({ selectedFirm, onViewProject, onManageServices }: { selec
                     name="installationPersonAddress"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>{t('адрес_установки', 'Адрес установки')}</FormLabel>
+                        <FormLabel>Адрес установки</FormLabel>
                         <FormControl>
-                          <Textarea placeholder={t('полный_адрес_для_установки', 'Полный адрес для установки солнечных панелей')} {...field} />
+                          <Textarea placeholder="Полный адрес для установки солнечных панелей" {...field} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -535,7 +518,7 @@ function ProjectsList({ selectedFirm, onViewProject, onManageServices }: { selec
                     name="installationPersonPhone"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>{t('телефон_клиента', 'Телефон клиента')}</FormLabel>
+                        <FormLabel>Телефон клиента</FormLabel>
                         <FormControl>
                           <Input placeholder="+49 123 456789" {...field} />
                         </FormControl>
@@ -549,37 +532,9 @@ function ProjectsList({ selectedFirm, onViewProject, onManageServices }: { selec
                     name="installationPersonUniqueId"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>{t('уникальный_id_клиента', 'Уникальный ID клиента')}</FormLabel>
+                        <FormLabel>Уникальный ID клиента</FormLabel>
                         <FormControl>
-                          <Input placeholder={t('например_cli', 'Например: CLI-001234')} {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="teamNumber"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>{t('номер_команды', 'Номер команды')}</FormLabel>
-                        <FormControl>
-                          <Input placeholder={t('уникальный_номер_команды', 'Уникальный номер команды для этого проекта')} {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="notes"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>{t('заметки', 'Заметки')} ({t('необязательно', 'необязательно')})</FormLabel>
-                        <FormControl>
-                          <Textarea placeholder={t('дополнительные_детали_проекта', 'Дополнительные детали проекта...')} {...field} />
+                          <Input placeholder="Например: CLI-001234" {...field} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -587,11 +542,11 @@ function ProjectsList({ selectedFirm, onViewProject, onManageServices }: { selec
                   />
                 </div>
 
-                <div className="flex flex-col sm:flex-row justify-end space-y-2 sm:space-y-0 sm:space-x-2">
-                  <Button type="button" variant="outline" onClick={() => setIsCreateDialogOpen(false)} className="w-full sm:w-auto">
-                    {t('отмена_диалога', 'Отмена')}
+                <div className="flex justify-end space-x-2">
+                  <Button type="button" variant="outline" onClick={() => setIsCreateDialogOpen(false)}>
+                    Отмена
                   </Button>
-                  <Button className="w-full sm:w-auto" 
+                  <Button 
                     type="button" 
                     disabled={createProjectMutation.isPending}
                     onClick={async () => {
@@ -619,7 +574,7 @@ function ProjectsList({ selectedFirm, onViewProject, onManageServices }: { selec
                       await onSubmit(formData);
                     }}
                   >
-                    {createProjectMutation.isPending ? t('создание_проекта', 'Создание...') : t('создать_проект', 'Создать проект')}
+                    {createProjectMutation.isPending ? 'Создание...' : 'Создать проект'}
                   </Button>
                 </div>
               </form>
@@ -634,8 +589,8 @@ function ProjectsList({ selectedFirm, onViewProject, onManageServices }: { selec
           onComplete={() => {
             setIsTutorialOpen(false);
             toast({
-              title: t('руководство_завершено', 'Руководство завершено'),
-              description: t('готовы_к_работе', 'Теперь вы готовы к работе с системой!'),
+              title: 'Руководство завершено',
+              description: 'Теперь вы готовы к работе с системой!',
             });
           }}
         />
@@ -643,7 +598,7 @@ function ProjectsList({ selectedFirm, onViewProject, onManageServices }: { selec
 
       <div className="flex flex-col space-y-4 md:flex-row md:space-y-0 md:space-x-4 md:items-center">
         <Input
-          placeholder={t('поиск_проектов', 'Поиск проектов...')}
+          placeholder="Поиск проектов..."
           value={filter}
           onChange={(e) => setFilter(e.target.value)}
           className="max-w-sm"
@@ -653,7 +608,7 @@ function ProjectsList({ selectedFirm, onViewProject, onManageServices }: { selec
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">{t('все_статусы', 'Все статусы')}</SelectItem>
+            <SelectItem value="all">Все статусы</SelectItem>
             {Object.entries(statusLabels).map(([key, label]) => (
               <SelectItem key={key} value={key}>{label}</SelectItem>
             ))}
@@ -666,7 +621,7 @@ function ProjectsList({ selectedFirm, onViewProject, onManageServices }: { selec
             onCheckedChange={setHideCompleted}
           />
           <Label htmlFor="hide-completed" className="text-sm text-gray-600">
-{t('скрыть_завершенные', 'Скрыть завершенные')}
+            Скрыть завершенные
           </Label>
         </div>
       </div>
@@ -723,8 +678,8 @@ function ProjectsList({ selectedFirm, onViewProject, onManageServices }: { selec
                       priorityIndicator = (
                         <div className="mb-3 p-2 bg-red-50 border border-red-200 rounded-md">
                           <p className="text-sm text-red-700 font-medium">
-                            ⚠️ {t('оборудование_ожидается', 'Оборудование ожидается')}: {format(equipmentDate, 'dd.MM.yyyy', { locale: ru })}
-                            {diffDays <= 0 ? ` (${t('просрочено', 'просрочено')})` : ` (${diffDays} ${t('дн', 'дн.')})`}
+                            ⚠️ Оборудование ожидается: {format(equipmentDate, 'dd.MM.yyyy', { locale: ru })}
+                            {diffDays <= 0 ? ' (просрочено)' : ` (${diffDays} дн.)`}
                           </p>
                         </div>
                       );
@@ -738,8 +693,8 @@ function ProjectsList({ selectedFirm, onViewProject, onManageServices }: { selec
                       priorityIndicator = (
                         <div className="mb-3 p-2 bg-yellow-50 border border-yellow-200 rounded-md">
                           <p className="text-sm text-yellow-700 font-medium">
-                            🚧 {t('работы_начинаются', 'Работы начинаются')}: {format(workDate, 'dd.MM.yyyy', { locale: ru })}
-                            {diffDays <= 0 ? ` (${t('сегодня_просрочено', 'сегодня/просрочено')})` : ` (${t('завтра', 'завтра')})`}
+                            🚧 Работы начинаются: {format(workDate, 'dd.MM.yyyy', { locale: ru })}
+                            {diffDays <= 0 ? ' (сегодня/просрочено)' : ' (завтра)'}
                           </p>
                         </div>
                       );
@@ -750,7 +705,7 @@ function ProjectsList({ selectedFirm, onViewProject, onManageServices }: { selec
                     priorityIndicator = (
                       <div className="mb-3 p-2 bg-orange-50 border border-orange-200 rounded-md">
                         <p className="text-sm text-orange-700 font-medium">
-                          📞 {t('требуется_звонок_клиенту', 'Требуется звонок клиенту')}
+                          📞 Требуется звонок клиенту
                         </p>
                       </div>
                     );
@@ -767,7 +722,7 @@ function ProjectsList({ selectedFirm, onViewProject, onManageServices }: { selec
                       onClick={() => onViewProject(project.id)}
                     >
                       <Eye className="h-4 w-4 mr-2" />
-                      {t('просмотр', 'Просмотр')}
+                      Просмотр
                     </Button>
                     
                     <Button 
@@ -776,7 +731,7 @@ function ProjectsList({ selectedFirm, onViewProject, onManageServices }: { selec
                       onClick={() => onManageServices(project.id)}
                     >
                       <Settings className="h-4 w-4 mr-2" />
-                      {t('услуги', 'Услуги')}
+                      Услуги
                     </Button>
                     
 
@@ -789,7 +744,7 @@ function ProjectsList({ selectedFirm, onViewProject, onManageServices }: { selec
                         disabled={createInvoiceMutation.isPending}
                       >
                         <Receipt className="h-4 w-4 mr-2" />
-                        {createInvoiceMutation.isPending ? t('выставление', 'Выставление...') : t('выставить_счет', 'Выставить счет')}
+                        {createInvoiceMutation.isPending ? 'Выставление...' : 'Выставить счет'}
                       </Button>
                     )}
                     
@@ -801,13 +756,13 @@ function ProjectsList({ selectedFirm, onViewProject, onManageServices }: { selec
                           onClick={() => markPaidMutation.mutate(project.invoiceNumber!)}
                           disabled={markPaidMutation.isPending}
                         >
-                          {t('отметить_оплаченным', 'Отметить оплаченным')}
+                          Отметить оплаченным
                         </Button>
                         {project.invoiceUrl && (
                           <Button size="sm" variant="outline" asChild>
                             <a href={project.invoiceUrl} target="_blank" rel="noopener noreferrer">
                               <Download className="h-4 w-4 mr-2" />
-                              {t('скачать_pdf', 'Скачать PDF')}
+                              Скачать PDF
                             </a>
                           </Button>
                         )}
@@ -818,7 +773,7 @@ function ProjectsList({ selectedFirm, onViewProject, onManageServices }: { selec
                   {project.invoiceNumber && (
                     <div className="flex items-center text-sm text-gray-500">
                       <FileText className="h-4 w-4 mr-1" />
-                      {t('счет_номер', 'Счет №')}{project.invoiceNumber}
+                      Счет №{project.invoiceNumber}
                     </div>
                   )}
                 </div>
@@ -829,8 +784,8 @@ function ProjectsList({ selectedFirm, onViewProject, onManageServices }: { selec
           {filteredProjects.length === 0 && (
             <div className="text-center py-8">
               <FileText className="h-12 w-12 mx-auto text-gray-400 mb-4" />
-              <h3 className="text-lg font-medium text-gray-900 mb-2">{t('проекты_не_найдены', 'Проекты не найдены')}</h3>
-              <p className="text-gray-500">{t('создайте_новый_проект_или_измените_фильтры', 'Создайте новый проект или измените фильтры поиска')}</p>
+              <h3 className="text-lg font-medium text-gray-900 mb-2">Проекты не найдены</h3>
+              <p className="text-gray-500">Создайте новый проект или измените фильтры поиска</p>
             </div>
           )}
         </div>
@@ -842,7 +797,6 @@ function ProjectsList({ selectedFirm, onViewProject, onManageServices }: { selec
 }
 
 export default function ProjectsWrapper({ selectedFirm, initialProjectId }: ProjectsWrapperProps) {
-  const { t } = useTranslations();
   const [viewMode, setViewMode] = useState<ViewMode>('list');
   const [selectedProjectId, setSelectedProjectId] = useState<number | null>(null);
 
@@ -901,9 +855,9 @@ export default function ProjectsWrapper({ selectedFirm, initialProjectId }: Proj
           <div className="flex items-center space-x-4">
             <Button variant="outline" onClick={handleBackToList}>
               <ArrowLeft className="h-4 w-4 mr-2" />
-              {t('назад_к_проектам', 'Назад к проектам')}
+              Назад к проектам
             </Button>
-            <h1 className="text-2xl font-bold">{t('управление_услугами', 'Управление услугами')}</h1>
+            <h1 className="text-2xl font-bold">Управление услугами</h1>
           </div>
         </div>
         <Services selectedFirm={selectedFirm} projectId={selectedProjectId} />

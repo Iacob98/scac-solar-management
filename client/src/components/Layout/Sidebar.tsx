@@ -1,24 +1,22 @@
 import { Link, useLocation } from 'wouter';
 import { useAuth } from '@/hooks/useAuth';
-import { useTranslations } from '@/hooks/useTranslations';
 
 export function Sidebar() {
   const { user } = useAuth();
   const [location] = useLocation();
-  const { t } = useTranslations();
 
   const menuItems = [
-    { path: '/projects', label: t('проекты_меню', 'Проекты'), icon: 'dashboard' },
-    { path: '/clients', label: t('клиенты_меню', 'Клиенты'), icon: 'people' },
-    { path: '/crews', label: t('бригады_меню', 'Бригады'), icon: 'groups' },
-    { path: '/crews/statistics', label: t('статистика_меню', 'Статистика'), icon: 'analytics' },
-    { path: '/calendar', label: t('календарь_меню', 'Календарь'), icon: 'event' },
-    ...(user?.role === 'admin' ? [{ path: '/invoices', label: t('счета_меню', 'Счета'), icon: 'receipt' }] : []),
+    { path: '/projects', label: 'Проекты', icon: 'dashboard' },
+    { path: '/clients', label: 'Клиенты', icon: 'people' },
+    { path: '/crews', label: 'Бригады', icon: 'groups' },
+    { path: '/crews/statistics', label: 'Статистика', icon: 'analytics' },
+    { path: '/calendar', label: 'Календарь', icon: 'event' },
+    ...(user?.role === 'admin' ? [{ path: '/invoices', label: 'Счета', icon: 'receipt' }] : []),
   ];
 
   const adminItems = [
-    { path: '/admin/firms', label: t('управление_фирмами', 'Управление фирмами'), icon: 'domain_add' },
-    { path: '/admin/users', label: t('пользователи_админ', 'Пользователи'), icon: 'admin_panel_settings' },
+    { path: '/admin/firms', label: 'Управление фирмами', icon: 'domain_add' },
+    { path: '/admin/users', label: 'Пользователи', icon: 'admin_panel_settings' },
   ];
 
   const isActive = (path: string) => {
@@ -66,7 +64,7 @@ export function Sidebar() {
         {user?.role === 'admin' && (
           <div className="pt-4 border-t">
             <p className="text-xs font-medium text-gray-400 uppercase tracking-wider mb-2">
-              {t('администрирование', 'Администрирование')}
+              Администрирование
             </p>
             {adminItems.map((item) => (
               <Link key={item.path} href={item.path}>

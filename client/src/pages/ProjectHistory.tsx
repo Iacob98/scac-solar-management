@@ -1,7 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { format } from 'date-fns';
 import { ru } from 'date-fns/locale';
-import { useTranslations } from '@/hooks/useTranslations';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -67,29 +66,24 @@ const changeTypeColors = {
   'note_added': 'bg-blue-100 text-blue-700',
 };
 
-export default function ProjectHistory({ projectId, onBack, embedded = false, limit }: ProjectHistoryProps) {
-  const { t } = useTranslations();
-  const [selectedSnapshot, setSelectedSnapshot] = useState<number | null>(null);
-  const [snapshotData, setSnapshotData] = useState<any>(null);
-  
-  const changeTypeLabels = {
-    'status_change': t('изменения_статуса', 'Изменение статуса'),
-    'date_update': t('изменение_даты', 'Изменение даты'),
-    'info_update': t('обновление_информации', 'Обновление информации'),
-    'created': t('создание', 'Создание'),
-    'equipment_update': t('оборудование', 'Оборудование'),
-    'call_update': t('звонок_клиенту', 'Звонок клиенту'),
-    'assignment_change': t('назначение_команды', 'Назначение команды'),
-    'shared': t('общий_доступ', 'Общий доступ'),
-    'file_added': t('файл_добавлен', 'Файл добавлен'),
-    'file_deleted': t('файл_удален', 'Файл удален'),
-    'report_added': t('отчет_создан', 'Отчет создан'),
-    'report_updated': t('отчет_обновлен', 'Отчет обновлен'),
-    'report_deleted': t('отчет_удален', 'Отчет удален'),
-    'note_added': t('примечание_добавлено', 'Примечание добавлено'),
-    'crew_assigned': t('бригада_назначена', 'Бригада назначена'),
-    'crew_snapshot_created': t('снимок_бригады', 'Снимок бригады'),
-  };
+const changeTypeLabels = {
+  'status_change': 'Изменение статуса',
+  'date_update': 'Изменение даты',
+  'info_update': 'Обновление информации',
+  'created': 'Создание',
+  'equipment_update': 'Оборудование',
+  'call_update': 'Звонок клиенту',
+  'assignment_change': 'Назначение команды',
+  'shared': 'Общий доступ',
+  'file_added': 'Файл добавлен',
+  'file_deleted': 'Файл удален',
+  'report_added': 'Отчет создан',
+  'report_updated': 'Отчет обновлен',
+  'report_deleted': 'Отчет удален',
+  'note_added': 'Примечание добавлено',
+  'crew_assigned': 'Бригада назначена',
+  'crew_snapshot_created': 'Снимок бригады',
+};
 
 // Функция для определения приоритета из описания примечания (для обратной совместимости со старыми записями)
 const extractNotePriority = (description: string): 'normal' | 'important' | 'urgent' | 'critical' => {
@@ -122,7 +116,9 @@ const priorityBadgeStyles = {
   critical: 'bg-red-100 text-red-700 border-red-300',
 };
 
-
+export default function ProjectHistory({ projectId, onBack, embedded = false, limit }: ProjectHistoryProps) {
+  const [selectedSnapshot, setSelectedSnapshot] = useState<number | null>(null);
+  const [snapshotData, setSnapshotData] = useState<any>(null);
   
   const { data: history = [], isLoading, error } = useQuery({
     queryKey: ['/api/projects', projectId, 'history'],
