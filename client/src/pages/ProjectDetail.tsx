@@ -34,18 +34,19 @@ interface ProjectDetailProps {
   onBack: () => void;
 }
 
-const statusLabels = {
-  planning: 'Планирование',
-  equipment_waiting: 'Ожидание оборудования',
-  equipment_arrived: 'Оборудование поступило',
-  work_scheduled: 'Работы запланированы',
-  work_in_progress: 'Работы в процессе',
-  work_completed: 'Работы завершены',
-  invoiced: 'Счет выставлен',
-  send_invoice: 'Отправить счет',
-  invoice_sent: 'Счет отправлен',
-  paid: 'Оплачен'
-};
+// Функция для получения переводов статусов
+const getStatusLabels = (t: (key: string, fallback: string) => string) => ({
+  planning: t('планирование', 'Планирование'),
+  equipment_waiting: t('ожидание_оборудования', 'Ожидание оборудования'),
+  equipment_arrived: t('оборудование_поступило', 'Оборудование поступило'),
+  work_scheduled: t('работы_запланированы', 'Работы запланированы'),
+  work_in_progress: t('работы_в_процессе', 'Работы в процессе'),
+  work_completed: t('работы_завершены', 'Работы завершены'),
+  invoiced: t('счет_выставлен', 'Счет выставлен'),
+  send_invoice: t('отправить_счет', 'Отправить счет'),
+  invoice_sent: t('счет_отправлен', 'Счет отправлен'),
+  paid: t('оплачен', 'Оплачен')
+});
 
 const statusColors = {
   planning: 'bg-blue-100 text-blue-800',
@@ -516,8 +517,8 @@ export default function ProjectDetail({ projectId, selectedFirm, onBack }: Proje
       <div className="flex items-center justify-center h-96">
         <div className="text-center">
           <FileText className="h-12 w-12 mx-auto text-gray-400 mb-4" />
-          <h3 className="text-lg font-medium text-gray-900 mb-2">Проект не найден</h3>
-          <p className="text-gray-500">Проект с указанным ID не существует или загружается</p>
+          <h3 className="text-lg font-medium text-gray-900 mb-2">{t('проект_не_найден', 'Проект не найден')}</h3>
+          <p className="text-gray-500">{t('проект_не_существует', 'Проект с указанным ID не существует или загружается')}</p>
           <p className="text-xs text-gray-400 mt-2">ID: {projectId}, Loading: {projectLoading ? 'да' : 'нет'}</p>
         </div>
       </div>
@@ -533,7 +534,7 @@ export default function ProjectDetail({ projectId, selectedFirm, onBack }: Proje
             <div className="flex items-center space-x-4">
               <Button variant="ghost" onClick={() => setLocation('/projects')} className="hover:bg-blue-50">
                 <ArrowLeft className="h-4 w-4 mr-2" />
-                Назад к проектам
+                {t('обратно_к_проектам', 'Назад к проектам')}
               </Button>
             </div>
           </div>
@@ -544,13 +545,13 @@ export default function ProjectDetail({ projectId, selectedFirm, onBack }: Proje
                 <Building2 className="h-8 w-8 text-blue-600" />
               </div>
               <div>
-                <h1 className="text-3xl font-bold text-gray-900">Проект #{project.id}</h1>
+                <h1 className="text-3xl font-bold text-gray-900">{t('номер_проекта', 'Проект')} #{project.id}</h1>
                 <p className="text-gray-600 mt-1">
                   {project.installationPersonFirstName} {project.installationPersonLastName}
                 </p>
               </div>
               <Badge className={`${statusColors[project.status as keyof typeof statusColors]} text-sm px-3 py-1`}>
-                {statusLabels[project.status as keyof typeof statusLabels]}
+                {getStatusLabels(t)[project.status as keyof typeof statusColors]}
               </Badge>
             </div>
             
@@ -682,7 +683,7 @@ export default function ProjectDetail({ projectId, selectedFirm, onBack }: Proje
 
                 {project.equipmentArrivedDate && (
                   <div className="space-y-2">
-                    <p className="text-sm text-gray-500">Фактическая поставка</p>
+                    <p className="text-sm text-gray-500">{t('фактическая_поставка', 'Фактическая поставка')}</p>
                     <p className="font-medium text-green-700">
                       {format(new Date(project.equipmentArrivedDate), 'dd.MM.yyyy', { locale: ru })}
                     </p>
@@ -691,7 +692,7 @@ export default function ProjectDetail({ projectId, selectedFirm, onBack }: Proje
 
                 {project.workStartDate && (
                   <div className="space-y-2">
-                    <p className="text-sm text-gray-500">Ожидаемое начало работ</p>
+                    <p className="text-sm text-gray-500">{t('ожидаемое_начало_работ', 'Ожидаемое начало работ')}</p>
                     <p className="font-medium text-blue-700">
                       {format(new Date(project.workStartDate), 'dd.MM.yyyy', { locale: ru })}
                     </p>
@@ -700,7 +701,7 @@ export default function ProjectDetail({ projectId, selectedFirm, onBack }: Proje
                 
                 {project.workEndDate && (
                   <div className="space-y-2">
-                    <p className="text-sm text-gray-500">Дата окончания работ</p>
+                    <p className="text-sm text-gray-500">{t('дата_окончания_работ', 'Дата окончания работ')}</p>
                     <p className="font-medium text-gray-900">
                       {format(new Date(project.workEndDate), 'dd.MM.yyyy', { locale: ru })}
                     </p>
@@ -709,7 +710,7 @@ export default function ProjectDetail({ projectId, selectedFirm, onBack }: Proje
                 
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
-                    <p className="text-sm text-gray-500">Команда</p>
+                    <p className="text-sm text-gray-500">{t('бригада', 'Команда')}</p>
                     <Button
                       variant="ghost"
                       size="sm"
@@ -717,12 +718,12 @@ export default function ProjectDetail({ projectId, selectedFirm, onBack }: Proje
                       className="h-8 px-2"
                     >
                       <Edit className="h-3 w-3 mr-1" />
-                      Изменить
+                      {t('редактировать', 'Изменить')}
                     </Button>
                   </div>
                   <p className="font-medium text-gray-900 flex items-center">
                     <Users className="h-4 w-4 mr-2 text-blue-600" />
-                    {(crew as Crew)?.name || 'Не назначена'}
+                    {(crew as Crew)?.name || t('не_назначена', 'Не назначена')}
                   </p>
                 </div>
               </CardContent>
@@ -741,12 +742,12 @@ export default function ProjectDetail({ projectId, selectedFirm, onBack }: Proje
                 <CardHeader className="pb-3">
                   <CardTitle className="flex items-center text-lg">
                     <Euro className="h-5 w-5 mr-2 text-orange-600" />
-                    Финансы
+                    {t('финансы', 'Финансы')}
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-3">
                   <div className="space-y-2">
-                    <p className="text-sm text-gray-500">Номер счета</p>
+                    <p className="text-sm text-gray-500">{t('номер_счета', 'Номер счета')}</p>
                     <p className="font-medium text-gray-900">#{project.invoiceNumber}</p>
                   </div>
                   
@@ -754,7 +755,7 @@ export default function ProjectDetail({ projectId, selectedFirm, onBack }: Proje
                     <Button variant="outline" size="sm" asChild className="w-full">
                       <a href={project.invoiceUrl} target="_blank" rel="noopener noreferrer">
                         <FileText className="h-4 w-4 mr-2" />
-                        Открыть счет в Invoice Ninja
+                        {t('открыть_счет', 'Открыть счет в Invoice Ninja')}
                       </a>
                     </Button>
                   )}
@@ -768,10 +769,10 @@ export default function ProjectDetail({ projectId, selectedFirm, onBack }: Proje
         <div className="bg-white rounded-xl shadow-sm border p-6">
           <Tabs value={activeTab} onValueChange={setActiveTab}>
             <TabsList className="grid w-full grid-cols-4 mb-6">
-              <TabsTrigger value="services" className="text-sm">Услуги проекта</TabsTrigger>
-              <TabsTrigger value="management" className="text-sm">Управление датами</TabsTrigger>
-              <TabsTrigger value="files" className="text-sm">Файлы и отчеты</TabsTrigger>
-              <TabsTrigger value="notes" className="text-sm">Примечания</TabsTrigger>
+              <TabsTrigger value="services" className="text-sm">{t('услуги_проекта', 'Услуги проекта')}</TabsTrigger>
+              <TabsTrigger value="management" className="text-sm">{t('управление_датами', 'Управление датами')}</TabsTrigger>
+              <TabsTrigger value="files" className="text-sm">{t('файлы_и_отчеты', 'Файлы и отчеты')}</TabsTrigger>
+              <TabsTrigger value="notes" className="text-sm">{t('примечания', 'Примечания')}</TabsTrigger>
             </TabsList>
 
             <TabsContent value="services" className="space-y-4">
