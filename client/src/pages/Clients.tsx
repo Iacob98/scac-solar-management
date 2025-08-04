@@ -15,6 +15,7 @@ import { Plus, Edit, Mail, Phone, MapPin, User } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
+import { useTranslation } from '@shared/i18n';
 
 const clientSchema = z.object({
   name: z.string().min(1, 'Название обязательно'),
@@ -26,6 +27,7 @@ const clientSchema = z.object({
 export default function Clients() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const { t } = useTranslation();
   const [selectedFirmId, setSelectedFirmId] = useState<string>('');
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingClient, setEditingClient] = useState<any>(null);
@@ -137,10 +139,10 @@ export default function Clients() {
       <MainLayout>
         <div className="p-4 sm:p-6 text-center">
           <h1 className="text-2xl font-semibold text-gray-900 mb-4">
-            Клиенты
+            {t('клиенты', 'Клиенты')}
           </h1>
           <p className="text-gray-600">
-            Пожалуйста, выберите фирму в заголовке для управления клиентами.
+            {t('выберите_фирму_в_верхнем_меню_для_просмотра_статистики', 'Пожалуйста, выберите фирму в заголовке для управления клиентами.')}
           </p>
         </div>
       </MainLayout>
@@ -152,15 +154,15 @@ export default function Clients() {
       <div className="p-4 sm:p-6">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
           <div>
-            <h1 className="text-2xl font-semibold text-gray-900">Клиенты</h1>
+            <h1 className="text-2xl font-semibold text-gray-900">{t('клиенты', 'Клиенты')}</h1>
             <p className="text-gray-600 mt-1">Синхронизированы с Invoice Ninja</p>
           </div>
           <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
             <DialogTrigger asChild>
               <Button className="bg-primary hover:bg-primary-dark text-white w-full sm:w-auto">
                 <Plus className="w-4 h-4 mr-2" />
-                <span className="hidden sm:inline">Добавить нового клиента</span>
-                <span className="sm:hidden">Добавить клиента</span>
+                <span className="hidden sm:inline">{t('добавить_нового_клиента', 'Добавить нового клиента')}</span>
+                <span className="sm:hidden">{t('добавить_клиента', 'Добавить клиента')}</span>
               </Button>
             </DialogTrigger>
             <DialogContent className="max-w-md mx-4 sm:mx-0">
