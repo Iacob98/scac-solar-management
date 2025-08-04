@@ -194,7 +194,21 @@ export const useTranslation = create<TranslationStore>()(
         },
         'например_cli': { ru: 'Например: CLI-001234', de: 'Zum Beispiel: CLI-001234' },
         'уникальный_номер_команды': { ru: 'Уникальный номер команды для этого проекта', de: 'Eindeutige Team-Nummer für dieses Projekt' },
-        'дополнительные_детали_проекта': { ru: 'Дополнительные детали проекта...', de: 'Weitere Details zum Projekt...' }
+        'дополнительные_детали_проекта': { ru: 'Дополнительные детали проекта...', de: 'Weitere Details zum Projekt...' },
+        'телефон_клиента': { ru: 'Телефон клиента', de: 'Telefon des Kunden' },
+        'уникальный_id_клиента': { ru: 'Уникальный ID клиента', de: 'Eindeutige Kunden-ID' },
+        
+        // Дополнительные переводы для формы создания проекта
+        'создание_нового_проекта': { ru: 'Создание нового проекта', de: 'Neues Projekt erstellen' },
+        'заполните_форму_создания_проекта': { ru: 'Заполните форму для создания нового проекта установки солнечных панелей', de: 'Füllen Sie das Formular aus, um ein neues Solaranlagen-Installationsprojekt zu erstellen' },
+        'выберите_клиента': { ru: 'Выберите клиента', de: 'Kunden auswählen' },
+        'выберите_бригаду': { ru: 'Выберите бригаду', de: 'Team auswählen' },
+        'дата_начала_проекта': { ru: 'Дата начала проекта', de: 'Projektstartdatum' },
+        'ожидаемая_дата_поставки_оборудования': { ru: 'Ожидаемая дата поставки оборудования', de: 'Erwartetes Lieferdatum der Ausrüstung' },
+        'ожидаемая_дата_начала_работ': { ru: 'Ожидаемая дата начала работ', de: 'Erwartetes Arbeitsstartdatum' },
+        'номер_телефона_клиента': { ru: 'Номер телефона клиента', de: 'Telefonnummer des Kunden' },
+        'уникальный_идентификатор': { ru: 'Уникальный идентификатор', de: 'Eindeutige Kennung' },
+        'номер_команды_проекта': { ru: 'Номер команды для проекта', de: 'Team-Nummer für das Projekt' }
       },
       
       setLanguage: (language: Language) => set({ language }),

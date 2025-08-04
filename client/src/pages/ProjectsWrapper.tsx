@@ -34,7 +34,16 @@ interface ProjectsWrapperProps {
 
 type ViewMode = 'list' | 'detail' | 'services';
 
-const projectFormSchema = insertProjectSchema.omit({ id: true, firmId: true, leiterId: true, createdAt: true, updatedAt: true }).extend({
+const projectFormSchema = insertProjectSchema.omit({ 
+  id: true, 
+  firmId: true, 
+  leiterId: true, 
+  createdAt: true, 
+  updatedAt: true,
+  needsCallForEquipmentDelay: true,
+  needsCallForCrewDelay: true,
+  needsCallForDateChange: true
+}).extend({
   startDate: z.string().min(1, 'Дата начала обязательна'),
   equipmentExpectedDate: z.string().min(1, 'Ожидаемая дата поставки обязательна'),
   workStartDate: z.string().optional(),
