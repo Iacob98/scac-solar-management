@@ -18,9 +18,13 @@ export default function TestTranslation() {
               <strong>Текущий язык / Current Language: {language === 'ru' ? '🇷🇺 Русский' : '🇩🇪 Немецкий'}</strong>
               <Button 
                 onClick={() => {
-                  console.log('Switching language from', language);
-                  setLanguage(language === 'ru' ? 'de' : 'ru');
-                  console.log('New language:', language);
+                  const newLang = language === 'ru' ? 'de' : 'ru';
+                  console.log('Switching language from', language, 'to', newLang);
+                  setLanguage(newLang);
+                  // Force re-render by triggering a state update
+                  setTimeout(() => {
+                    console.log('Language after switch:', useTranslation.getState().language);
+                  }, 100);
                 }}
                 variant="outline"
                 className="ml-4"
@@ -33,22 +37,22 @@ export default function TestTranslation() {
               <div className="p-4 border rounded-lg">
                 <h3 className="font-semibold mb-3 text-lg">🏠 Навигация / Navigation:</h3>
                 <ul className="space-y-2 text-sm">
-                  <li><strong>Проекты:</strong> {t('проекты', 'Проекты')}</li>
-                  <li><strong>Клиенты:</strong> {t('клиенты', 'Клиенты')}</li>
-                  <li><strong>Бригады:</strong> {t('бригады', 'Бригады')}</li>
-                  <li><strong>Счета:</strong> {t('счета', 'Счета')}</li>
-                  <li><strong>Быстрые действия:</strong> {t('быстрые_действия', 'Быстрые действия')}</li>
+                  <li><strong>Проекты:</strong> <span className="text-green-600">{t('проекты', 'Проекты')}</span></li>
+                  <li><strong>Клиенты:</strong> <span className="text-green-600">{t('клиенты', 'Клиенты')}</span></li>
+                  <li><strong>Бригады:</strong> <span className="text-green-600">{t('бригады', 'Бригады')}</span></li>
+                  <li><strong>Счета:</strong> <span className="text-green-600">{t('счета', 'Счета')}</span></li>
+                  <li><strong>Быстрые действия:</strong> <span className="text-green-600">{t('быстрые_действия', 'Быстрые действия')}</span></li>
                 </ul>
               </div>
               
               <div className="p-4 border rounded-lg">
                 <h3 className="font-semibold mb-3 text-lg">📊 Статусы / Status:</h3>
                 <ul className="space-y-2 text-sm">
-                  <li><strong>Планирование:</strong> {t('планирование', 'Планирование')}</li>
-                  <li><strong>Ожидание оборудования:</strong> {t('ожидание_оборудования', 'Ожидание оборудования')}</li>
-                  <li><strong>Оборудование поступило:</strong> {t('оборудование_поступило', 'Оборудование поступило')}</li>
-                  <li><strong>Работы в процессе:</strong> {t('работы_в_процессе', 'Работы в процессе')}</li>
-                  <li><strong>Оплачен:</strong> {t('оплачен', 'Оплачен')}</li>
+                  <li><strong>Планирование:</strong> <span className="text-blue-600">{t('планирование', 'Планирование')}</span></li>
+                  <li><strong>Ожидание оборудования:</strong> <span className="text-blue-600">{t('ожидание_оборудования', 'Ожидание оборудования')}</span></li>
+                  <li><strong>Оборудование поступило:</strong> <span className="text-blue-600">{t('оборудование_поступило', 'Оборудование поступило')}</span></li>
+                  <li><strong>Работы в процессе:</strong> <span className="text-blue-600">{t('работы_в_процессе', 'Работы в процессе')}</span></li>
+                  <li><strong>Оплачен:</strong> <span className="text-blue-600">{t('оплачен', 'Оплачен')}</span></li>
                 </ul>
               </div>
             </div>
@@ -57,13 +61,22 @@ export default function TestTranslation() {
               <h3 className="font-semibold mb-2">🔧 Инструкция / Instructions:</h3>
               <p className="text-sm">
                 1. Нажмите кнопку "Переключить" выше<br/>
-                2. Весь текст должен мгновенно измениться<br/>
+                2. <strong>Цветные слова должны мгновенно измениться</strong><br/>
                 3. Переключатель языка в правом верхнем углу работает глобально<br/>
                 <br/>
                 <em>1. Click "Switch" button above<br/>
-                2. All text should instantly change<br/>
+                2. <strong>Colored words should instantly change</strong><br/>
                 3. Language toggle in top-right works globally</em>
               </p>
+            </div>
+            
+            <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+              <h3 className="font-semibold mb-2">🐛 Debug Info:</h3>
+              <div className="text-xs font-mono space-y-1">
+                <div>Language State: <strong>{language}</strong></div>
+                <div>Test Translation: <strong className="text-red-600">{t('проекты', 'FALLBACK')}</strong></div>
+                <div>Timestamp: {Date.now()}</div>
+              </div>
             </div>
           </CardContent>
         </Card>

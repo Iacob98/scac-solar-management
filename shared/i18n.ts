@@ -117,14 +117,14 @@ export const useTranslation = create<TranslationStore>()(
 
 // Хук для получения текущего языка и функции перевода
 export const useI18n = () => {
-  const { language, t, setLanguage } = useTranslation();
+  const state = useTranslation();
   
   return {
-    language,
-    t,
-    setLanguage,
-    isGerman: language === 'de',
-    isRussian: language === 'ru',
+    language: state.language,
+    t: state.t,
+    setLanguage: state.setLanguage,
+    isGerman: state.language === 'de',
+    isRussian: state.language === 'ru',
   };
 };
 
@@ -136,19 +136,25 @@ export const translate = (key: string, fallback?: string): string => {
 
 // Компонент переключателя языка
 export const LanguageToggle: React.FC = () => {
-  const { language, setLanguage } = useI18n();
+  const state = useTranslation();
+  
+  const handleToggle = () => {
+    const newLang = state.language === 'ru' ? 'de' : 'ru';
+    console.log('Switching from', state.language, 'to', newLang);
+    state.setLanguage(newLang);
+  };
   
   return React.createElement(
     'button',
     {
-      onClick: () => setLanguage(language === 'ru' ? 'de' : 'ru'),
+      onClick: handleToggle,
       className: "flex items-center space-x-2 px-3 py-2 rounded-lg border hover:bg-gray-50 transition-colors",
-      title: language === 'ru' ? 'Переключить на немецкий' : 'Auf Russisch umschalten'
+      title: state.language === 'ru' ? 'Переключить на немецкий' : 'Auf Russisch umschalten'
     },
     React.createElement(
       'span',
       { className: "text-sm font-medium" },
-      language === 'ru' ? '🇷🇺 RU' : '🇩🇪 DE'
+      state.language === 'ru' ? '🇷🇺 RU' : '🇩🇪 DE'
     )
   );
 };
