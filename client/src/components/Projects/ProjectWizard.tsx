@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useToast } from '@/hooks/use-toast';
 import { apiRequest } from '@/lib/queryClient';
 import { useI18n } from '@/hooks/useI18n';
+import { useTranslation } from '@shared/i18n';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -42,6 +43,7 @@ interface ProjectWizardProps {
 export function ProjectWizard({ isOpen, onClose, firmId }: ProjectWizardProps) {
   const { formatCurrency } = useI18n();
   const { toast } = useToast();
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
   const [currentStep, setCurrentStep] = useState(1);
   const [projectData, setProjectData] = useState<any>(null);
@@ -88,13 +90,13 @@ export function ProjectWizard({ isOpen, onClose, firmId }: ProjectWizardProps) {
       setProjectData(project);
       setCurrentStep(2);
       toast({
-        title: 'Erfolg',
-        description: 'Projekt wurde erstellt',
+        title: t('успешно', 'Erfolg'),
+        description: t('проект_создан', 'Projekt wurde erstellt'),
       });
     },
     onError: (error: any) => {
       toast({
-        title: 'Fehler',
+        title: t('ошибка', 'Fehler'),
         description: error.message,
         variant: 'destructive',
       });
@@ -113,8 +115,8 @@ export function ProjectWizard({ isOpen, onClose, firmId }: ProjectWizardProps) {
       setServices(prev => [...prev, service]);
       serviceForm.reset();
       toast({
-        title: 'Erfolg',
-        description: 'Leistung hinzugefügt',
+        title: t('успешно', 'Erfolg'),
+        description: t('услуга_добавлена', 'Leistung hinzugefügt'),
       });
     },
     onError: (error: any) => {
@@ -133,8 +135,8 @@ export function ProjectWizard({ isOpen, onClose, firmId }: ProjectWizardProps) {
     onSuccess: (_, serviceId) => {
       setServices(prev => prev.filter(s => s.id !== serviceId));
       toast({
-        title: 'Erfolg',
-        description: 'Leistung entfernt',
+        title: t('успешно', 'Erfolg'),
+        description: t('услуга_удалена', 'Leistung entfernt'),
       });
     },
     onError: (error: any) => {
@@ -204,16 +206,16 @@ export function ProjectWizard({ isOpen, onClose, firmId }: ProjectWizardProps) {
   };
 
   const steps = [
-    { id: 1, title: 'Projekt Details', icon: FileText },
-    { id: 2, title: 'Leistungen', icon: Plus },
-    { id: 3, title: 'Zusammenfassung', icon: Check },
+    { id: 1, title: t('детали_проекта', 'Projekt Details'), icon: FileText },
+    { id: 2, title: t('услуги', 'Leistungen'), icon: Plus },
+    { id: 3, title: t('резюме', 'Zusammenfassung'), icon: Check },
   ];
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Neues Projekt erstellen</DialogTitle>
+          <DialogTitle>{t('создать_новый_проект', 'Neues Projekt erstellen')}</DialogTitle>
         </DialogHeader>
 
         {/* Steps indicator */}
@@ -245,14 +247,14 @@ export function ProjectWizard({ isOpen, onClose, firmId }: ProjectWizardProps) {
             <CardHeader>
               <CardTitle className="flex items-center space-x-2">
                 <FileText className="w-5 h-5" />
-                <span>Projekt Grunddaten</span>
+                <span>{t('основные_данные_проекта', 'Projekt Grunddaten')}</span>
               </CardTitle>
             </CardHeader>
             <CardContent>
               <form onSubmit={projectForm.handleSubmit(onProjectSubmit)} className="space-y-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <Label htmlFor="teamNumber">Team-Nummer</Label>
+                    <Label htmlFor="teamNumber">{t('номер_команды', 'Team-Nummer')}</Label>
                     <Input
                       id="teamNumber"
                       {...projectForm.register('teamNumber')}
@@ -266,13 +268,13 @@ export function ProjectWizard({ isOpen, onClose, firmId }: ProjectWizardProps) {
                   </div>
 
                   <div>
-                    <Label htmlFor="clientId">Kunde</Label>
+                    <Label htmlFor="clientId">{t('клиент', 'Kunde')}</Label>
                     <Select
                       value={projectForm.watch('clientId')}
                       onValueChange={(value) => projectForm.setValue('clientId', value)}
                     >
                       <SelectTrigger>
-                        <SelectValue placeholder="Kunde auswählen" />
+                        <SelectValue placeholder={t('выбрать_клиента', 'Kunde auswählen')} />
                       </SelectTrigger>
                       <SelectContent>
                         {clients.map((client) => (
@@ -292,16 +294,16 @@ export function ProjectWizard({ isOpen, onClose, firmId }: ProjectWizardProps) {
 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div>
-                    <Label htmlFor="crewId">Crew (optional)</Label>
+                    <Label htmlFor="crewId">{t('бригада', 'Crew')} ({t('опционально', 'optional')})</Label>
                     <Select
                       value={projectForm.watch('crewId')}
                       onValueChange={(value) => projectForm.setValue('crewId', value)}
                     >
                       <SelectTrigger>
-                        <SelectValue placeholder="Crew auswählen" />
+                        <SelectValue placeholder={t('выбрать_бригаду', 'Crew auswählen')} />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="none">Später zuweisen</SelectItem>
+                        <SelectItem value="none">{t('назначить_позже', 'Später zuweisen')}</SelectItem>
                         {crews.filter((c) => !c.archived).map((crew) => (
                           <SelectItem key={crew.id} value={crew.id.toString()}>
                             {crew.name}
@@ -312,7 +314,7 @@ export function ProjectWizard({ isOpen, onClose, firmId }: ProjectWizardProps) {
                   </div>
 
                   <div>
-                    <Label htmlFor="startDate">Startdatum</Label>
+                    <Label htmlFor="startDate">{t('дата_начала', 'Startdatum')}</Label>
                     <Input
                       id="startDate"
                       type="date"
@@ -326,7 +328,7 @@ export function ProjectWizard({ isOpen, onClose, firmId }: ProjectWizardProps) {
                   </div>
 
                   <div>
-                    <Label htmlFor="endDate">Enddatum (optional)</Label>
+                    <Label htmlFor="endDate">{t('дата_окончания', 'Enddatum')} ({t('опционально', 'optional')})</Label>
                     <Input
                       id="endDate"
                       type="date"
@@ -336,17 +338,17 @@ export function ProjectWizard({ isOpen, onClose, firmId }: ProjectWizardProps) {
                 </div>
 
                 <div>
-                  <Label htmlFor="notes">Notizen</Label>
+                  <Label htmlFor="notes">{t('примечания', 'Notizen')}</Label>
                   <Textarea
                     id="notes"
                     {...projectForm.register('notes')}
-                    placeholder="Besondere Anforderungen, Hinweise..."
+                    placeholder={t('особые_требования_заметки', 'Besondere Anforderungen, Hinweise...')}
                   />
                 </div>
 
                 <div className="flex justify-end">
                   <Button type="submit" disabled={createProjectMutation.isPending}>
-                    {createProjectMutation.isPending ? 'Erstelle...' : 'Weiter'}
+                    {createProjectMutation.isPending ? t('создание', 'Erstelle...') : t('далее', 'Weiter')}
                     <ArrowRight className="w-4 h-4 ml-2" />
                   </Button>
                 </div>
@@ -362,14 +364,14 @@ export function ProjectWizard({ isOpen, onClose, firmId }: ProjectWizardProps) {
               <CardHeader>
                 <CardTitle className="flex items-center space-x-2">
                   <Plus className="w-5 h-5" />
-                  <span>Leistungen hinzufügen</span>
+                  <span>{t('добавить_услуги', 'Leistungen hinzufügen')}</span>
                 </CardTitle>
               </CardHeader>
               <CardContent>
                 <form onSubmit={serviceForm.handleSubmit(onServiceSubmit)} className="space-y-4">
                   <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                     <div className="md:col-span-2">
-                      <Label htmlFor="description">Beschreibung</Label>
+                      <Label htmlFor="description">{t('описание', 'Beschreibung')}</Label>
                       <Input
                         id="description"
                         {...serviceForm.register('description')}
@@ -383,7 +385,7 @@ export function ProjectWizard({ isOpen, onClose, firmId }: ProjectWizardProps) {
                     </div>
 
                     <div>
-                      <Label htmlFor="quantity">Menge</Label>
+                      <Label htmlFor="quantity">{t('количество', 'Menge')}</Label>
                       <Input
                         id="quantity"
                         type="number"
@@ -399,7 +401,7 @@ export function ProjectWizard({ isOpen, onClose, firmId }: ProjectWizardProps) {
                     </div>
 
                     <div>
-                      <Label htmlFor="price">Preis (€)</Label>
+                      <Label htmlFor="price">{t('цена', 'Preis')} (€)</Label>
                       <Input
                         id="price"
                         type="number"
