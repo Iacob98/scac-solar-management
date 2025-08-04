@@ -670,15 +670,15 @@ export default function CrewsNew() {
       setIsCreateDialogOpen(false);
       form.reset();
       toast({
-        title: 'Бригада создана',
-        description: 'Новая бригада успешно добавлена в систему',
+        title: t('бригада_создана', 'Бригада создана'),
+        description: t('новая_бригада_успешно_добавлена', 'Новая бригада успешно добавлена в систему'),
       });
     },
     onError: (error: any) => {
       console.error('❌ Frontend: Mutation failed:', error);
       toast({
-        title: 'Ошибка создания бригады',
-        description: error.message || 'Не удалось создать бригаду',
+        title: t('ошибка_создания_бригады', 'Ошибка создания бригады'),
+        description: error.message || t('не_удалось_создать_бригаду', 'Не удалось создать бригаду'),
         variant: 'destructive',
       });
     },
@@ -694,14 +694,14 @@ export default function CrewsNew() {
       setIsEditDialogOpen(false);
       setEditingCrew(null);
       toast({
-        title: 'Бригада обновлена',
-        description: 'Изменения успешно сохранены',
+        title: t('бригада_обновлена', 'Бригада обновлена'),
+        description: t('изменения_успешно_сохранены', 'Изменения успешно сохранены'),
       });
     },
     onError: (error: any) => {
       toast({
-        title: 'Ошибка обновления',
-        description: error.message || 'Не удалось обновить бригаду',
+        title: t('ошибка_обновления_бригады', 'Ошибка обновления'),
+        description: error.message || t('не_удалось_обновить_бригаду', 'Не удалось обновить бригаду'),
         variant: 'destructive',
       });
     },
@@ -1118,7 +1118,7 @@ export default function CrewsNew() {
                         setIsEditDialogOpen(true);
                       }} className="w-full sm:w-auto">
                         <Edit className="h-4 w-4 mr-2" />
-                        Редактировать
+                        {t('редактировать', 'Редактировать')}
                       </Button>
                     </div>
                   </div>
@@ -1147,7 +1147,7 @@ export default function CrewsNew() {
         <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
           <DialogContent className="w-[95vw] max-w-2xl max-h-[90vh] overflow-y-auto mx-2">
             <DialogHeader>
-              <DialogTitle className="text-lg sm:text-xl">Редактировать бригаду</DialogTitle>
+              <DialogTitle className="text-lg sm:text-xl">{t('редактировать', 'Редактировать')} {t('бригады', 'бригаду')}</DialogTitle>
             </DialogHeader>
             {editingCrew && <EditCrewForm crew={editingCrew} onUpdate={updateCrewMutation} />}
           </DialogContent>
@@ -1157,7 +1157,7 @@ export default function CrewsNew() {
         <Dialog open={!!viewingMembers} onOpenChange={() => setViewingMembers(null)}>
           <DialogContent className="w-[95vw] max-w-2xl max-h-[90vh] overflow-y-auto mx-2">
             <DialogHeader>
-              <DialogTitle className="text-lg sm:text-xl">Участники бригады</DialogTitle>
+              <DialogTitle className="text-lg sm:text-xl">Участники {t('бригады', 'бригады')}</DialogTitle>
             </DialogHeader>
             {membersLoading ? (
               <div className="flex justify-center py-4">

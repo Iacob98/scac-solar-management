@@ -68,8 +68,8 @@ export default function Clients() {
     },
     onSuccess: () => {
       toast({
-        title: 'Успех',
-        description: 'Клиент успешно создан и синхронизирован с Invoice Ninja',
+        title: t('успешно', 'Успех'),
+        description: t('клиент_создан_успешно', 'Клиент успешно создан и синхронизирован с Invoice Ninja'),
       });
       queryClient.invalidateQueries({ queryKey: ['/api/clients'] });
       setIsDialogOpen(false);
@@ -77,8 +77,8 @@ export default function Clients() {
     },
     onError: (error: any) => {
       toast({
-        title: 'Ошибка',
-        description: error.message || 'Ошибка при создании клиента',
+        title: t('ошибка', 'Ошибка'),
+        description: error.message || t('ошибка_создания_клиента', 'Ошибка при создании клиента'),
         variant: 'destructive',
       });
     },
@@ -94,16 +94,16 @@ export default function Clients() {
     },
     onSuccess: () => {
       toast({
-        title: 'Успех',
-        description: 'Клиент успешно обновлен',
+        title: t('успешно', 'Успех'),
+        description: t('клиент_обновлен_успешно', 'Клиент успешно обновлен'),
       });
       queryClient.invalidateQueries({ queryKey: ['/api/clients'] });
       closeDialog();
     },
     onError: (error: any) => {
       toast({
-        title: 'Ошибка',
-        description: error.message || 'Ошибка при обновлении клиента',
+        title: t('ошибка', 'Ошибка'),
+        description: error.message || t('ошибка_обновления_клиента', 'Ошибка при обновлении клиента'),
         variant: 'destructive',
       });
     },
@@ -168,12 +168,12 @@ export default function Clients() {
             <DialogContent className="max-w-md mx-4 sm:mx-0">
               <DialogHeader>
                 <DialogTitle>
-                  {editingClient ? 'Редактировать клиента' : 'Добавить нового клиента'}
+                  {editingClient ? t('редактировать_клиента', 'Редактировать клиента') : t('добавить_нового_клиента', 'Добавить нового клиента')}
                 </DialogTitle>
               </DialogHeader>
               <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
                 <div>
-                  <Label htmlFor="name">Название</Label>
+                  <Label htmlFor="name">{t('название', 'Название')}</Label>
                   <Input
                     id="name"
                     {...form.register('name')}
@@ -202,7 +202,7 @@ export default function Clients() {
                 </div>
 
                 <div>
-                  <Label htmlFor="phone">Телефон</Label>
+                  <Label htmlFor="phone">{t('телефон', 'Телефон')}</Label>
                   <Input
                     id="phone"
                     {...form.register('phone')}
@@ -211,7 +211,7 @@ export default function Clients() {
                 </div>
 
                 <div>
-                  <Label htmlFor="address">Адрес</Label>
+                  <Label htmlFor="address">{t('адрес', 'Адрес')}</Label>
                   <Textarea
                     id="address"
                     {...form.register('address')}

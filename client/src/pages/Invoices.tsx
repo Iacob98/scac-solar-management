@@ -75,15 +75,15 @@ export default function Invoices() {
                 <Shield className="w-8 h-8 text-red-600" />
               </div>
               <CardTitle className="text-xl font-semibold text-gray-900">
-                Доступ запрещен
+                {t('доступ_запрещен', 'Доступ запрещен')}
               </CardTitle>
             </CardHeader>
             <CardContent className="text-center">
               <p className="text-gray-600 mb-4">
-                Только администраторы могут просматривать счета.
+                {t('только_администраторы_могут_просматривать_счета', 'Только администраторы могут просматривать счета.')}
               </p>
               <p className="text-sm text-gray-500">
-                Обратитесь к администратору для получения доступа.
+                {t('обратитесь_к_администратору', 'Обратитесь к администратору для получения доступа.')}
               </p>
             </CardContent>
           </Card>
@@ -108,8 +108,8 @@ export default function Invoices() {
     },
     onSuccess: () => {
       toast({
-        title: 'Успешно',
-        description: 'Счет отмечен как оплаченный',
+        title: t('успешно', 'Успешно'),
+        description: t('счет_отмечен_как_оплаченный', 'Счет отмечен как оплаченный'),
       });
       // Принудительно обновляем кэш всех связанных данных
       queryClient.invalidateQueries({ queryKey: ['/api/invoices'] });
@@ -119,7 +119,7 @@ export default function Invoices() {
     },
     onError: (error) => {
       toast({
-        title: 'Ошибка',
+        title: t('ошибка', 'Ошибка'),
         description: error.message,
         variant: 'destructive',
       });
@@ -134,15 +134,15 @@ export default function Invoices() {
     onSuccess: (data) => {
       if (data.updated) {
         toast({
-          title: 'Синхронизация завершена',
-          description: `Статус счета обновлен: ${data.isPaid ? 'оплачен' : 'не оплачен'}`,
+          title: t('синхронизация_завершена', 'Синхронизация завершена'),
+          description: `${t('статус_счета_обновлен', 'Статус счета обновлен')}: ${data.isPaid ? t('оплачен_не_оплачен', 'оплачен') : t('не_оплачен', 'не оплачен')}`,
         });
         queryClient.invalidateQueries({ queryKey: ['/api/invoices'] });
         queryClient.invalidateQueries({ queryKey: ['/api/projects'] });
         queryClient.refetchQueries({ queryKey: ['/api/invoices', selectedFirmId] });
       } else {
         toast({
-          title: 'Синхронизация завершена',
+          title: t('синхронизация_завершена', 'Синхронизация завершена'),
           description: 'Статус счета не изменился',
         });
       }
