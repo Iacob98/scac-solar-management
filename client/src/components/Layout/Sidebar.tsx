@@ -1,24 +1,24 @@
 import { Link, useLocation } from 'wouter';
 import { useAuth } from '@/hooks/useAuth';
-import { useTranslation } from '@shared/i18n';
+import { useTranslations } from '@/hooks/useTranslations';
 
 export function Sidebar() {
   const { user } = useAuth();
   const [location] = useLocation();
-  const { t } = useTranslation();
+  const { t } = useTranslations();
 
   const menuItems = [
-    { path: '/projects', label: t('проекты', 'Проекты'), icon: 'dashboard' },
-    { path: '/clients', label: t('клиенты', 'Клиенты'), icon: 'people' },
-    { path: '/crews', label: t('бригады', 'Бригады'), icon: 'groups' },
-    { path: '/crews/statistics', label: t('статистика', 'Статистика'), icon: 'analytics' },
-    { path: '/calendar', label: t('календарь', 'Календарь'), icon: 'event' },
-    ...(user?.role === 'admin' ? [{ path: '/invoices', label: t('счета', 'Счета'), icon: 'receipt' }] : []),
+    { path: '/projects', label: t('проекты_меню', 'Проекты'), icon: 'dashboard' },
+    { path: '/clients', label: t('клиенты_меню', 'Клиенты'), icon: 'people' },
+    { path: '/crews', label: t('бригады_меню', 'Бригады'), icon: 'groups' },
+    { path: '/crews/statistics', label: t('статистика_меню', 'Статистика'), icon: 'analytics' },
+    { path: '/calendar', label: t('календарь_меню', 'Календарь'), icon: 'event' },
+    ...(user?.role === 'admin' ? [{ path: '/invoices', label: t('счета_меню', 'Счета'), icon: 'receipt' }] : []),
   ];
 
   const adminItems = [
     { path: '/admin/firms', label: t('управление_фирмами', 'Управление фирмами'), icon: 'domain_add' },
-    { path: '/admin/users', label: t('пользователи', 'Пользователи'), icon: 'admin_panel_settings' },
+    { path: '/admin/users', label: t('пользователи_админ', 'Пользователи'), icon: 'admin_panel_settings' },
   ];
 
   const isActive = (path: string) => {

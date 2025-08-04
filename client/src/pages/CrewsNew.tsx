@@ -19,7 +19,7 @@ import { MainLayout } from '@/components/Layout/MainLayout';
 import { CrewHistory } from '@/components/CrewHistory';
 import { apiRequest } from '@/lib/queryClient';
 import { useLocation } from 'wouter';
-import { useTranslation } from '@shared/i18n';
+import { useTranslations } from '@/hooks/useTranslations';
 
 // Схема для простого редактирования бригады
 const editCrewSchema = z.object({
@@ -183,7 +183,7 @@ function EditCrewForm({ crew, onUpdate }: { crew: Crew, onUpdate: any }) {
             name="name"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Название бригады</FormLabel>
+                <FormLabel>{t('название_бригады', 'Название бригады')}</FormLabel>
                 <FormControl>
                   <Input {...field} />
                 </FormControl>
@@ -197,7 +197,7 @@ function EditCrewForm({ crew, onUpdate }: { crew: Crew, onUpdate: any }) {
             name="leaderName"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Руководитель</FormLabel>
+                <FormLabel>{t('руководитель', 'Руководитель')}</FormLabel>
                 <FormControl>
                   <Input {...field} />
                 </FormControl>
@@ -211,7 +211,7 @@ function EditCrewForm({ crew, onUpdate }: { crew: Crew, onUpdate: any }) {
             name="phone"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Телефон</FormLabel>
+                <FormLabel>{t('телефон', 'Телефон')}</FormLabel>
                 <FormControl>
                   <Input {...field} />
                 </FormControl>
@@ -225,7 +225,7 @@ function EditCrewForm({ crew, onUpdate }: { crew: Crew, onUpdate: any }) {
             name="address"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Адрес</FormLabel>
+                <FormLabel>{t('адрес', 'Адрес')}</FormLabel>
                 <FormControl>
                   <Input {...field} />
                 </FormControl>
@@ -239,7 +239,7 @@ function EditCrewForm({ crew, onUpdate }: { crew: Crew, onUpdate: any }) {
             name="status"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Статус</FormLabel>
+                <FormLabel>{t('статус', 'Статус')}</FormLabel>
                 <Select onValueChange={field.onChange} defaultValue={field.value}>
                   <FormControl>
                     <SelectTrigger>
@@ -247,10 +247,10 @@ function EditCrewForm({ crew, onUpdate }: { crew: Crew, onUpdate: any }) {
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent>
-                    <SelectItem value="active">Активна</SelectItem>
-                    <SelectItem value="vacation">В отпуске</SelectItem>
-                    <SelectItem value="equipment_issue">Проблемы с техникой</SelectItem>
-                    <SelectItem value="unavailable">Недоступна</SelectItem>
+                    <SelectItem value="active">{t('активна', 'Активна')}</SelectItem>
+                    <SelectItem value="vacation">{t('в_отпуске', 'В отпуске')}</SelectItem>
+                    <SelectItem value="equipment_issue">{t('проблемы_с_техникой', 'Проблемы с техникой')}</SelectItem>
+                    <SelectItem value="unavailable">{t('недоступна', 'Недоступна')}</SelectItem>
                   </SelectContent>
                 </Select>
                 <FormMessage />
@@ -260,7 +260,7 @@ function EditCrewForm({ crew, onUpdate }: { crew: Crew, onUpdate: any }) {
           
           <div className="flex space-x-2">
             <Button type="submit" disabled={onUpdate.isPending} className="flex-1">
-              {onUpdate.isPending ? 'Сохранение...' : 'Сохранить'}
+              {onUpdate.isPending ? t('сохранение', 'Сохранение...') : t('сохранить', 'Сохранить')}
             </Button>
           </div>
         </form>
@@ -268,7 +268,7 @@ function EditCrewForm({ crew, onUpdate }: { crew: Crew, onUpdate: any }) {
       
       <div className="mt-6 border-t pt-4">
         <div className="flex justify-between items-center mb-4">
-          <h3 className="text-lg font-medium">Участники бригады</h3>
+          <h3 className="text-lg font-medium">{t('участники_бригады', 'Участники бригады')}</h3>
           <Button 
             size="sm" 
             variant="outline"
@@ -555,7 +555,7 @@ type ExtendedCrewForm = z.infer<typeof extendedCrewSchema>;
 export default function CrewsNew() {
   const { toast } = useToast();
   const { user } = useAuth();
-  const { t } = useTranslation();
+  const { t } = useTranslations();
   const queryClient = useQueryClient();
   const [, setLocation] = useLocation();
   const [selectedFirmId, setSelectedFirmId] = useState<string>('');

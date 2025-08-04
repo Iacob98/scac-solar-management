@@ -9,6 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { apiRequest } from '@/lib/queryClient';
+import { useTranslations } from '@/hooks/useTranslations';
 
 interface UploadParams {
   projectId: string;
@@ -31,6 +32,7 @@ interface UploadResult {
 
 export default function CrewUpload() {
   const { projectId, token } = useParams<UploadParams>();
+  const { t } = useTranslations();
   const [email, setEmail] = useState('');
   const [isEmailValidated, setIsEmailValidated] = useState(false);
   const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
@@ -142,7 +144,7 @@ export default function CrewUpload() {
           <CardContent className="flex items-center justify-center py-8">
             <div className="text-center">
               <Clock className="h-8 w-8 mx-auto text-blue-600 animate-spin mb-4" />
-              <p className="text-gray-600">Проверка ссылки...</p>
+              <p className="text-gray-600">{t('проверка_ссылки', 'Проверка ссылки...')}</p>
             </div>
           </CardContent>
         </Card>
@@ -157,9 +159,9 @@ export default function CrewUpload() {
           <CardContent className="py-8">
             <div className="text-center">
               <AlertCircle className="h-12 w-12 mx-auto text-red-500 mb-4" />
-              <h2 className="text-xl font-semibold text-gray-900 mb-2">Ссылка недействительна</h2>
+              <h2 className="text-xl font-semibold text-gray-900 mb-2">{t('ссылка_недействительна', 'Ссылка недействительна')}</h2>
               <p className="text-gray-600">
-                {validation?.message || 'Срок действия ссылки истёк или она неверна.'}
+                {validation?.message || t('срок_действия_ссылки_истек', 'Срок действия ссылки истёк или она неверна.')}
               </p>
             </div>
           </CardContent>
@@ -175,12 +177,12 @@ export default function CrewUpload() {
           <CardContent className="py-8">
             <div className="text-center">
               <CheckCircle className="h-12 w-12 mx-auto text-green-500 mb-4" />
-              <h2 className="text-xl font-semibold text-gray-900 mb-2">Спасибо!</h2>
+              <h2 className="text-xl font-semibold text-gray-900 mb-2">{t('спасибо', 'Спасибо!')}</h2>
               <p className="text-gray-600 mb-4">
-                Фото успешно отправлены в систему SCAC.
+                {t('фото_успешно_отправлены', 'Фото успешно отправлены в систему SCAC.')}
               </p>
               <p className="text-sm text-gray-500">
-                Проект: {validation.projectTitle}
+                {t('проект', 'Проект:')} {validation.projectTitle}
               </p>
             </div>
           </CardContent>
@@ -196,13 +198,13 @@ export default function CrewUpload() {
           <CardHeader>
             <CardTitle className="flex items-center space-x-2">
               <Camera className="h-6 w-6 text-blue-600" />
-              <span>Загрузка фото-отчёта</span>
+              <span>{t('загрузка_фото_отчета', 'Загрузка фото-отчёта')}</span>
             </CardTitle>
             <div className="text-sm text-gray-600">
-              <p>Проект: <span className="font-medium">{validation.projectTitle}</span></p>
-              <p>Бригада: <span className="font-medium">{validation.crewName}</span></p>
+              <p>{t('проект_двоеточие', 'Проект:')} <span className="font-medium">{validation.projectTitle}</span></p>
+              <p>{t('бригада_двоеточие', 'Бригада:')} <span className="font-medium">{validation.crewName}</span></p>
               {validation.expiresAt && (
-                <p>Ссылка действует до: <span className="font-medium">
+                <p>{t('ссылка_действует_до', 'Ссылка действует до:')} <span className="font-medium">
                   {new Date(validation.expiresAt).toLocaleString('ru-RU')}
                 </span></p>
               )}
@@ -212,7 +214,7 @@ export default function CrewUpload() {
             {!isEmailValidated ? (
               <form onSubmit={handleEmailSubmit} className="space-y-4">
                 <div>
-                  <Label htmlFor="email">Ваш корпоративный email</Label>
+                  <Label htmlFor="email">{t('ваш_корпоративный_email', 'Ваш корпоративный email')}</Label>
                   <Input
                     id="email"
                     type="email"
@@ -236,7 +238,7 @@ export default function CrewUpload() {
                   disabled={!email.trim() || emailValidation.isPending}
                   className="w-full"
                 >
-                  {emailValidation.isPending ? 'Проверка...' : 'Подтвердить email'}
+                  {emailValidation.isPending ? t('проверка', 'Проверка...') : t('подтвердить_email', 'Подтвердить email')}
                 </Button>
               </form>
             ) : (
@@ -244,7 +246,7 @@ export default function CrewUpload() {
                 <Alert>
                   <CheckCircle className="h-4 w-4" />
                   <AlertDescription>
-                    Email подтверждён: {email}
+                    {t('email_подтвержден', 'Email подтверждён:')} {email}
                   </AlertDescription>
                 </Alert>
 
@@ -259,14 +261,14 @@ export default function CrewUpload() {
                   <input {...getInputProps()} />
                   <Upload className="h-12 w-12 mx-auto text-gray-400 mb-4" />
                   {isDragActive ? (
-                    <p className="text-blue-600">Отпустите файлы здесь...</p>
+                    <p className="text-blue-600">{t('отпустите_файлы_здесь', 'Отпустите файлы здесь...')}</p>
                   ) : (
                     <div>
                       <p className="text-gray-600 mb-2">
-                        Перетащите фото сюда или кликните для выбора
+                        {t('перетащите_фото_сюда', 'Перетащите фото сюда или кликните для выбора')}
                       </p>
                       <p className="text-sm text-gray-500">
-                        JPEG/PNG, максимум 10 МБ, до 20 файлов
+                        {t('jpeg_png_макс_10мб_до_20файлов', 'JPEG/PNG, максимум 10 МБ, до 20 файлов')}
                       </p>
                     </div>
                   )}
@@ -275,7 +277,7 @@ export default function CrewUpload() {
                 {uploadedFiles.length > 0 && (
                   <div>
                     <h3 className="font-medium mb-2">
-                      Выбрано файлов: {uploadedFiles.length}/20
+                      {t('выбрано_файлов', 'Выбрано файлов:')} {uploadedFiles.length}/20
                     </h3>
                     <div className="grid grid-cols-2 gap-2 max-h-48 overflow-y-auto">
                       {uploadedFiles.map((file, index) => (
@@ -300,8 +302,8 @@ export default function CrewUpload() {
                     className="w-full"
                   >
                     {uploadMutation.isPending 
-                      ? `Загрузка... (${uploadedFiles.length} файлов)` 
-                      : `Загрузить ${uploadedFiles.length} файлов`
+                      ? `${t('загрузка', 'Загрузка...')} (${uploadedFiles.length} ${t('файлов', 'файлов')})` 
+                      : `${t('загрузить', 'Загрузить')} ${uploadedFiles.length} ${t('файлов', 'файлов')}`
                     }
                   </Button>
                 )}

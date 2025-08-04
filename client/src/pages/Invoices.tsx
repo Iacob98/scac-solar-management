@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useTranslation } from '@shared/i18n';
+import { useTranslations } from '@/hooks/useTranslations';
 import { useI18n } from '@/hooks/useI18n';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useToast } from '@/hooks/use-toast';
@@ -32,7 +32,7 @@ import {
 } from 'lucide-react';
 
 export default function Invoices() {
-  const { t } = useTranslation();
+  const { t } = useTranslations();
   const { formatCurrency, formatDate } = useI18n();
   const { toast } = useToast();
   const { user } = useAuth();

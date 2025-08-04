@@ -18,14 +18,14 @@ import {
   Play
 } from 'lucide-react';
 import type { Project, Client, Crew } from '@shared/schema';
-import { useTranslation } from '@shared/i18n';
+import { useTranslations } from '@/hooks/useTranslations';
 import { useState, useEffect } from 'react';
 import Tutorial from '@/components/Tutorial';
 import { useToast } from '@/hooks/use-toast';
 
 export default function Home() {
   const { user } = useAuth();
-  const { t } = useTranslation();
+  const { t } = useTranslations();
   const { toast } = useToast();
   const [selectedFirmId, setSelectedFirmId] = useState<string>('');
   const [isTutorialOpen, setIsTutorialOpen] = useState(false);
@@ -73,32 +73,32 @@ export default function Home() {
 
   const quickActions = [
     {
-      title: t('проекты', 'Проекты'),
-      description: t('управление_проектами_установки_солнечных_панелей', 'Управление проектами установки солнечных панелей'),
+      title: t('проекты_меню', 'Проекты'),
+      description: t('проекты_описание', 'Управление проектами установки солнечных панелей'),
       icon: FolderOpen,
       href: '/projects',
       color: 'text-blue-600',
       bgColor: 'bg-blue-50'
     },
     {
-      title: t('клиенты', 'Клиенты'),
-      description: t('управление_базой_клиентов', 'Управление базой клиентов'),
+      title: t('клиенты_меню', 'Клиенты'),
+      description: t('клиенты_описание', 'Управление базой клиентов'),
       icon: Users,
       href: '/clients',
       color: 'text-green-600',
       bgColor: 'bg-green-50'
     },
     {
-      title: t('бригады', 'Бригады'),
-      description: t('управление_установочными_бригадами', 'Управление установочными бригадами'),
+      title: t('бригады_меню', 'Бригады'),
+      description: t('бригады_описание', 'Управление установочными бригадами'),
       icon: Wrench,
       href: '/crews',
       color: 'text-orange-600',
       bgColor: 'bg-orange-50'
     },
     {
-      title: t('счета', 'Счета'),
-      description: t('управление_счетами_и_оплатами', 'Управление счетами и оплатами'),
+      title: t('счета_меню', 'Счета'),
+      description: t('счета_описание', 'Управление счетами и оплатами'),
       icon: FileText,
       href: '/invoices',
       color: 'text-purple-600',
@@ -109,16 +109,16 @@ export default function Home() {
   if (user?.role === 'admin') {
     quickActions.push(
       {
-        title: t('фирмы', 'Фирмы'),
-        description: t('управление_компаниями', 'Управление компаниями'),
+        title: 'Фирмы',
+        description: t('фирмы_описание', 'Управление компаниями'),
         icon: Building,
         href: '/admin/firms',
         color: 'text-red-600',
         bgColor: 'bg-red-50'
       },
       {
-        title: t('пользователи', 'Пользователи'),
-        description: t('управление_пользователями_системы', 'Управление пользователями системы'),
+        title: t('пользователи_админ', 'Пользователи'),
+        description: t('пользователи_описание', 'Управление пользователями системы'),
         icon: UserCircle,
         href: '/admin/users',
         color: 'text-indigo-600',
@@ -136,7 +136,7 @@ export default function Home() {
             {t('добро_пожаловать', 'Добро пожаловать')}, {user?.firstName} {user?.lastName}!
           </h1>
           <p className="text-blue-100 text-lg">
-            {t('система_управления_проектами_установки_солнечных_панелей', 'Система управления проектами установки солнечных панелей')}
+            {t('система_управления_проектами_солнечной_энергетики', 'Система управления проектами установки солнечных панелей')}
           </p>
           <div className="mt-4 flex items-center justify-between">
             <div className="flex items-center space-x-4 text-sm">
@@ -146,7 +146,7 @@ export default function Home() {
               </div>
               <div className="flex items-center space-x-2">
                 <UserCircle className="w-4 h-4" />
-                <span>{t('роль', 'Роль')}: {user?.role === 'admin' ? t('администратор', 'Администратор') : t('руководитель_проектов', 'Руководитель проектов')}</span>
+                <span>Роль: {user?.role === 'admin' ? 'Администратор' : 'Руководитель проектов'}</span>
               </div>
             </div>
             <Button 
@@ -155,7 +155,7 @@ export default function Home() {
               className="bg-white/20 hover:bg-white/30 text-white border-white/30"
             >
               <Play className="w-4 h-4 mr-2" />
-{t('начать_туториал', 'Начать туториал')}
+              {t('открыть_руководство', 'Открыть руководство')}
             </Button>
           </div>
         </div>
@@ -186,14 +186,14 @@ export default function Home() {
 
         {/* Stats Overview */}
         <div>
-          <h2 className="text-xl font-semibold text-gray-900 mb-4">Быстрая статистика</h2>
+          <h2 className="text-xl font-semibold text-gray-900 mb-4">{t('аналитика', 'Быстрая статистика')}</h2>
           {selectedFirmId ? (
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               <Card>
                 <CardContent className="p-6">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-sm font-medium text-gray-600">Активные проекты</p>
+                      <p className="text-sm font-medium text-gray-600">{t('активные_проекты', 'Активные проекты')}</p>
                       <p className="text-2xl font-bold text-gray-900">{activeProjects}</p>
                       <p className="text-xs text-gray-500 mt-1">Из {projects.length} общих</p>
                     </div>
@@ -205,7 +205,7 @@ export default function Home() {
                 <CardContent className="p-6">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-sm font-medium text-gray-600">Всего клиентов</p>
+                      <p className="text-sm font-medium text-gray-600">{t('всего_клиентов', 'Всего клиентов')}</p>
                       <p className="text-2xl font-bold text-gray-900">{totalClients}</p>
                       <p className="text-xs text-gray-500 mt-1">В базе данных</p>
                     </div>
@@ -217,7 +217,7 @@ export default function Home() {
                 <CardContent className="p-6">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-sm font-medium text-gray-600">Активные бригады</p>
+                      <p className="text-sm font-medium text-gray-600">{t('активные_бригады', 'Активные бригады')}</p>
                       <p className="text-2xl font-bold text-gray-900">{activeCrews}</p>
                       <p className="text-xs text-gray-500 mt-1">Из {crews.length} общих</p>
                     </div>

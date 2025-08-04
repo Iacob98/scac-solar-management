@@ -11,7 +11,7 @@ import { useLocation } from 'wouter';
 import { DndContext, DragEndEvent, DragOverlay, DragStartEvent, closestCenter, useDraggable, useDroppable } from '@dnd-kit/core';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from '@/hooks/use-toast';
-import { useTranslation } from '@shared/i18n';
+import { useTranslations } from '@/hooks/useTranslations';
 
 interface Project {
   id: number;
@@ -156,7 +156,7 @@ function DraggableEvent({ event, onClick }: DraggableEventProps) {
 }
 
 export default function Calendar() {
-  const { t } = useTranslation();
+  const { t } = useTranslations();
   const [currentDate, setCurrentDate] = useState(new Date());
   const [viewType, setViewType] = useState<CalendarViewType>('week');
   const [, setLocation] = useLocation();

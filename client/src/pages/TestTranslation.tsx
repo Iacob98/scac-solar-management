@@ -1,10 +1,11 @@
-import { useTranslation } from '@shared/i18n';
+import { useTranslations } from '@/hooks/useTranslations';
+import { useLanguageStore } from '@shared/i18n';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { MainLayout } from '@/components/Layout/MainLayout';
 
 export default function TestTranslation() {
-  const { t, language, setLanguage } = useTranslation();
+  const { t, language, setLanguage } = useTranslations();
 
   return (
     <MainLayout>
@@ -23,7 +24,7 @@ export default function TestTranslation() {
                   setLanguage(newLang);
                   // Force re-render by triggering a state update
                   setTimeout(() => {
-                    console.log('Language after switch:', useTranslation.getState().language);
+                    console.log('Language after switch:', useLanguageStore.getState().language);
                   }, 100);
                 }}
                 variant="outline"

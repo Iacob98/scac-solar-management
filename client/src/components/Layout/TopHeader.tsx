@@ -6,11 +6,11 @@ import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Bell, ChevronDown, Settings, LogOut, UserCircle, Languages } from 'lucide-react';
 import type { Firm } from '@shared/schema';
-import { LanguageToggle, useTranslation } from '@shared/i18n';
+import { useTranslations } from '@/hooks/useTranslations';
 
 export function TopHeader() {
   const { user } = useAuth();
-  const { t } = useTranslation();
+  const { t, language, setLanguage } = useTranslations();
   const [selectedFirmId, setSelectedFirmId] = useState<string>(() => {
     // Initialize with saved value immediately to prevent flashing
     return localStorage.getItem('selectedFirmId') || '';
@@ -92,7 +92,21 @@ export function TopHeader() {
 
       <div className="flex items-center space-x-4">
         {/* Language Toggle */}
-        <LanguageToggle />
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" size="icon">
+              <Languages className="w-5 h-5" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem onClick={() => setLanguage('ru')}>
+              🇷🇺 Русский
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => setLanguage('de')}>
+              🇩🇪 Deutsch
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
         
         {/* Notification Bell */}
         <Button variant="ghost" size="icon" className="relative">
@@ -113,7 +127,7 @@ export function TopHeader() {
                 <p className="font-medium">
                   {user?.firstName} {user?.lastName}
                 </p>
-                <p className="text-gray-500">{user?.role === 'admin' ? t('администратор', 'Администратор') : t('руководитель_проектов', 'Руководитель проектов')}</p>
+                <p className="text-gray-500">{user?.role === 'admin' ? 'Администратор' : 'Руководитель проектов'}</p>
               </div>
               <ChevronDown className="w-4 h-4 text-gray-400" />
             </div>
@@ -123,7 +137,7 @@ export function TopHeader() {
               <>
                 <DropdownMenuItem onClick={() => window.location.href = '/translations'}>
                   <Languages className="w-4 h-4 mr-2" />
-                  {t('управление_переводами', 'Управление переводами')}
+                  Управление переводами
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
               </>
@@ -135,7 +149,7 @@ export function TopHeader() {
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={() => window.location.href = '/api/logout'}>
               <LogOut className="w-4 h-4 mr-2" />
-              {t('выход', 'Выход')}
+              {t('выйти', 'Выйти')}
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>

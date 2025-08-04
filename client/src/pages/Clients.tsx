@@ -15,7 +15,7 @@ import { Plus, Edit, Mail, Phone, MapPin, User } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { useTranslation } from '@shared/i18n';
+import { useTranslations } from '@/hooks/useTranslations';
 
 const clientSchema = z.object({
   name: z.string().min(1, 'Название обязательно'),
@@ -27,7 +27,7 @@ const clientSchema = z.object({
 export default function Clients() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const { t } = useTranslation();
+  const { t } = useTranslations();
   const [selectedFirmId, setSelectedFirmId] = useState<string>('');
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingClient, setEditingClient] = useState<any>(null);

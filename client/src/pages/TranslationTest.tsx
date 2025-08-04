@@ -1,11 +1,11 @@
-import { useTranslation } from '@shared/i18n';
+import { useTranslations } from '@/hooks/useTranslations';
 import { MainLayout } from '@/components/Layout/MainLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 
 export default function TranslationTest() {
-  const { t, language, setLanguage } = useTranslation();
+  const { t, language, setLanguage } = useTranslations();
 
   const testStrings = [
     { key: 'проекты', fallback: 'Проекты' },
