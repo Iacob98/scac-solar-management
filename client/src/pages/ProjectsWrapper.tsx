@@ -361,7 +361,7 @@ function ProjectsList({ selectedFirm, onViewProject, onManageServices }: { selec
                 Создать проект
               </Button>
             </DialogTrigger>
-          <DialogContent className="max-w-2xl">
+          <DialogContent className="w-[95vw] max-w-4xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>Создание нового проекта</DialogTitle>
               <DialogDescription>
@@ -370,7 +370,7 @@ function ProjectsList({ selectedFirm, onViewProject, onManageServices }: { selec
             </DialogHeader>
             <Form {...form}>
               <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <FormField
                     control={form.control}
                     name="clientId"
@@ -422,7 +422,7 @@ function ProjectsList({ selectedFirm, onViewProject, onManageServices }: { selec
                   />
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <FormField
                     control={form.control}
                     name="startDate"
@@ -469,7 +469,7 @@ function ProjectsList({ selectedFirm, onViewProject, onManageServices }: { selec
                 <div className="space-y-4">
                   <h3 className="text-lg font-semibold">Информация о клиенте установки</h3>
                   
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <FormField
                       control={form.control}
                       name="installationPersonFirstName"
@@ -542,7 +542,7 @@ function ProjectsList({ selectedFirm, onViewProject, onManageServices }: { selec
                   />
                 </div>
 
-                <div className="flex justify-end space-x-2">
+                <div className="flex flex-col sm:flex-row justify-end space-y-2 sm:space-y-0 sm:space-x-2">
                   <Button type="button" variant="outline" onClick={() => setIsCreateDialogOpen(false)}>
                     Отмена
                   </Button>
