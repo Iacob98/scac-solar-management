@@ -790,12 +790,12 @@ export default function ProjectDetail({ projectId, selectedFirm, onBack }: Proje
                   <CardHeader>
                     <CardTitle className="flex items-center text-lg">
                       <Package className="h-5 w-5 mr-2 text-blue-600" />
-                      Оборудование
+                      {t('оборудование', 'Оборудование')}
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-4">
                     <div className="space-y-2">
-                      <label className="text-sm font-medium">Ожидаемая дата поставки</label>
+                      <label className="text-sm font-medium">{t('ожидаемая_дата_поставки', 'Ожидаемая дата поставки')}</label>
                       <Input
                         type="date"
                         value={project.equipmentExpectedDate ? 
@@ -807,7 +807,7 @@ export default function ProjectDetail({ projectId, selectedFirm, onBack }: Proje
                     </div>
                     
                     <div className="space-y-2">
-                      <label className="text-sm font-medium">Фактическая дата поставки</label>
+                      <label className="text-sm font-medium">{t('фактическая_дата_поставки', 'Фактическая дата поставки')}</label>
                       <Input
                         type="date"
                         value={project.equipmentArrivedDate ? 
@@ -825,7 +825,7 @@ export default function ProjectDetail({ projectId, selectedFirm, onBack }: Proje
                           needsCallForEquipmentDelay: checked
                         })}
                       />
-                      <label className="text-sm">Нужен звонок по задержке оборудования</label>
+                      <label className="text-sm">{t('нужен_звонок_оборудование', 'Нужен звонок по задержке оборудования')}</label>
                     </div>
                   </CardContent>
                 </Card>
@@ -835,12 +835,12 @@ export default function ProjectDetail({ projectId, selectedFirm, onBack }: Proje
                   <CardHeader>
                     <CardTitle className="flex items-center text-lg">
                       <Clock className="h-5 w-5 mr-2 text-green-600" />
-                      Работы
+                      {t('работы', 'Работы')}
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-4">
                     <div className="space-y-2">
-                      <label className="text-sm font-medium">Дата начала работ</label>
+                      <label className="text-sm font-medium">{t('дата_начала_работ', 'Дата начала работ')}</label>
                       <Input
                         type="date"
                         value={project.workStartDate ? 
@@ -852,7 +852,7 @@ export default function ProjectDetail({ projectId, selectedFirm, onBack }: Proje
                     </div>
                     
                     <div className="space-y-2">
-                      <label className="text-sm font-medium">Дата окончания работ</label>
+                      <label className="text-sm font-medium">{t('дата_окончания_работ', 'Дата окончания работ')}</label>
                       <Input
                         type="date"
                         value={project.workEndDate ? 
@@ -871,7 +871,7 @@ export default function ProjectDetail({ projectId, selectedFirm, onBack }: Proje
                             needsCallForCrewDelay: checked
                           })}
                         />
-                        <label className="text-sm">Нужен звонок по задержке бригады</label>
+                        <label className="text-sm">{t('нужен_звонок_бригада', 'Нужен звонок по задержке бригады')}</label>
                       </div>
                       
                       <div className="flex items-center space-x-2">
@@ -881,7 +881,7 @@ export default function ProjectDetail({ projectId, selectedFirm, onBack }: Proje
                             needsCallForDateChange: checked
                           })}
                         />
-                        <label className="text-sm">Нужен звонок по изменению дат</label>
+                        <label className="text-sm">{t('нужен_звонок_даты', 'Нужен звонок по изменению дат')}</label>
                       </div>
                     </div>
                   </CardContent>
@@ -898,12 +898,12 @@ export default function ProjectDetail({ projectId, selectedFirm, onBack }: Proje
                   <DialogTrigger asChild>
                     <Button>
                       <Upload className="h-4 w-4 mr-2" />
-                      Добавить фото
+                      {t('добавить_фото', 'Добавить фото')}
                     </Button>
                   </DialogTrigger>
                   <DialogContent>
                     <DialogHeader>
-                      <DialogTitle>Добавить файл проекта</DialogTitle>
+                      <DialogTitle>{t('добавить_файл_проекта', 'Добавить файл проекта')}</DialogTitle>
                     </DialogHeader>
                     <Form {...fileForm}>
                       <form onSubmit={fileForm.handleSubmit(onSubmitFile)} className="space-y-4">
@@ -912,7 +912,7 @@ export default function ProjectDetail({ projectId, selectedFirm, onBack }: Proje
                           name="fileType"
                           render={({ field }) => (
                             <FormItem>
-                              <FormLabel>Тип файла</FormLabel>
+                              <FormLabel>{t('тип_файла', 'Тип файла')}</FormLabel>
                               <Select onValueChange={field.onChange} defaultValue={field.value}>
                                 <FormControl>
                                   <SelectTrigger>
@@ -920,9 +920,9 @@ export default function ProjectDetail({ projectId, selectedFirm, onBack }: Proje
                                   </SelectTrigger>
                                 </FormControl>
                                 <SelectContent>
-                                  <SelectItem value="report_photo">Фото отчет выполненной работы</SelectItem>
-                                  <SelectItem value="review_document">Документ отзыва (PDF/фото)</SelectItem>
-                                  <SelectItem value="acceptance">Документ приемки</SelectItem>
+                                  <SelectItem value="report_photo">{t('фото_отчет_работы', 'Фото отчет выполненной работы')}</SelectItem>
+                                  <SelectItem value="review_document">{t('документ_отзыва', 'Документ отзыва (PDF/фото)')}</SelectItem>
+                                  <SelectItem value="acceptance">{t('документ_приемки', 'Документ приемки')}</SelectItem>
                                 </SelectContent>
                               </Select>
                               <FormMessage />
@@ -935,9 +935,9 @@ export default function ProjectDetail({ projectId, selectedFirm, onBack }: Proje
                           name="fileName"
                           render={({ field }) => (
                             <FormItem>
-                              <FormLabel>Название файла</FormLabel>
+                              <FormLabel>{t('название_файла', 'Название файла')}</FormLabel>
                               <FormControl>
-                                <Input placeholder="Введите название файла" {...field} />
+                                <Input placeholder={t('введите_название_файла', 'Введите название файла')} {...field} />
                               </FormControl>
                               <FormMessage />
                             </FormItem>
@@ -945,7 +945,7 @@ export default function ProjectDetail({ projectId, selectedFirm, onBack }: Proje
                         />
 
                         <div className="space-y-2">
-                          <label className="text-sm font-medium">Файл</label>
+                          <label className="text-sm font-medium">{t('файл', 'Файл')}</label>
                           <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
                             <input
                               type="file"
@@ -963,10 +963,10 @@ export default function ProjectDetail({ projectId, selectedFirm, onBack }: Proje
                             <label htmlFor="file-upload" className="cursor-pointer">
                               <Upload className="h-8 w-8 mx-auto text-gray-400 mb-2" />
                               <p className="text-gray-600">
-                                {selectedFile ? selectedFile.name : 'Нажмите для выбора файла'}
+                                {selectedFile ? selectedFile.name : t('нажмите_выбор_файла', 'Нажмите для выбора файла')}
                               </p>
                               <p className="text-xs text-gray-500 mt-1">
-                                Поддерживаются изображения, PDF, DOC, TXT
+                                {t('поддерживаются_форматы', 'Поддерживаются изображения, PDF, DOC, TXT')}
                               </p>
                             </label>
                           </div>
@@ -978,13 +978,13 @@ export default function ProjectDetail({ projectId, selectedFirm, onBack }: Proje
                             variant="outline" 
                             onClick={() => setIsFileDialogOpen(false)}
                           >
-                            Отмена
+                            {t('отмена', 'Отмена')}
                           </Button>
                           <Button 
                             type="submit" 
                             disabled={createFileMutation.isPending}
                           >
-                            {createFileMutation.isPending ? 'Сохранение...' : 'Добавить'}
+                            {createFileMutation.isPending ? t('сохранение', 'Сохранение...') : t('добавить', 'Добавить')}
                           </Button>
                         </div>
                       </form>
