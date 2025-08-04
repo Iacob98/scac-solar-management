@@ -118,6 +118,38 @@
 | `проект_создан` | Проект создан | Projekt wurde erstellt |
 | `услуга_добавлена` | Услуга добавлена | Leistung hinzugefügt |
 | `услуга_удалена` | Услуга удалена | Leistung entfernt |
+| `создание_нового_проекта` | Создание нового проекта | Neues Projekt erstellen |
+| `заполните_форму_создания_проекта` | Заполните форму для создания нового проекта установки солнечных панелей | Füllen Sie das Formular aus, um ein neues Solarpanel-Installationsprojekt zu erstellen |
+| `выберите_клиента` | Выберите клиента | Kunde auswählen |
+| `выберите_бригаду` | Выберите бригаду | Crew auswählen |
+| `дата_начала_проекта` | Дата начала проекта | Projektstartdatum |
+| `ожидаемая_дата_поставки_оборудования` | Ожидаемая дата поставки оборудования | Erwartetes Datum der Gerätelieferung |
+| `ожидаемая_дата_начала_работ` | Ожидаемая дата начала работ | Erwartetes Arbeitsbeginn |
+| `необязательно` | необязательно | optional |
+| `информация_о_клиенте_установки` | Информация о клиенте установки | Informationen zum Installationskunden |
+| `имя` | Имя | Vorname |
+| `имя_клиента` | Имя клиента | Name des Kunden |
+| `фамилия` | Фамилия | Nachname |
+| `фамилия_клиента` | Фамилия клиента | Nachname des Kunden |
+| `адрес_установки` | Адрес установки | Installationsadresse |
+| `полный_адрес_для_установки` | Полный адрес для установки солнечных панелей | Vollständige Adresse für die Installation der Solarpaneele |
+| `телефон_клиента` | Телефон клиента | Telefon des Kunden |
+| `уникальный_id_клиента` | Уникальный ID клиента | Eindeutige Kunden-ID |
+| `например_cli_001234` | Например: CLI-001234 | Beispiel: CLI-001234 |
+| `отмена` | Отмена | Abbrechen |
+| `информация_о_клиенте` | Информация о клиенте | Kundeninformationen |
+| `телефон_для_установки` | Телефон для установки | Telefon für Installation |
+| `не_указан` | Не указан | Nicht angegeben |
+| `контактное_лицо` | Контактное лицо | Ansprechpartner |
+| `уникальный_номер_клиента` | Уникальный номер клиента | Eindeutige Kundennummer |
+| `не_назначена` | Не назначена | Nicht zugewiesen |
+| `заметки` | Заметки | Notizen |
+| `история_проекта` | История проекта | Projekthistorie |
+| `свернуть` | Свернуть | Reduzieren |
+| `показать_все` | Показать все | Alle anzeigen |
+| `временные_рамки` | Временные рамки | Zeitrahmen |
+| `не_установлена` | Не установлена | Nicht festgelegt |
+| `ожидаемая_поставка_оборудования` | Ожидаемая поставка оборудования | Erwartete Gerätelieferung |
 
 ## Как использовать переводы
 

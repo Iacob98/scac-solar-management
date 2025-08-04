@@ -367,9 +367,9 @@ function ProjectsList({ selectedFirm, onViewProject, onManageServices }: { selec
             </DialogTrigger>
           <DialogContent className="max-w-2xl">
             <DialogHeader>
-              <DialogTitle>Создание нового проекта</DialogTitle>
+              <DialogTitle>{t('создание_нового_проекта', 'Создание нового проекта')}</DialogTitle>
               <DialogDescription>
-                Заполните форму для создания нового проекта установки солнечных панелей
+                {t('заполните_форму_создания_проекта', 'Заполните форму для создания нового проекта установки солнечных панелей')}
               </DialogDescription>
             </DialogHeader>
             <Form {...form}>
@@ -380,11 +380,11 @@ function ProjectsList({ selectedFirm, onViewProject, onManageServices }: { selec
                     name="clientId"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Клиент</FormLabel>
+                        <FormLabel>{t('клиент', 'Клиент')}</FormLabel>
                         <Select onValueChange={(value) => field.onChange(parseInt(value))} value={field.value?.toString()}>
                           <FormControl>
                             <SelectTrigger>
-                              <SelectValue placeholder="Выберите клиента" />
+                              <SelectValue placeholder={t('выберите_клиента', 'Выберите клиента')} />
                             </SelectTrigger>
                           </FormControl>
                           <SelectContent>
@@ -405,11 +405,11 @@ function ProjectsList({ selectedFirm, onViewProject, onManageServices }: { selec
                     name="crewId"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Бригада</FormLabel>
+                        <FormLabel>{t('бригада', 'Бригада')}</FormLabel>
                         <Select onValueChange={(value) => field.onChange(parseInt(value))} value={field.value?.toString()}>
                           <FormControl>
                             <SelectTrigger>
-                              <SelectValue placeholder="Выберите бригаду" />
+                              <SelectValue placeholder={t('выберите_бригаду', 'Выберите бригаду')} />
                             </SelectTrigger>
                           </FormControl>
                           <SelectContent>
@@ -432,7 +432,7 @@ function ProjectsList({ selectedFirm, onViewProject, onManageServices }: { selec
                     name="startDate"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Дата начала проекта</FormLabel>
+                        <FormLabel>{t('дата_начала_проекта', 'Дата начала проекта')}</FormLabel>
                         <FormControl>
                           <Input type="date" {...field} />
                         </FormControl>
@@ -446,7 +446,7 @@ function ProjectsList({ selectedFirm, onViewProject, onManageServices }: { selec
                     name="equipmentExpectedDate"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Ожидаемая дата поставки оборудования</FormLabel>
+                        <FormLabel>{t('ожидаемая_дата_поставки_оборудования', 'Ожидаемая дата поставки оборудования')}</FormLabel>
                         <FormControl>
                           <Input type="date" {...field} />
                         </FormControl>
@@ -461,7 +461,7 @@ function ProjectsList({ selectedFirm, onViewProject, onManageServices }: { selec
                   name="workStartDate"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Ожидаемая дата начала работ (необязательно)</FormLabel>
+                      <FormLabel>{t('ожидаемая_дата_начала_работ', 'Ожидаемая дата начала работ')} ({t('необязательно', 'необязательно')})</FormLabel>
                       <FormControl>
                         <Input type="date" {...field} />
                       </FormControl>
@@ -471,7 +471,7 @@ function ProjectsList({ selectedFirm, onViewProject, onManageServices }: { selec
                 />
 
                 <div className="space-y-4">
-                  <h3 className="text-lg font-semibold">Информация о клиенте установки</h3>
+                  <h3 className="text-lg font-semibold">{t('информация_о_клиенте_установки', 'Информация о клиенте установки')}</h3>
                   
                   <div className="grid grid-cols-2 gap-4">
                     <FormField
@@ -479,9 +479,9 @@ function ProjectsList({ selectedFirm, onViewProject, onManageServices }: { selec
                       name="installationPersonFirstName"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Имя</FormLabel>
+                          <FormLabel>{t('имя', 'Имя')}</FormLabel>
                           <FormControl>
-                            <Input placeholder="Имя клиента" {...field} />
+                            <Input placeholder={t('имя_клиента', 'Имя клиента')} {...field} />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -493,9 +493,9 @@ function ProjectsList({ selectedFirm, onViewProject, onManageServices }: { selec
                       name="installationPersonLastName"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Фамилия</FormLabel>
+                          <FormLabel>{t('фамилия', 'Фамилия')}</FormLabel>
                           <FormControl>
-                            <Input placeholder="Фамилия клиента" {...field} />
+                            <Input placeholder={t('фамилия_клиента', 'Фамилия клиента')} {...field} />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -508,9 +508,9 @@ function ProjectsList({ selectedFirm, onViewProject, onManageServices }: { selec
                     name="installationPersonAddress"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Адрес установки</FormLabel>
+                        <FormLabel>{t('адрес_установки', 'Адрес установки')}</FormLabel>
                         <FormControl>
-                          <Textarea placeholder="Полный адрес для установки солнечных панелей" {...field} />
+                          <Textarea placeholder={t('полный_адрес_для_установки', 'Полный адрес для установки солнечных панелей')} {...field} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -522,7 +522,7 @@ function ProjectsList({ selectedFirm, onViewProject, onManageServices }: { selec
                     name="installationPersonPhone"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Телефон клиента</FormLabel>
+                        <FormLabel>{t('телефон_клиента', 'Телефон клиента')}</FormLabel>
                         <FormControl>
                           <Input placeholder="+49 123 456789" {...field} />
                         </FormControl>
@@ -536,9 +536,9 @@ function ProjectsList({ selectedFirm, onViewProject, onManageServices }: { selec
                     name="installationPersonUniqueId"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Уникальный ID клиента</FormLabel>
+                        <FormLabel>{t('уникальный_id_клиента', 'Уникальный ID клиента')}</FormLabel>
                         <FormControl>
-                          <Input placeholder="Например: CLI-001234" {...field} />
+                          <Input placeholder={t('например_cli_001234', 'Например: CLI-001234')} {...field} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -548,7 +548,7 @@ function ProjectsList({ selectedFirm, onViewProject, onManageServices }: { selec
 
                 <div className="flex justify-end space-x-2">
                   <Button type="button" variant="outline" onClick={() => setIsCreateDialogOpen(false)}>
-                    Отмена
+                    {t('отмена_диалога', 'Отмена')}
                   </Button>
                   <Button 
                     type="button" 
@@ -578,7 +578,7 @@ function ProjectsList({ selectedFirm, onViewProject, onManageServices }: { selec
                       await onSubmit(formData);
                     }}
                   >
-                    {createProjectMutation.isPending ? 'Создание...' : 'Создать проект'}
+                    {createProjectMutation.isPending ? t('создание_проекта', 'Создание...') : t('создать_проект', 'Создать проект')}
                   </Button>
                 </div>
               </form>

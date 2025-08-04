@@ -26,6 +26,7 @@ import ProjectHistory from './ProjectHistory';
 import { ProjectShareButton } from '@/components/ProjectShareButton';
 import { ProjectStatusManager } from '@/components/Projects/ProjectStatusManager';
 import { GoogleCalendarWidget } from '@/components/GoogleCalendarWidget';
+import { useTranslations } from '@/hooks/useTranslations';
 
 interface ProjectDetailProps {
   projectId: number;
@@ -101,6 +102,7 @@ export default function ProjectDetail({ projectId, selectedFirm, onBack }: Proje
   const { toast } = useToast();
   const { user } = useAuth();
   const queryClient = useQueryClient();
+  const { t } = useTranslations();
 
   const { data: project, isLoading: projectLoading, error: projectError } = useQuery({
     queryKey: ['/api/projects', projectId],
@@ -573,43 +575,43 @@ export default function ProjectDetail({ projectId, selectedFirm, onBack }: Proje
               <CardHeader className="pb-3">
                 <CardTitle className="flex items-center text-lg">
                   <Users className="h-5 w-5 mr-2 text-blue-600" />
-                  Информация о клиенте
+                  {t('информация_о_клиенте', 'Информация о клиенте')}
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <p className="text-sm text-gray-500">Имя клиента</p>
+                    <p className="text-sm text-gray-500">{t('имя_клиента', 'Имя клиента')}</p>
                     <p className="font-medium text-gray-900">{(client as Client)?.name || 'Загрузка...'}</p>
                   </div>
                   <div className="space-y-2">
-                    <p className="text-sm text-gray-500">Телефон для установки</p>
+                    <p className="text-sm text-gray-500">{t('телефон_для_установки', 'Телефон для установки')}</p>
                     <p className="font-medium text-gray-900 flex items-center">
                       <Phone className="h-4 w-4 mr-2 text-green-600" />
-                      {project.installationPersonPhone || 'Не указан'}
+                      {project.installationPersonPhone || t('не_указан', 'Не указан')}
                     </p>
                   </div>
                   <div className="space-y-2">
-                    <p className="text-sm text-gray-500">Контактное лицо</p>
+                    <p className="text-sm text-gray-500">{t('контактное_лицо', 'Контактное лицо')}</p>
                     <p className="font-medium text-gray-900">
                       {project.installationPersonFirstName} {project.installationPersonLastName}
                     </p>
                   </div>
                   <div className="space-y-2">
-                    <p className="text-sm text-gray-500">Уникальный номер клиента</p>
-                    <p className="font-medium text-gray-900">{project.installationPersonUniqueId || 'Не указан'}</p>
+                    <p className="text-sm text-gray-500">{t('уникальный_номер_клиента', 'Уникальный номер клиента')}</p>
+                    <p className="font-medium text-gray-900">{project.installationPersonUniqueId || t('не_указан', 'Не указан')}</p>
                   </div>
                   <div className="space-y-2">
-                    <p className="text-sm text-gray-500">Номер команды</p>
+                    <p className="text-sm text-gray-500">{t('номер_команды', 'Номер команды')}</p>
                     <p className="font-medium text-gray-900">
-                      {(crew as Crew)?.uniqueNumber || project.teamNumber || 'Не назначена'}
+                      {(crew as Crew)?.uniqueNumber || project.teamNumber || t('не_назначена', 'Не назначена')}
                     </p>
                   </div>
                 </div>
                 
                 {project.notes && (
                   <div className="mt-4 p-3 bg-gray-50 rounded-lg">
-                    <p className="text-sm text-gray-500 mb-1">Заметки</p>
+                    <p className="text-sm text-gray-500 mb-1">{t('заметки', 'Заметки')}</p>
                     <p className="text-gray-900">{project.notes}</p>
                   </div>
                 )}
@@ -622,7 +624,7 @@ export default function ProjectDetail({ projectId, selectedFirm, onBack }: Proje
                 <CardTitle className="flex items-center justify-between text-lg">
                   <div className="flex items-center">
                     <History className="h-5 w-5 mr-2 text-green-600" />
-                    История проекта
+                    {t('история_проекта', 'История проекта')}
                   </div>
                   <Button 
                     variant="ghost" 
@@ -630,7 +632,7 @@ export default function ProjectDetail({ projectId, selectedFirm, onBack }: Proje
                     onClick={() => setShowAllHistory(!showAllHistory)}
                     className="text-green-600 hover:bg-green-50 text-xs px-2 py-1"
                   >
-                    {showAllHistory ? 'Свернуть' : 'Показать все'}
+                    {showAllHistory ? t('свернуть', 'Свернуть') : t('показать_все', 'Показать все')}
                   </Button>
                 </CardTitle>
               </CardHeader>
@@ -655,23 +657,23 @@ export default function ProjectDetail({ projectId, selectedFirm, onBack }: Proje
               <CardHeader className="pb-3">
                 <CardTitle className="flex items-center text-lg">
                   <Calendar className="h-5 w-5 mr-2 text-purple-600" />
-                  Временные рамки
+                  {t('временные_рамки', 'Временные рамки')}
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
                 <div className="space-y-2">
-                  <p className="text-sm text-gray-500">Дата начала проекта</p>
+                  <p className="text-sm text-gray-500">{t('дата_начала_проекта', 'Дата начала проекта')}</p>
                   <p className="font-medium text-gray-900">
                     {project.startDate ? 
                       format(new Date(project.startDate), 'dd.MM.yyyy', { locale: ru }) : 
-                      'Не установлена'
+                      t('не_установлена', 'Не установлена')
                     }
                   </p>
                 </div>
 
                 {project.equipmentExpectedDate && (
                   <div className="space-y-2">
-                    <p className="text-sm text-gray-500">Ожидаемая поставка оборудования</p>
+                    <p className="text-sm text-gray-500">{t('ожидаемая_поставка_оборудования', 'Ожидаемая поставка оборудования')}</p>
                     <p className="font-medium text-gray-900">
                       {format(new Date(project.equipmentExpectedDate), 'dd.MM.yyyy', { locale: ru })}
                     </p>
