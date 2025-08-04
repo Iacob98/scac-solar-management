@@ -39,10 +39,7 @@ const projectFormSchema = insertProjectSchema.omit({
   firmId: true, 
   leiterId: true, 
   createdAt: true, 
-  updatedAt: true,
-  needsCallForEquipmentDelay: true,
-  needsCallForCrewDelay: true,
-  needsCallForDateChange: true
+  updatedAt: true
 }).extend({
   startDate: z.string().min(1, 'Дата начала обязательна'),
   equipmentExpectedDate: z.string().min(1, 'Ожидаемая дата поставки обязательна'),
@@ -462,7 +459,7 @@ function ProjectsList({ selectedFirm, onViewProject, onManageServices }: { selec
                     name="equipmentExpectedDate"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>{t('ожидаемая_дата_поставки_оборудования', 'Ожидаемая дата поставки оборудования')}</FormLabel>
+                        <FormLabel>{t('ожидаемая_дата_поставки', 'Ожидаемая дата поставки оборудования')}</FormLabel>
                         <FormControl>
                           <Input type="date" {...field} />
                         </FormControl>
@@ -477,7 +474,7 @@ function ProjectsList({ selectedFirm, onViewProject, onManageServices }: { selec
                   name="workStartDate"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>{t('ожидаемая_дата_начала_работ', 'Ожидаемая дата начала работ')} ({t('необязательно', 'необязательно')})</FormLabel>
+                      <FormLabel>{t('дата_начала_работ', 'Ожидаемая дата начала работ')} ({t('необязательно', 'необязательно')})</FormLabel>
                       <FormControl>
                         <Input type="date" {...field} />
                       </FormControl>
@@ -832,8 +829,8 @@ function ProjectsList({ selectedFirm, onViewProject, onManageServices }: { selec
           {filteredProjects.length === 0 && (
             <div className="text-center py-8">
               <FileText className="h-12 w-12 mx-auto text-gray-400 mb-4" />
-              <h3 className="text-lg font-medium text-gray-900 mb-2">Проекты не найдены</h3>
-              <p className="text-gray-500">Создайте новый проект или измените фильтры поиска</p>
+              <h3 className="text-lg font-medium text-gray-900 mb-2">{t('проекты_не_найдены', 'Проекты не найдены')}</h3>
+              <p className="text-gray-500">{t('создайте_новый_проект_или_измените_фильтры', 'Создайте новый проект или измените фильтры поиска')}</p>
             </div>
           )}
         </div>

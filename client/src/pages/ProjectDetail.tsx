@@ -996,13 +996,13 @@ export default function ProjectDetail({ projectId, selectedFirm, onBack }: Proje
                   <DialogTrigger asChild>
                     <Button variant="outline">
                       <Plus className="h-4 w-4 mr-2" />
-                      Создать отчет
+                      {t('создать_отчет', 'Создать отчет')}
                     </Button>
                   </DialogTrigger>
                   <DialogContent className="max-w-2xl">
                     <DialogHeader>
                       <DialogTitle>
-                        {editingReport ? 'Редактировать отчет' : 'Создать отчет о выполненной работе'}
+                        {editingReport ? t('редактировать_отчет', 'Редактировать отчет') : t('создать_отчет_о_работе', 'Создать отчет о выполненной работе')}
                       </DialogTitle>
                     </DialogHeader>
                     <Form {...reportForm}>
@@ -1012,7 +1012,7 @@ export default function ProjectDetail({ projectId, selectedFirm, onBack }: Proje
                           name="rating"
                           render={({ field }) => (
                             <FormItem>
-                              <FormLabel>Оценка качества работы (1-5 звезд)</FormLabel>
+                              <FormLabel>{t('оценка_качества_работы', 'Оценка качества работы (1-5 звезд)')}</FormLabel>
                               <FormControl>
                                 <Select 
                                   onValueChange={(value) => field.onChange(parseInt(value))}
@@ -1045,10 +1045,10 @@ export default function ProjectDetail({ projectId, selectedFirm, onBack }: Proje
                           name="reviewText"
                           render={({ field }) => (
                             <FormItem>
-                              <FormLabel>Письменный отзыв</FormLabel>
+                              <FormLabel>{t('письменный_отзыв', 'Письменный отзыв')}</FormLabel>
                               <FormControl>
                                 <Textarea 
-                                  placeholder="Опишите выполненную работу, качество установки, возникшие проблемы..."
+                                  placeholder={t('опишите_выполненную_работу', 'Опишите выполненную работу, качество установки, возникшие проблемы...')}
                                   className="min-h-[100px]"
                                   {...field} 
                                 />
@@ -1063,7 +1063,7 @@ export default function ProjectDetail({ projectId, selectedFirm, onBack }: Proje
                           name="reviewDocumentUrl"
                           render={({ field }) => (
                             <FormItem>
-                              <FormLabel>URL документа отзыва (опционально)</FormLabel>
+                              <FormLabel>{t('url_документа_отзыва', 'URL документа отзыва (опционально)')}</FormLabel>
                               <FormControl>
                                 <Input 
                                   type="url" 
@@ -1086,15 +1086,15 @@ export default function ProjectDetail({ projectId, selectedFirm, onBack }: Proje
                               reportForm.reset();
                             }}
                           >
-                            Отмена
+                            {t('отмена', 'Отмена')}
                           </Button>
                           <Button 
                             type="submit" 
                             disabled={createReportMutation.isPending || updateReportMutation.isPending}
                           >
                             {(createReportMutation.isPending || updateReportMutation.isPending) 
-                              ? 'Сохранение...' 
-                              : editingReport ? 'Обновить' : 'Создать'
+                              ? t('сохранение', 'Сохранение...') 
+                              : editingReport ? t('обновить', 'Обновить') : t('создать', 'Создать')
                             }
                           </Button>
                         </div>
@@ -1320,13 +1320,13 @@ export default function ProjectDetail({ projectId, selectedFirm, onBack }: Proje
                               noteForm.reset();
                             }}
                           >
-                            Отмена
+                            {t('отмена', 'Отмена')}
                           </Button>
                           <Button 
                             type="submit" 
                             disabled={createNoteMutation.isPending}
                           >
-                            {createNoteMutation.isPending ? 'Сохранение...' : 'Добавить примечание'}
+                            {createNoteMutation.isPending ? t('сохранение', 'Сохранение...') : t('добавить_примечание', 'Добавить примечание')}
                           </Button>
                         </div>
                       </form>

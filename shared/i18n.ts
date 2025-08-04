@@ -261,7 +261,21 @@ export const useTranslation = create<TranslationStore>()(
         'файл': { ru: 'Файл', de: 'Datei' },
         'нажмите_выбор_файла': { ru: 'Нажмите для выбора файла', de: 'Klicken Sie zur Dateiauswahl' },
         'поддерживаются_форматы': { ru: 'Поддерживаются изображения, PDF, DOC, TXT', de: 'Unterstützt: Bilder, PDF, DOC, TXT' },
-        'сохранение': { ru: 'Сохранение...', de: 'Speichern...' }
+        'сохранение': { ru: 'Сохранение...', de: 'Speichern...' },
+        'проекты_не_найдены': { ru: 'Проекты не найдены', de: 'Keine Projekte gefunden' },
+        'создайте_новый_проект_или_измените_фильтры': { ru: 'Создайте новый проект или измените фильтры поиска', de: 'Erstellen Sie ein neues Projekt oder ändern Sie die Suchfilter' },
+        'ожидаемая_дата_поставки': { ru: 'Ожидаемая дата поставки оборудования', de: 'Erwartetes Lieferdatum der Ausrüstung' },
+        'дата_начала_работ': { ru: 'Ожидаемая дата начала работ', de: 'Erwartetes Startdatum der Arbeiten' },
+        'создать_отчет': { ru: 'Создать отчет', de: 'Bericht erstellen' },
+        'редактировать_отчет': { ru: 'Редактировать отчет', de: 'Bericht bearbeiten' },
+        'создать_отчет_о_работе': { ru: 'Создать отчет о выполненной работе', de: 'Arbeitsbericht erstellen' },
+        'оценка_качества_работы': { ru: 'Оценка качества работы (1-5 звезд)', de: 'Qualitätsbewertung der Arbeit (1-5 Sterne)' },
+        'письменный_отзыв': { ru: 'Письменный отзыв', de: 'Schriftliche Bewertung' },
+        'опишите_выполненную_работу': { ru: 'Опишите выполненную работу, качество установки, возникшие проблемы...', de: 'Beschreiben Sie die durchgeführte Arbeit, Installationsqualität, aufgetretene Probleme...' },
+        'url_документа_отзыва': { ru: 'URL документа отзыва (опционально)', de: 'URL des Bewertungsdokuments (optional)' },
+        'обновить': { ru: 'Обновить', de: 'Aktualisieren' },
+        'создать': { ru: 'Создать', de: 'Erstellen' },
+        'добавить_примечание': { ru: 'Добавить примечание', de: 'Notiz hinzufügen' }
       },
       
       setLanguage: (language: Language) => set({ language }),
