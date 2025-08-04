@@ -1,22 +1,24 @@
 import { Link, useLocation } from 'wouter';
 import { useAuth } from '@/hooks/useAuth';
+import { useTranslation } from '@shared/i18n';
 
 export function Sidebar() {
   const { user } = useAuth();
   const [location] = useLocation();
+  const { t } = useTranslation();
 
   const menuItems = [
-    { path: '/projects', label: 'Проекты', icon: 'dashboard' },
-    { path: '/clients', label: 'Клиенты', icon: 'people' },
-    { path: '/crews', label: 'Бригады', icon: 'groups' },
-    { path: '/crews/statistics', label: 'Статистика', icon: 'analytics' },
-    { path: '/calendar', label: 'Календарь', icon: 'event' },
-    ...(user?.role === 'admin' ? [{ path: '/invoices', label: 'Счета', icon: 'receipt' }] : []),
+    { path: '/projects', label: t('проекты', 'Проекты'), icon: 'dashboard' },
+    { path: '/clients', label: t('клиенты', 'Клиенты'), icon: 'people' },
+    { path: '/crews', label: t('бригады', 'Бригады'), icon: 'groups' },
+    { path: '/crews/statistics', label: t('статистика', 'Статистика'), icon: 'analytics' },
+    { path: '/calendar', label: t('календарь', 'Календарь'), icon: 'event' },
+    ...(user?.role === 'admin' ? [{ path: '/invoices', label: t('счета', 'Счета'), icon: 'receipt' }] : []),
   ];
 
   const adminItems = [
-    { path: '/admin/firms', label: 'Управление фирмами', icon: 'domain_add' },
-    { path: '/admin/users', label: 'Пользователи', icon: 'admin_panel_settings' },
+    { path: '/admin/firms', label: t('управление_фирмами', 'Управление фирмами'), icon: 'domain_add' },
+    { path: '/admin/users', label: t('пользователи', 'Пользователи'), icon: 'admin_panel_settings' },
   ];
 
   const isActive = (path: string) => {
@@ -64,7 +66,7 @@ export function Sidebar() {
         {user?.role === 'admin' && (
           <div className="pt-4 border-t">
             <p className="text-xs font-medium text-gray-400 uppercase tracking-wider mb-2">
-              Администрирование
+              {t('администрирование', 'Администрирование')}
             </p>
             {adminItems.map((item) => (
               <Link key={item.path} href={item.path}>

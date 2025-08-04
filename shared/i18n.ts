@@ -29,7 +29,17 @@ export const useTranslation = create<TranslationStore>()(
         'администрирование': { ru: 'Администрирование', de: 'Administration' },
         'управление_переводами': { ru: 'Управление переводами', de: 'Übersetzungsverwaltung' },
         'настройки': { ru: 'Настройки', de: 'Einstellungen' },
-        'выход': { ru: 'Выход', de: 'Ausloggen' }
+        'выход': { ru: 'Выход', de: 'Ausloggen' },
+        'выберите_фирму': { ru: 'Выберите фирму', de: 'Firma wählen' },
+        'администратор': { ru: 'Администратор', de: 'Administrator' },
+        'руководитель_проектов': { ru: 'Руководитель проектов', de: 'Projektleiter' },
+        'управление_фирмами': { ru: 'Управление фирмами', de: 'Firmenverwaltung' },
+        'пользователи': { ru: 'Пользователи', de: 'Benutzer' },
+        'фирмы': { ru: 'Фирмы', de: 'Firmen' },
+        'выберите_фирму_в_верхнем_меню_для_просмотра_статистики': {
+          ru: 'Выберите фирму в верхнем меню для просмотра статистики',
+          de: 'Wählen Sie eine Firma im oberen Menü aus, um Statistiken anzuzeigen'
+        }
       },
       
       setLanguage: (language: Language) => set({ language }),

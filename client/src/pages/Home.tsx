@@ -18,12 +18,14 @@ import {
   Play
 } from 'lucide-react';
 import type { Project, Client, Crew } from '@shared/schema';
+import { useTranslation } from '@shared/i18n';
 import { useState, useEffect } from 'react';
 import Tutorial from '@/components/Tutorial';
 import { useToast } from '@/hooks/use-toast';
 
 export default function Home() {
   const { user } = useAuth();
+  const { t } = useTranslation();
   const { toast } = useToast();
   const [selectedFirmId, setSelectedFirmId] = useState<string>('');
   const [isTutorialOpen, setIsTutorialOpen] = useState(false);

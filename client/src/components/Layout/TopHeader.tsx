@@ -6,10 +6,11 @@ import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Bell, ChevronDown, Settings, LogOut, UserCircle, Languages } from 'lucide-react';
 import type { Firm } from '@shared/schema';
-import { LanguageToggle } from '@shared/i18n';
+import { LanguageToggle, useTranslation } from '@shared/i18n';
 
 export function TopHeader() {
   const { user } = useAuth();
+  const { t } = useTranslation();
   const [selectedFirmId, setSelectedFirmId] = useState<string>(() => {
     // Initialize with saved value immediately to prevent flashing
     return localStorage.getItem('selectedFirmId') || '';
@@ -75,7 +76,7 @@ export function TopHeader() {
         {/* Firm Selector */}
         <Select value={selectedFirmId} onValueChange={handleFirmChange}>
           <SelectTrigger className="w-64">
-            <SelectValue placeholder="Выберите фирму" />
+            <SelectValue placeholder={t('выберите_фирму', 'Выберите фирму')} />
           </SelectTrigger>
           <SelectContent>
             {firms.map((firm) => (
@@ -112,7 +113,7 @@ export function TopHeader() {
                 <p className="font-medium">
                   {user?.firstName} {user?.lastName}
                 </p>
-                <p className="text-gray-500">{user?.role === 'admin' ? 'Администратор' : 'Руководитель проектов'}</p>
+                <p className="text-gray-500">{user?.role === 'admin' ? t('администратор', 'Администратор') : t('руководитель_проектов', 'Руководитель проектов')}</p>
               </div>
               <ChevronDown className="w-4 h-4 text-gray-400" />
             </div>
@@ -122,19 +123,19 @@ export function TopHeader() {
               <>
                 <DropdownMenuItem onClick={() => window.location.href = '/translations'}>
                   <Languages className="w-4 h-4 mr-2" />
-                  Управление переводами
+                  {t('управление_переводами', 'Управление переводами')}
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
               </>
             )}
             <DropdownMenuItem onClick={() => window.location.href = '/settings'}>
               <Settings className="w-4 h-4 mr-2" />
-              Настройки
+              {t('настройки', 'Настройки')}
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={() => window.location.href = '/api/logout'}>
               <LogOut className="w-4 h-4 mr-2" />
-              Выход
+              {t('выход', 'Выход')}
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
