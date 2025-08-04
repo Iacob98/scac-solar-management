@@ -22,7 +22,7 @@ import Tutorial from '@/components/Tutorial';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
 import { apiRequest } from '@/lib/queryClient';
-import { useTranslation } from '@shared/i18n';
+import { useTranslations } from '@/hooks/useTranslations';
 
 import ProjectDetail from './ProjectDetail';
 import Services from './Services';
@@ -39,7 +39,7 @@ const projectFormSchema = insertProjectSchema.omit({ id: true, firmId: true, lei
   equipmentExpectedDate: z.string().min(1, 'Ожидаемая дата поставки обязательна'),
   workStartDate: z.string().optional(),
   clientId: z.number().min(1, 'Выберите клиента'),
-  crewId: z.number().min(1, 'Выберите бригаду'),
+  crewId: z.number().optional(),
   installationPersonFirstName: z.string().min(1, 'Имя обязательно'),
   installationPersonLastName: z.string().min(1, 'Фамилия обязательна'),
   installationPersonAddress: z.string().min(1, 'Адрес обязателен'),
@@ -74,7 +74,7 @@ function ProjectsList({ selectedFirm, onViewProject, onManageServices }: { selec
   const { toast } = useToast();
   const { user } = useAuth();
   const queryClient = useQueryClient();
-  const { t } = useTranslation();
+  const { t } = useTranslations();
   const statusLabels = getStatusLabels(t);
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [filter, setFilter] = useState('');
@@ -242,6 +242,7 @@ function ProjectsList({ selectedFirm, onViewProject, onManageServices }: { selec
       ...data,
       leiterId: user?.id || '',
       firmId: selectedFirm,
+      crewId: data.crewId || null,
     });
   };
 
@@ -267,12 +268,14 @@ function ProjectsList({ selectedFirm, onViewProject, onManageServices }: { selec
     return t('не_указан_клиент_установки', 'Не указан клиент установки');
   };
 
-  const getCrewName = (crewId: number) => {
+  const getCrewName = (crewId: number | null) => {
+    if (!crewId) return t('не_назначена', 'Не назначена');
     const crew = (crews as Crew[]).find((c: Crew) => c.id === crewId);
     return crew?.name || t('не_назначена', 'Не назначена');
   };
 
-  const getCrewUniqueNumber = (crewId: number) => {
+  const getCrewUniqueNumber = (crewId: number | null) => {
+    if (!crewId) return '';
     const crew = (crews as Crew[]).find((c: Crew) => c.id === crewId);
     return crew?.uniqueNumber || '';
   };
@@ -801,7 +804,7 @@ function ProjectsList({ selectedFirm, onViewProject, onManageServices }: { selec
 }
 
 export default function ProjectsWrapper({ selectedFirm, initialProjectId }: ProjectsWrapperProps) {
-  const { t } = useTranslation();
+  const { t } = useTranslations();
   const [viewMode, setViewMode] = useState<ViewMode>('list');
   const [selectedProjectId, setSelectedProjectId] = useState<number | null>(null);
 

@@ -2,8 +2,7 @@ import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useToast } from '@/hooks/use-toast';
 import { apiRequest } from '@/lib/queryClient';
-import { useI18n } from '@/hooks/useI18n';
-import { useTranslation } from '@shared/i18n';
+import { useTranslations } from '@/hooks/useTranslations';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -41,10 +40,17 @@ interface ProjectWizardProps {
 }
 
 export function ProjectWizard({ isOpen, onClose, firmId }: ProjectWizardProps) {
-  const { formatCurrency } = useI18n();
   const { toast } = useToast();
-  const { t } = useTranslation();
+  const { t } = useTranslations();
   const queryClient = useQueryClient();
+  
+  // Простая функция форматирования валюты
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat('de-DE', {
+      style: 'currency',
+      currency: 'EUR'
+    }).format(amount);
+  };
   const [currentStep, setCurrentStep] = useState(1);
   const [projectData, setProjectData] = useState<any>(null);
   const [services, setServices] = useState<any[]>([]);
