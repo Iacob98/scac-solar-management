@@ -73,32 +73,32 @@ export default function Home() {
 
   const quickActions = [
     {
-      title: 'Проекты',
-      description: 'Управление проектами установки солнечных панелей',
+      title: t('проекты', 'Проекты'),
+      description: t('управление_проектами_установки_солнечных_панелей', 'Управление проектами установки солнечных панелей'),
       icon: FolderOpen,
       href: '/projects',
       color: 'text-blue-600',
       bgColor: 'bg-blue-50'
     },
     {
-      title: 'Клиенты',
-      description: 'Управление базой клиентов',
+      title: t('клиенты', 'Клиенты'),
+      description: t('управление_базой_клиентов', 'Управление базой клиентов'),
       icon: Users,
       href: '/clients',
       color: 'text-green-600',
       bgColor: 'bg-green-50'
     },
     {
-      title: 'Бригады',
-      description: 'Управление установочными бригадами',
+      title: t('бригады', 'Бригады'),
+      description: t('управление_установочными_бригадами', 'Управление установочными бригадами'),
       icon: Wrench,
       href: '/crews',
       color: 'text-orange-600',
       bgColor: 'bg-orange-50'
     },
     {
-      title: 'Счета',
-      description: 'Управление счетами и оплатами',
+      title: t('счета', 'Счета'),
+      description: t('управление_счетами_и_оплатами', 'Управление счетами и оплатами'),
       icon: FileText,
       href: '/invoices',
       color: 'text-purple-600',
@@ -109,16 +109,16 @@ export default function Home() {
   if (user?.role === 'admin') {
     quickActions.push(
       {
-        title: 'Фирмы',
-        description: 'Управление компаниями',
+        title: t('фирмы', 'Фирмы'),
+        description: t('управление_компаниями', 'Управление компаниями'),
         icon: Building,
         href: '/admin/firms',
         color: 'text-red-600',
         bgColor: 'bg-red-50'
       },
       {
-        title: 'Пользователи',
-        description: 'Управление пользователями системы',
+        title: t('пользователи', 'Пользователи'),
+        description: t('управление_пользователями_системы', 'Управление пользователями системы'),
         icon: UserCircle,
         href: '/admin/users',
         color: 'text-indigo-600',
@@ -133,20 +133,20 @@ export default function Home() {
         {/* Welcome Section */}
         <div className="bg-gradient-to-r from-blue-600 to-blue-800 text-white rounded-lg p-8">
           <h1 className="text-3xl font-bold mb-2">
-            Добро пожаловать, {user?.firstName} {user?.lastName}!
+            {t('добро_пожаловать', 'Добро пожаловать')}, {user?.firstName} {user?.lastName}!
           </h1>
           <p className="text-blue-100 text-lg">
-            Система управления проектами установки солнечных панелей
+            {t('система_управления_проектами_установки_солнечных_панелей', 'Система управления проектами установки солнечных панелей')}
           </p>
           <div className="mt-4 flex items-center justify-between">
             <div className="flex items-center space-x-4 text-sm">
               <div className="flex items-center space-x-2">
                 <Calendar className="w-4 h-4" />
-                <span>Сегодня: {new Date().toLocaleDateString('ru-RU')}</span>
+                <span>{t('сегодня', 'Сегодня')}: {new Date().toLocaleDateString('ru-RU')}</span>
               </div>
               <div className="flex items-center space-x-2">
                 <UserCircle className="w-4 h-4" />
-                <span>Роль: {user?.role === 'admin' ? 'Администратор' : 'Руководитель проектов'}</span>
+                <span>{t('роль', 'Роль')}: {user?.role === 'admin' ? t('администратор', 'Администратор') : t('руководитель_проектов', 'Руководитель проектов')}</span>
               </div>
             </div>
             <Button 
@@ -155,14 +155,14 @@ export default function Home() {
               className="bg-white/20 hover:bg-white/30 text-white border-white/30"
             >
               <Play className="w-4 h-4 mr-2" />
-              Начать туториал
+{t('начать_туториал', 'Начать туториал')}
             </Button>
           </div>
         </div>
 
         {/* Quick Actions */}
         <div>
-          <h2 className="text-xl font-semibold text-gray-900 mb-4">Быстрые действия</h2>
+          <h2 className="text-xl font-semibold text-gray-900 mb-4">{t('быстрые_действия', 'Быстрые действия')}</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {quickActions.map((action, index) => (
               <Link key={index} href={action.href}>

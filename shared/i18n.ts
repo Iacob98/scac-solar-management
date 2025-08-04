@@ -39,7 +39,16 @@ export const useTranslation = create<TranslationStore>()(
         'выберите_фирму_в_верхнем_меню_для_просмотра_статистики': {
           ru: 'Выберите фирму в верхнем меню для просмотра статистики',
           de: 'Wählen Sie eine Firma im oberen Menü aus, um Statistiken anzuzeigen'
-        }
+        },
+        'добро_пожаловать': { ru: 'Добро пожаловать', de: 'Willkommen' },
+        'система_управления_проектами_установки_солнечных_панелей': { 
+          ru: 'Система управления проектами установки солнечных панелей', 
+          de: 'Verwaltungssystem für Solaranlagen-Installationsprojekte' 
+        },
+        'сегодня': { ru: 'Сегодня', de: 'Heute' },
+        'роль': { ru: 'Роль', de: 'Rolle' },
+        'начать_туториал': { ru: 'Начать туториал', de: 'Tutorial starten' },
+        'быстрые_действия': { ru: 'Быстрые действия', de: 'Schnellaktionen' }
       },
       
       setLanguage: (language: Language) => set({ language }),
