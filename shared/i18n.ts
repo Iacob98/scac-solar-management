@@ -1,6 +1,6 @@
+import React from 'react';
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import React from 'react';
 
 export type Language = 'ru' | 'de';
 
