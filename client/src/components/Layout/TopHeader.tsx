@@ -4,8 +4,9 @@ import { useQuery } from '@tanstack/react-query';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { Bell, ChevronDown, Settings, LogOut, UserCircle } from 'lucide-react';
+import { Bell, ChevronDown, Settings, LogOut, UserCircle, Languages } from 'lucide-react';
 import type { Firm } from '@shared/schema';
+import { LanguageToggle } from '@shared/i18n';
 
 export function TopHeader() {
   const { user } = useAuth();
@@ -89,6 +90,9 @@ export function TopHeader() {
       </div>
 
       <div className="flex items-center space-x-4">
+        {/* Language Toggle */}
+        <LanguageToggle />
+        
         {/* Notification Bell */}
         <Button variant="ghost" size="icon" className="relative">
           <Bell className="w-5 h-5" />
@@ -114,6 +118,15 @@ export function TopHeader() {
             </div>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-56">
+            {user?.role === 'admin' && (
+              <>
+                <DropdownMenuItem onClick={() => window.location.href = '/translations'}>
+                  <Languages className="w-4 h-4 mr-2" />
+                  Управление переводами
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+              </>
+            )}
             <DropdownMenuItem onClick={() => window.location.href = '/settings'}>
               <Settings className="w-4 h-4 mr-2" />
               Настройки

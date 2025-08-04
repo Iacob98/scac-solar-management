@@ -24,6 +24,7 @@ import googleCalendarRoutes from "./routes/googleCalendar";
 import emailNotificationRoutes from "./routes/emailNotifications";
 import calendarDemoRoutes from "./routes/calendarDemo";
 import googleRoutes from "./routes/google";
+import translationRoutes from "./routes/translation";
 import { fileStorageService } from "./storage/fileStorage";
 import { emailNotificationService } from "./services/emailNotifications";
 import { googleCalendarService } from "./services/googleCalendar";
@@ -92,6 +93,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Email notification routes
   app.use('/api/notifications', emailNotificationRoutes);
   app.use('/api/calendar-demo', calendarDemoRoutes);
+  app.use('/', translationRoutes);
 
   // Test endpoint for history entries
   app.get('/api/test-history', isAuthenticated, async (req: any, res) => {

@@ -65,7 +65,7 @@ export default function Home() {
     enabled: !!selectedFirmId,
   });
 
-  const activeProjects = projects.filter(p => p.status === 'in_progress').length;
+  const activeProjects = projects.filter(p => p.status === 'work_in_progress').length;
   const totalClients = clients.length;
   const activeCrews = crews.filter(c => !c.archived).length;
 
@@ -249,9 +249,9 @@ export default function Home() {
         {selectedFirmId && (
           <div className="mt-8">
             <GoogleCalendarWidget 
-              firmId={selectedFirmId} 
-              className="w-full"
-              maxEvents={5}
+              projectId={0}
+              crewId={0}
+              projectStatus="planning"
             />
           </div>
         )}

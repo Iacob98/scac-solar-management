@@ -29,6 +29,7 @@ import GoogleCalendar from "@/pages/GoogleCalendar";
 import GoogleCalendarSetup from "@/pages/GoogleCalendarSetup";
 import NotFound from "@/pages/not-found";
 import CrewUpload from "@/pages/CrewUpload";
+import TranslationManager from "@/pages/TranslationManager";
 
 function ProtectedRoute({ component: Component, ...props }: any) {
   const { isAuthenticated, isLoading, refetch } = useAuth();
@@ -67,6 +68,7 @@ function Router() {
       <Route path="/admin/firms" component={() => <ProtectedRoute component={FirmsManagement} />} />
       <Route path="/admin/firms/:id/edit" component={() => <ProtectedRoute component={FirmEdit} />} />
       <Route path="/admin/users" component={() => <ProtectedRoute component={Users} />} />
+      <Route path="/translations" component={() => <ProtectedRoute component={TranslationManager} />} />
       <Route path="/crew-upload/:projectId/:token" component={CrewUpload} />
       <Route component={NotFound} />
     </Switch>
