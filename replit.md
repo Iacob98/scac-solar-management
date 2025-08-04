@@ -5,8 +5,9 @@ The SCAC platform is a comprehensive web application designed to automate solar 
 
 ## User Preferences
 Preferred communication style: Simple, everyday language.
-Language: Russian only (no language switching)
+Language: Russian-German bilingual system with dynamic switching
 Focus on real data integration and proper business logic implementation
+✅ COMPLETED: Full internationalization system with working language switcher (January 2025)
 
 ## System Architecture
 
@@ -36,7 +37,7 @@ Focus on real data integration and proper business logic implementation
 - **Email Integration**: Postmark service integration for sending invoices with PDF attachments, including configuration through firm settings.
 - **Search Functionality**: Enhanced search across projects, clients, and crews using various criteria like customer ID, names, and crew numbers.
 - **History Tracking**: Comprehensive activity logging for projects, files, reports, invoices, and crew composition changes with detailed entries and user attribution.
-- **Internationalization**: Primarily Russian language with all UI elements translated. While a localization system is present, the current focus is Russian-only.
+- **Internationalization**: Complete Russian-German bilingual system with dynamic language switching. All UI elements dynamically translate using Zustand store with localStorage persistence. Working translation system with 80+ text pairs covering navigation, project statuses, forms, and system messages.
 - **Data Integrity**: Focus on proper business logic implementation, data flow from database to frontend, and handling of nullable fields.
 - **API Design**: RESTful APIs for core functionalities, including dedicated endpoints for firms, projects, clients, crews, invoices, files, and integrations.
 
