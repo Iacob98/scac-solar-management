@@ -372,7 +372,7 @@ function ProjectsList({ selectedFirm, onViewProject, onManageServices }: { selec
 {t('создать_проект', 'Создать проект')}
               </Button>
             </DialogTrigger>
-          <DialogContent className="max-w-2xl">
+          <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>{t('создание_нового_проекта', 'Создание нового проекта')}</DialogTitle>
               <DialogDescription>
@@ -381,7 +381,7 @@ function ProjectsList({ selectedFirm, onViewProject, onManageServices }: { selec
             </DialogHeader>
             <Form {...form}>
               <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <FormField
                     control={form.control}
                     name="clientId"
@@ -433,7 +433,7 @@ function ProjectsList({ selectedFirm, onViewProject, onManageServices }: { selec
                   />
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <FormField
                     control={form.control}
                     name="startDate"
@@ -480,7 +480,7 @@ function ProjectsList({ selectedFirm, onViewProject, onManageServices }: { selec
                 <div className="space-y-4">
                   <h3 className="text-lg font-semibold">{t('информация_о_клиенте_установки', 'Информация о клиенте установки')}</h3>
                   
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <FormField
                       control={form.control}
                       name="installationPersonFirstName"
@@ -581,11 +581,11 @@ function ProjectsList({ selectedFirm, onViewProject, onManageServices }: { selec
                   />
                 </div>
 
-                <div className="flex justify-end space-x-2">
-                  <Button type="button" variant="outline" onClick={() => setIsCreateDialogOpen(false)}>
+                <div className="flex flex-col sm:flex-row justify-end space-y-2 sm:space-y-0 sm:space-x-2">
+                  <Button type="button" variant="outline" onClick={() => setIsCreateDialogOpen(false)} className="w-full sm:w-auto">
                     {t('отмена_диалога', 'Отмена')}
                   </Button>
-                  <Button 
+                  <Button className="w-full sm:w-auto" 
                     type="button" 
                     disabled={createProjectMutation.isPending}
                     onClick={async () => {
