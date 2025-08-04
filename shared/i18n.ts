@@ -139,7 +139,6 @@ export const useTranslation = create<TranslationStore>()(
         'услуги': { ru: 'Услуги', de: 'Leistungen' },
         'резюме': { ru: 'Резюме', de: 'Zusammenfassung' },
         'основные_данные_проекта': { ru: 'Основные данные проекта', de: 'Projekt Grunddaten' },
-        'номер_команды': { ru: 'Номер команды', de: 'Team-Nummer' },
         'клиент': { ru: 'Клиент', de: 'Kunde' },
         'выбрать_клиента': { ru: 'Выбрать клиента', de: 'Kunde auswählen' },
         'бригада': { ru: 'Бригада', de: 'Crew' },
@@ -173,9 +172,6 @@ export const useTranslation = create<TranslationStore>()(
         'фамилия_клиента': { ru: 'Фамилия клиента', de: 'Nachname des Kunden' },
         'адрес_установки': { ru: 'Адрес установки', de: 'Installationsadresse' },
         'полный_адрес_для_установки': { ru: 'Полный адрес для установки солнечных панелей', de: 'Vollständige Adresse für die Installation der Solarpaneele' },
-        'телефон_клиента': { ru: 'Телефон клиента', de: 'Telefon des Kunden' },
-        'уникальный_id_клиента': { ru: 'Уникальный ID клиента', de: 'Eindeutige Kunden-ID' },
-        'например_cli_001234': { ru: 'Например: CLI-001234', de: 'Beispiel: CLI-001234' },
         'создание_проекта': { ru: 'Создание...', de: 'Erstelle...' },
         'отмена_диалога': { ru: 'Отмена', de: 'Abbrechen' },
         'информация_о_клиенте': { ru: 'Информация о клиенте', de: 'Kundeninformationen' },
@@ -195,7 +191,10 @@ export const useTranslation = create<TranslationStore>()(
         'не_указан_клиент_установки': { 
           ru: 'Не указан клиент установки', 
           de: 'Installationskunde nicht angegeben' 
-        }
+        },
+        'например_cli': { ru: 'Например: CLI-001234', de: 'Zum Beispiel: CLI-001234' },
+        'уникальный_номер_команды': { ru: 'Уникальный номер команды для этого проекта', de: 'Eindeutige Team-Nummer für dieses Projekt' },
+        'дополнительные_детали_проекта': { ru: 'Дополнительные детали проекта...', de: 'Weitere Details zum Projekt...' }
       },
       
       setLanguage: (language: Language) => set({ language }),

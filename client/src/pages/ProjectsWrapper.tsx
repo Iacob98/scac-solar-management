@@ -45,6 +45,8 @@ const projectFormSchema = insertProjectSchema.omit({ id: true, firmId: true, lei
   installationPersonAddress: z.string().min(1, 'Адрес обязателен'),
   installationPersonPhone: z.string().min(1, 'Телефон обязателен'),
   installationPersonUniqueId: z.string().min(1, 'Уникальный ID обязателен'),
+  teamNumber: z.string().min(1, 'Номер команды обязателен'),
+  notes: z.string().optional(),
 });
 
 // Функция для получения переводов статусов
@@ -127,6 +129,8 @@ function ProjectsList({ selectedFirm, onViewProject, onManageServices }: { selec
       installationPersonAddress: '',
       installationPersonPhone: '',
       installationPersonUniqueId: '',
+      teamNumber: '',
+      notes: '',
     },
   });
 
@@ -242,7 +246,7 @@ function ProjectsList({ selectedFirm, onViewProject, onManageServices }: { selec
       ...data,
       leiterId: user?.id || '',
       firmId: selectedFirm,
-      crewId: data.crewId || null,
+      crewId: data.crewId || undefined,
     });
   };
 
@@ -541,7 +545,35 @@ function ProjectsList({ selectedFirm, onViewProject, onManageServices }: { selec
                       <FormItem>
                         <FormLabel>{t('уникальный_id_клиента', 'Уникальный ID клиента')}</FormLabel>
                         <FormControl>
-                          <Input placeholder={t('например_cli_001234', 'Например: CLI-001234')} {...field} />
+                          <Input placeholder={t('например_cli', 'Например: CLI-001234')} {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="teamNumber"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>{t('номер_команды', 'Номер команды')}</FormLabel>
+                        <FormControl>
+                          <Input placeholder={t('уникальный_номер_команды', 'Уникальный номер команды для этого проекта')} {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="notes"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>{t('заметки', 'Заметки')} ({t('необязательно', 'необязательно')})</FormLabel>
+                        <FormControl>
+                          <Textarea placeholder={t('дополнительные_детали_проекта', 'Дополнительные детали проекта...')} {...field} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
