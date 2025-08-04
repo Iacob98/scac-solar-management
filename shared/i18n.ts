@@ -81,7 +81,6 @@ export const useTranslation = create<TranslationStore>()(
         'счет_выставлен': { ru: 'Счет выставлен', de: 'Rechnung erstellt' },
         'оплачен': { ru: 'Оплачен', de: 'Bezahlt' },
         'создать_бригаду': { ru: 'Создать бригаду', de: 'Team erstellen' },
-        'создать': { ru: 'Создать', de: 'Erstellen' },
         'создание': { ru: 'Создание...', de: 'Erstelle...' },
         'календарь_проектов': { ru: 'Календарь проектов', de: 'Projektkalender' },
         'добавить_нового_клиента': { ru: 'Добавить нового клиента', de: 'Neuen Kunden hinzufügen' },
@@ -264,8 +263,7 @@ export const useTranslation = create<TranslationStore>()(
         'сохранение': { ru: 'Сохранение...', de: 'Speichern...' },
         'проекты_не_найдены': { ru: 'Проекты не найдены', de: 'Keine Projekte gefunden' },
         'создайте_новый_проект_или_измените_фильтры': { ru: 'Создайте новый проект или измените фильтры поиска', de: 'Erstellen Sie ein neues Projekt oder ändern Sie die Suchfilter' },
-        'ожидаемая_дата_поставки': { ru: 'Ожидаемая дата поставки оборудования', de: 'Erwartetes Lieferdatum der Ausrüstung' },
-        'дата_начала_работ': { ru: 'Ожидаемая дата начала работ', de: 'Erwartetes Startdatum der Arbeiten' },
+
         'создать_отчет': { ru: 'Создать отчет', de: 'Bericht erstellen' },
         'редактировать_отчет': { ru: 'Редактировать отчет', de: 'Bericht bearbeiten' },
         'создать_отчет_о_работе': { ru: 'Создать отчет о выполненной работе', de: 'Arbeitsbericht erstellen' },
@@ -274,7 +272,7 @@ export const useTranslation = create<TranslationStore>()(
         'опишите_выполненную_работу': { ru: 'Опишите выполненную работу, качество установки, возникшие проблемы...', de: 'Beschreiben Sie die durchgeführte Arbeit, Installationsqualität, aufgetretene Probleme...' },
         'url_документа_отзыва': { ru: 'URL документа отзыва (опционально)', de: 'URL des Bewertungsdokuments (optional)' },
         'обновить': { ru: 'Обновить', de: 'Aktualisieren' },
-        'создать': { ru: 'Создать', de: 'Erstellen' },
+        'создать_кнопка': { ru: 'Создать', de: 'Erstellen' },
         'добавить_примечание': { ru: 'Добавить примечание', de: 'Notiz hinzufügen' }
       },
       

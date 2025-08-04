@@ -1094,7 +1094,7 @@ export default function ProjectDetail({ projectId, selectedFirm, onBack }: Proje
                           >
                             {(createReportMutation.isPending || updateReportMutation.isPending) 
                               ? t('сохранение', 'Сохранение...') 
-                              : editingReport ? t('обновить', 'Обновить') : t('создать', 'Создать')
+                              : editingReport ? t('обновить', 'Обновить') : t('создать_кнопка', 'Создать')
                             }
                           </Button>
                         </div>
