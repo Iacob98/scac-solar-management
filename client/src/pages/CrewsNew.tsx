@@ -19,6 +19,7 @@ import { MainLayout } from '@/components/Layout/MainLayout';
 import { CrewHistory } from '@/components/CrewHistory';
 import { apiRequest } from '@/lib/queryClient';
 import { useLocation } from 'wouter';
+import { useTranslation } from '@shared/i18n';
 
 // Схема для простого редактирования бригады
 const editCrewSchema = z.object({
@@ -554,6 +555,7 @@ type ExtendedCrewForm = z.infer<typeof extendedCrewSchema>;
 export default function CrewsNew() {
   const { toast } = useToast();
   const { user } = useAuth();
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
   const [, setLocation] = useLocation();
   const [selectedFirmId, setSelectedFirmId] = useState<string>('');
@@ -795,8 +797,8 @@ export default function CrewsNew() {
               <DialogTrigger asChild>
                 <Button size="sm" className="w-full sm:w-auto">
                   <Plus className="h-4 w-4 mr-2" />
-                  <span className="hidden sm:inline">Создать бригаду</span>
-                  <span className="sm:hidden">Создать</span>
+                  <span className="hidden sm:inline">{t('создать_бригаду', 'Создать бригаду')}</span>
+                  <span className="sm:hidden">{t('создать', 'Создать')}</span>
                 </Button>
               </DialogTrigger>
             <DialogContent className="w-[95vw] max-w-4xl max-h-[90vh] overflow-y-auto mx-2">
@@ -1027,7 +1029,7 @@ export default function CrewsNew() {
                       console.log('📊 Form values:', form.getValues());
                       console.log('✅ Form valid:', form.formState.isValid);
                     }}>
-                      {createCrewMutation.isPending ? 'Создание...' : 'Создать бригаду'}
+                      {createCrewMutation.isPending ? t('создание', 'Создание...') : t('создать_бригаду', 'Создать бригаду')}
                     </Button>
                   </div>
                 </form>

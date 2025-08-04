@@ -80,6 +80,12 @@ export const useTranslation = create<TranslationStore>()(
         'работы_завершены': { ru: 'Работы завершены', de: 'Arbeiten abgeschlossen' },
         'счет_выставлен': { ru: 'Счет выставлен', de: 'Rechnung erstellt' },
         'оплачен': { ru: 'Оплачен', de: 'Bezahlt' },
+        'создать_бригаду': { ru: 'Создать бригаду', de: 'Team erstellen' },
+        'создать': { ru: 'Создать', de: 'Erstellen' },
+        'создание': { ru: 'Создание...', de: 'Erstelle...' },
+        'календарь_проектов': { ru: 'Календарь проектов', de: 'Projektkalender' },
+        'добавить_нового_клиента': { ru: 'Добавить нового клиента', de: 'Neuen Kunden hinzufügen' },
+        'добавить_клиента': { ru: 'Добавить клиента', de: 'Kunde hinzufügen' },
         'неизвестный_клиент': { ru: 'Неизвестный клиент', de: 'Unbekannter Kunde' },
         'не_указан_клиент_установки': { 
           ru: 'Не указан клиент установки', 

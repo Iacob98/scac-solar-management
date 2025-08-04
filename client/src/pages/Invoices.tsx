@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useI18n } from '@/hooks/useI18n';
+import { useTranslation } from '@shared/i18n';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
@@ -31,7 +31,7 @@ import {
 } from 'lucide-react';
 
 export default function Invoices() {
-  const { formatCurrency, formatDate } = useI18n();
+  const { t } = useTranslation();
   const { toast } = useToast();
   const { user } = useAuth();
   const queryClient = useQueryClient();
@@ -311,7 +311,7 @@ export default function Invoices() {
       <div className="p-4 sm:p-6">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
           <div>
-            <h1 className="text-2xl font-semibold text-gray-900">Счета</h1>
+            <h1 className="text-2xl font-semibold text-gray-900">{t('счета', 'Счета')}</h1>
             <p className="text-gray-600 mt-1">Управляйте своими счетами и платежами</p>
           </div>
           <div className="flex gap-2">

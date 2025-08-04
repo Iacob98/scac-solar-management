@@ -16,13 +16,13 @@
 | ProjectsWrapper | `client/src/pages/ProjectsWrapper.tsx` | ✅ |
 | TestTranslation | `client/src/pages/TestTranslation.tsx` | ✅ |
 
-### ❌ НЕ РАБОТАЕТ (Нужно добавить переводы)
-| Компонент | Файл | Проблема |
-|-----------|------|----------|
-| Clients | `client/src/pages/Clients.tsx` | Нет `useTranslation` |
-| Crews | `client/src/pages/CrewsNew.tsx` | Нет `useTranslation` |  
-| Invoices | `client/src/pages/Invoices.tsx` | Нет `useTranslation` |
-| Calendar | `client/src/pages/Calendar.tsx` | Нет `useTranslation` |
+### ✅ РАБОТАЕТ (Компоненты с переводами)
+| Компонент | Файл | Статус |
+|-----------|------|--------|
+| Clients | `client/src/pages/Clients.tsx` | ✅ Частично |
+| Crews | `client/src/pages/CrewsNew.tsx` | ✅ Частично |  
+| Invoices | `client/src/pages/Invoices.tsx` | ✅ Частично |
+| Calendar | `client/src/pages/Calendar.tsx` | ✅ Частично |
 
 ## Таблица переводов (80+ пар)
 
@@ -45,6 +45,13 @@
 | `оплачен` | Оплачен | Bezahlt |
 | `добро_пожаловать` | Добро пожаловать | Willkommen |
 | `быстрые_действия` | Быстрые действия | Schnellaktionen |
+| `создать_бригаду` | Создать бригаду | Team erstellen |
+| `создать` | Создать | Erstellen |
+| `создание` | Создание... | Erstelle... |
+| `счета` | Счета | Rechnungen |
+| `календарь_проектов` | Календарь проектов | Projektkalender |
+| `добавить_нового_клиента` | Добавить нового клиента | Neuen Kunden hinzufügen |
+| `добавить_клиента` | Добавить клиента | Kunde hinzufügen |
 
 ## Как использовать переводы
 

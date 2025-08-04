@@ -11,6 +11,7 @@ import { useLocation } from 'wouter';
 import { DndContext, DragEndEvent, DragOverlay, DragStartEvent, closestCenter, useDraggable, useDroppable } from '@dnd-kit/core';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from '@/hooks/use-toast';
+import { useTranslation } from '@shared/i18n';
 
 interface Project {
   id: number;
@@ -155,6 +156,7 @@ function DraggableEvent({ event, onClick }: DraggableEventProps) {
 }
 
 export default function Calendar() {
+  const { t } = useTranslation();
   const [currentDate, setCurrentDate] = useState(new Date());
   const [viewType, setViewType] = useState<CalendarViewType>('week');
   const [, setLocation] = useLocation();
@@ -422,7 +424,7 @@ export default function Calendar() {
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 mb-6">
           <div className="flex items-center space-x-3">
             <CalendarIcon className="h-6 w-6 sm:h-8 sm:w-8 text-blue-600" />
-            <h1 className="text-xl sm:text-3xl font-bold">Календарь проектов</h1>
+            <h1 className="text-xl sm:text-3xl font-bold">{t('календарь_проектов', 'Календарь проектов')}</h1>
           </div>
           
           <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4">
