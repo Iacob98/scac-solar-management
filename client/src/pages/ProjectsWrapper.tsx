@@ -901,9 +901,9 @@ export default function ProjectsWrapper({ selectedFirm, initialProjectId }: Proj
           <div className="flex items-center space-x-4">
             <Button variant="outline" onClick={handleBackToList}>
               <ArrowLeft className="h-4 w-4 mr-2" />
-              Назад к проектам
+              {t('назад_к_проектам', 'Назад к проектам')}
             </Button>
-            <h1 className="text-2xl font-bold">Управление услугами</h1>
+            <h1 className="text-2xl font-bold">{t('управление_услугами', 'Управление услугами')}</h1>
           </div>
         </div>
         <Services selectedFirm={selectedFirm} projectId={selectedProjectId} />

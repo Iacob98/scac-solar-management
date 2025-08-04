@@ -267,7 +267,29 @@ export const useTranslation = create<TranslationStore>()(
         'url_документа_отзыва': { ru: 'URL документа отзыва (опционально)', de: 'URL des Bewertungsdokuments (optional)' },
         'обновить': { ru: 'Обновить', de: 'Aktualisieren' },
         'создать_кнопка': { ru: 'Создать', de: 'Erstellen' },
-        'добавить_примечание': { ru: 'Добавить примечание', de: 'Notiz hinzufügen' }
+        'добавить_примечание': { ru: 'Добавить примечание', de: 'Notiz hinzufügen' },
+        
+        // Дополнительные переводы для формы создания проекта
+        'создание_нового_проекта': { ru: 'Создание нового проекта', de: 'Neues Projekt erstellen' },
+        'заполните_форму_создания_проекта': { ru: 'Заполните форму для создания нового проекта установки солнечных панелей', de: 'Füllen Sie das Formular aus, um ein neues Solaranlagen-Installationsprojekt zu erstellen' },
+        'клиент': { ru: 'Клиент', de: 'Kunde' },
+        'выберите_клиента': { ru: 'Выберите клиента', de: 'Kunde auswählen' },
+        'бригада': { ru: 'Бригада', de: 'Team' },
+        'выберите_бригаду': { ru: 'Выберите бригаду', de: 'Team auswählen' },
+        'дата_начала_проекта': { ru: 'Дата начала проекта', de: 'Projektstartdatum' },
+        'информация_о_клиенте_установки': { ru: 'Информация о клиенте установки', de: 'Informationen zum Installationskunden' },
+        'имя': { ru: 'Имя', de: 'Vorname' },
+        'имя_клиента': { ru: 'Имя клиента', de: 'Kundenvorname' },
+        'фамилия': { ru: 'Фамилия', de: 'Nachname' },
+        'фамилия_клиента': { ru: 'Фамилия клиента', de: 'Kundennachname' },
+        'адрес_установки': { ru: 'Адрес установки', de: 'Installationsadresse' },
+        'полный_адрес_для_установки': { ru: 'Полный адрес для установки солнечных панелей', de: 'Vollständige Adresse für die Solaranlagen-Installation' },
+        'например_cli': { ru: 'Например: CLI-001234', de: 'Beispiel: CLI-001234' },
+        'номер_команды': { ru: 'Номер команды', de: 'Teamnummer' },
+        'уникальный_номер_команды': { ru: 'Уникальный номер команды для этого проекта', de: 'Eindeutige Teamnummer für dieses Projekt' },
+        'заметки': { ru: 'Заметки', de: 'Notizen' },
+        'отмена_диалога': { ru: 'Отмена', de: 'Abbrechen' },
+        'создание_проекта': { ru: 'Создание...', de: 'Erstelle...' }
       },
       
       setLanguage: (language: Language) => set({ language }),
