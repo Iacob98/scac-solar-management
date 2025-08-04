@@ -173,12 +173,12 @@ function ProjectsList({ selectedFirm, onViewProject, onManageServices }: { selec
       apiRequest(`/api/projects/${projectId}/status`, 'PATCH', { status }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/projects', selectedFirm] });
-      toast({ title: 'Статус проекта обновлен' });
+      toast({ title: t('статус_обновлен', 'Статус проекта обновлен') });
     },
     onError: (error: any) => {
       toast({
-        title: 'Ошибка',
-        description: error.message || 'Не удалось обновить статус проекта',
+        title: t('ошибка', 'Ошибка'),
+        description: error.message || t('ошибка_обновления_статуса', 'Не удалось обновить статус проекта'),
         variant: 'destructive'
       });
     },
@@ -189,8 +189,8 @@ function ProjectsList({ selectedFirm, onViewProject, onManageServices }: { selec
     onSuccess: async (data: any, projectId: number) => {
       queryClient.invalidateQueries({ queryKey: ['/api/projects', selectedFirm] });
       toast({ 
-        title: 'Счет создан успешно',
-        description: `Счет №${data.invoiceNumber} создан в Invoice Ninja`
+        title: t('счет_создан', 'Счет создан успешно'),
+        description: `${t('счет_номер', 'Счет №')}${data.invoiceNumber} ${t('создан_в_invoice_ninja', 'создан в Invoice Ninja')}`
       });
       
       // Автоматически скачиваем PDF
@@ -198,22 +198,22 @@ function ProjectsList({ selectedFirm, onViewProject, onManageServices }: { selec
         await apiRequest(`/api/invoice/download-pdf/${projectId}`, 'POST');
         queryClient.invalidateQueries({ queryKey: ['/api/files/project', projectId] });
         toast({ 
-          title: 'PDF скачан',
-          description: 'PDF счета добавлен в файлы проекта'
+          title: t('pdf_скачан', 'PDF скачан'),
+          description: t('pdf_добавлен_в_файлы', 'PDF счета добавлен в файлы проекта')
         });
       } catch (error: any) {
         console.error('Failed to download PDF:', error);
         toast({
-          title: 'Предупреждение',
-          description: 'Счет создан, но не удалось скачать PDF автоматически',
+          title: t('предупреждение', 'Предупреждение'),
+          description: t('счет_создан_pdf_ошибка', 'Счет создан, но не удалось скачать PDF автоматически'),
           variant: 'destructive'
         });
       }
     },
     onError: (error: any) => {
       toast({
-        title: 'Ошибка',
-        description: error.message || 'Не удалось создать счет',
+        title: t('ошибка', 'Ошибка'),
+        description: error.message || t('ошибка_создания_счета', 'Не удалось создать счет'),
         variant: 'destructive'
       });
     },
@@ -223,12 +223,12 @@ function ProjectsList({ selectedFirm, onViewProject, onManageServices }: { selec
     mutationFn: (invoiceNumber: string) => apiRequest('/api/invoice/mark-paid', 'PATCH', { invoiceNumber }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/projects', selectedFirm] });
-      toast({ title: 'Счет отмечен как оплаченный' });
+      toast({ title: t('счет_отмечен_оплаченным', 'Счет отмечен как оплаченный') });
     },
     onError: (error: any) => {
       toast({
-        title: 'Ошибка',
-        description: error.message || 'Не удалось отметить счет как оплаченный',
+        title: t('ошибка', 'Ошибка'),
+        description: error.message || t('ошибка_отметки_оплаты', 'Не удалось отметить счет как оплаченный'),
         variant: 'destructive'
       });
     },
@@ -637,8 +637,8 @@ function ProjectsList({ selectedFirm, onViewProject, onManageServices }: { selec
           onComplete={() => {
             setIsTutorialOpen(false);
             toast({
-              title: 'Руководство завершено',
-              description: 'Теперь вы готовы к работе с системой!',
+              title: t('руководство_завершено', 'Руководство завершено'),
+              description: t('готовы_к_работе', 'Теперь вы готовы к работе с системой!'),
             });
           }}
         />
@@ -726,8 +726,8 @@ function ProjectsList({ selectedFirm, onViewProject, onManageServices }: { selec
                       priorityIndicator = (
                         <div className="mb-3 p-2 bg-red-50 border border-red-200 rounded-md">
                           <p className="text-sm text-red-700 font-medium">
-                            ⚠️ Оборудование ожидается: {format(equipmentDate, 'dd.MM.yyyy', { locale: ru })}
-                            {diffDays <= 0 ? ' (просрочено)' : ` (${diffDays} дн.)`}
+                            ⚠️ {t('оборудование_ожидается', 'Оборудование ожидается')}: {format(equipmentDate, 'dd.MM.yyyy', { locale: ru })}
+                            {diffDays <= 0 ? ` (${t('просрочено', 'просрочено')})` : ` (${diffDays} ${t('дн', 'дн.')})`}
                           </p>
                         </div>
                       );
@@ -741,8 +741,8 @@ function ProjectsList({ selectedFirm, onViewProject, onManageServices }: { selec
                       priorityIndicator = (
                         <div className="mb-3 p-2 bg-yellow-50 border border-yellow-200 rounded-md">
                           <p className="text-sm text-yellow-700 font-medium">
-                            🚧 Работы начинаются: {format(workDate, 'dd.MM.yyyy', { locale: ru })}
-                            {diffDays <= 0 ? ' (сегодня/просрочено)' : ' (завтра)'}
+                            🚧 {t('работы_начинаются', 'Работы начинаются')}: {format(workDate, 'dd.MM.yyyy', { locale: ru })}
+                            {diffDays <= 0 ? ` (${t('сегодня_просрочено', 'сегодня/просрочено')})` : ` (${t('завтра', 'завтра')})`}
                           </p>
                         </div>
                       );
@@ -753,7 +753,7 @@ function ProjectsList({ selectedFirm, onViewProject, onManageServices }: { selec
                     priorityIndicator = (
                       <div className="mb-3 p-2 bg-orange-50 border border-orange-200 rounded-md">
                         <p className="text-sm text-orange-700 font-medium">
-                          📞 Требуется звонок клиенту
+                          📞 {t('требуется_звонок_клиенту', 'Требуется звонок клиенту')}
                         </p>
                       </div>
                     );
@@ -770,7 +770,7 @@ function ProjectsList({ selectedFirm, onViewProject, onManageServices }: { selec
                       onClick={() => onViewProject(project.id)}
                     >
                       <Eye className="h-4 w-4 mr-2" />
-                      Просмотр
+                      {t('просмотр', 'Просмотр')}
                     </Button>
                     
                     <Button 
@@ -779,7 +779,7 @@ function ProjectsList({ selectedFirm, onViewProject, onManageServices }: { selec
                       onClick={() => onManageServices(project.id)}
                     >
                       <Settings className="h-4 w-4 mr-2" />
-                      Услуги
+                      {t('услуги', 'Услуги')}
                     </Button>
                     
 
@@ -792,7 +792,7 @@ function ProjectsList({ selectedFirm, onViewProject, onManageServices }: { selec
                         disabled={createInvoiceMutation.isPending}
                       >
                         <Receipt className="h-4 w-4 mr-2" />
-                        {createInvoiceMutation.isPending ? 'Выставление...' : 'Выставить счет'}
+                        {createInvoiceMutation.isPending ? t('выставление', 'Выставление...') : t('выставить_счет', 'Выставить счет')}
                       </Button>
                     )}
                     
@@ -804,13 +804,13 @@ function ProjectsList({ selectedFirm, onViewProject, onManageServices }: { selec
                           onClick={() => markPaidMutation.mutate(project.invoiceNumber!)}
                           disabled={markPaidMutation.isPending}
                         >
-                          Отметить оплаченным
+                          {t('отметить_оплаченным', 'Отметить оплаченным')}
                         </Button>
                         {project.invoiceUrl && (
                           <Button size="sm" variant="outline" asChild>
                             <a href={project.invoiceUrl} target="_blank" rel="noopener noreferrer">
                               <Download className="h-4 w-4 mr-2" />
-                              Скачать PDF
+                              {t('скачать_pdf', 'Скачать PDF')}
                             </a>
                           </Button>
                         )}
@@ -821,7 +821,7 @@ function ProjectsList({ selectedFirm, onViewProject, onManageServices }: { selec
                   {project.invoiceNumber && (
                     <div className="flex items-center text-sm text-gray-500">
                       <FileText className="h-4 w-4 mr-1" />
-                      Счет №{project.invoiceNumber}
+                      {t('счет_номер', 'Счет №')}{project.invoiceNumber}
                     </div>
                   )}
                 </div>

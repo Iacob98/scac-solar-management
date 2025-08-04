@@ -193,7 +193,7 @@ export const useTranslation = create<TranslationStore>()(
         'телефон_клиента': { ru: 'Телефон клиента', de: 'Telefon des Kunden' },
         'уникальный_id_клиента': { ru: 'Уникальный ID клиента', de: 'Eindeutige Kunden-ID' },
         
-        // Дополнительные переводы для статусов проекта
+        // Статусы проекта
         'планирование': { ru: 'Планирование', de: 'Planung' },
         'ожидание_оборудования': { ru: 'Ожидание оборудования', de: 'Warten auf Ausrüstung' },
         'оборудование_поступило': { ru: 'Оборудование поступило', de: 'Ausrüstung eingegangen' },
@@ -223,7 +223,33 @@ export const useTranslation = create<TranslationStore>()(
         'открыть_счет': { ru: 'Открыть счет в Invoice Ninja', de: 'Rechnung in Invoice Ninja öffnen' },
         'услуги_проекта': { ru: 'Услуги проекта', de: 'Projektleistungen' },
         'управление_датами': { ru: 'Управление датами', de: 'Datumsverwaltung' },
-        'файлы_и_отчеты': { ru: 'Файлы и отчеты', de: 'Dateien und Berichte' }
+        'файлы_и_отчеты': { ru: 'Файлы и отчеты', de: 'Dateien und Berichte' },
+        'статус_обновлен': { ru: 'Статус проекта обновлен', de: 'Projektstatus aktualisiert' },
+        'ошибка_обновления_статуса': { ru: 'Не удалось обновить статус проекта', de: 'Fehler beim Aktualisieren des Projektstatus' },
+        'счет_создан': { ru: 'Счет создан успешно', de: 'Rechnung erfolgreich erstellt' },
+        'счет_номер': { ru: 'Счет №', de: 'Rechnung Nr. ' },
+        'создан_в_invoice_ninja': { ru: 'создан в Invoice Ninja', de: 'in Invoice Ninja erstellt' },
+        'pdf_скачан': { ru: 'PDF скачан', de: 'PDF heruntergeladen' },
+        'pdf_добавлен_в_файлы': { ru: 'PDF счета добавлен в файлы проекта', de: 'PDF der Rechnung zu den Projektdateien hinzugefügt' },
+        'предупреждение': { ru: 'Предупреждение', de: 'Warnung' },
+        'счет_создан_pdf_ошибка': { ru: 'Счет создан, но не удалось скачать PDF автоматически', de: 'Rechnung erstellt, aber PDF konnte nicht automatisch heruntergeladen werden' },
+        'ошибка_создания_счета': { ru: 'Не удалось создать счет', de: 'Fehler beim Erstellen der Rechnung' },
+        'просмотр': { ru: 'Просмотр', de: 'Ansehen' },
+        'выставление': { ru: 'Выставление...', de: 'Erstelle...' },
+        'выставить_счет': { ru: 'Выставить счет', de: 'Rechnung erstellen' },
+        'отметить_оплаченным': { ru: 'Отметить оплаченным', de: 'Als bezahlt markieren' },
+        'скачать_pdf': { ru: 'Скачать PDF', de: 'PDF herunterladen' },
+        'счет_отмечен_оплаченным': { ru: 'Счет отмечен как оплаченный', de: 'Rechnung als bezahlt markiert' },
+        'ошибка_отметки_оплаты': { ru: 'Не удалось отметить счет как оплаченный', de: 'Fehler beim Markieren der Rechnung als bezahlt' },
+        'руководство_завершено': { ru: 'Руководство завершено', de: 'Anleitung abgeschlossen' },
+        'готовы_к_работе': { ru: 'Теперь вы готовы к работе с системой!', de: 'Sie sind jetzt bereit, mit dem System zu arbeiten!' },
+        'оборудование_ожидается': { ru: 'Оборудование ожидается', de: 'Ausrüstung erwartet' },
+        'просрочено': { ru: 'просрочено', de: 'überfällig' },
+        'дн': { ru: 'дн.', de: 'Tage' },
+        'работы_начинаются': { ru: 'Работы начинаются', de: 'Arbeiten beginnen' },
+        'сегодня_просрочено': { ru: 'сегодня/просрочено', de: 'heute/überfällig' },
+        'завтра': { ru: 'завтра', de: 'morgen' },
+        'требуется_звонок_клиенту': { ru: 'Требуется звонок клиенту', de: 'Kundenanruf erforderlich' }
       },
       
       setLanguage: (language: Language) => set({ language }),
