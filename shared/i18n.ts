@@ -48,7 +48,44 @@ export const useTranslation = create<TranslationStore>()(
         'сегодня': { ru: 'Сегодня', de: 'Heute' },
         'роль': { ru: 'Роль', de: 'Rolle' },
         'начать_туториал': { ru: 'Начать туториал', de: 'Tutorial starten' },
-        'быстрые_действия': { ru: 'Быстрые действия', de: 'Schnellaktionen' }
+        'быстрые_действия': { ru: 'Быстрые действия', de: 'Schnellaktionen' },
+        'управление_проектами_установки_солнечных_панелей': { 
+          ru: 'Управление проектами установки солнечных панелей', 
+          de: 'Verwaltung von Solaranlagen-Installationsprojekten' 
+        },
+        'управление_базой_клиентов': { ru: 'Управление базой клиентов', de: 'Kundendatenbank-Verwaltung' },
+        'управление_установочными_бригадами': { 
+          ru: 'Управление установочными бригадами', 
+          de: 'Verwaltung von Installationsteams' 
+        },
+        'управление_счетами_и_оплатами': { 
+          ru: 'Управление счетами и оплатами', 
+          de: 'Rechnungs- und Zahlungsverwaltung' 
+        },
+        'управление_компаниями': { ru: 'Управление компаниями', de: 'Unternehmensverwaltung' },
+        'управление_пользователями_системы': { 
+          ru: 'Управление пользователями системы', 
+          de: 'Systembenutzer-Verwaltung' 
+        },
+        'руководство': { ru: 'Руководство', de: 'Anleitung' },
+        'создать_проект': { ru: 'Создать проект', de: 'Projekt erstellen' },
+        'поиск_проектов': { ru: 'Поиск проектов...', de: 'Projekte suchen...' },
+        'все_статусы': { ru: 'Все статусы', de: 'Alle Status' },
+        'скрыть_завершенные': { ru: 'Скрыть завершенные', de: 'Abgeschlossene ausblenden' },
+        'планирование': { ru: 'Планирование', de: 'Planung' },
+        'ожидание_оборудования': { ru: 'Ожидание оборудования', de: 'Warten auf Ausrüstung' },
+        'оборудование_поступило': { ru: 'Оборудование поступило', de: 'Ausrüstung eingetroffen' },
+        'работы_запланированы': { ru: 'Работы запланированы', de: 'Arbeiten geplant' },
+        'работы_в_процессе': { ru: 'Работы в процессе', de: 'Arbeiten in Bearbeitung' },
+        'работы_завершены': { ru: 'Работы завершены', de: 'Arbeiten abgeschlossen' },
+        'счет_выставлен': { ru: 'Счет выставлен', de: 'Rechnung erstellt' },
+        'оплачен': { ru: 'Оплачен', de: 'Bezahlt' },
+        'неизвестный_клиент': { ru: 'Неизвестный клиент', de: 'Unbekannter Kunde' },
+        'не_указан_клиент_установки': { 
+          ru: 'Не указан клиент установки', 
+          de: 'Installationskunde nicht angegeben' 
+        },
+        'не_назначена': { ru: 'Не назначена', de: 'Nicht zugewiesen' }
       },
       
       setLanguage: (language: Language) => set({ language }),

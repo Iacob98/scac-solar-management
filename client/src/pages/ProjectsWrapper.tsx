@@ -22,6 +22,7 @@ import Tutorial from '@/components/Tutorial';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
 import { apiRequest } from '@/lib/queryClient';
+import { useTranslation } from '@shared/i18n';
 
 import ProjectDetail from './ProjectDetail';
 import Services from './Services';
@@ -46,16 +47,17 @@ const projectFormSchema = insertProjectSchema.omit({ id: true, firmId: true, lei
   installationPersonUniqueId: z.string().min(1, 'Уникальный ID обязателен'),
 });
 
-const statusLabels = {
-  planning: 'Планирование',
-  equipment_waiting: 'Ожидание оборудования',
-  equipment_arrived: 'Оборудование поступило',
-  work_scheduled: 'Работы запланированы',
-  work_in_progress: 'Работы в процессе',
-  work_completed: 'Работы завершены',
-  invoiced: 'Счет выставлен',
-  paid: 'Оплачен'
-};
+// Функция для получения переводов статусов
+const getStatusLabels = (t: (key: string, fallback: string) => string) => ({
+  planning: t('планирование', 'Планирование'),
+  equipment_waiting: t('ожидание_оборудования', 'Ожидание оборудования'),
+  equipment_arrived: t('оборудование_поступило', 'Оборудование поступило'),
+  work_scheduled: t('работы_запланированы', 'Работы запланированы'),
+  work_in_progress: t('работы_в_процессе', 'Работы в процессе'),
+  work_completed: t('работы_завершены', 'Работы завершены'),
+  invoiced: t('счет_выставлен', 'Счет выставлен'),
+  paid: t('оплачен', 'Оплачен')
+});
 
 const statusColors = {
   planning: 'bg-gray-100 text-gray-800',
@@ -72,6 +74,8 @@ function ProjectsList({ selectedFirm, onViewProject, onManageServices }: { selec
   const { toast } = useToast();
   const { user } = useAuth();
   const queryClient = useQueryClient();
+  const { t } = useTranslation();
+  const statusLabels = getStatusLabels(t);
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [filter, setFilter] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
@@ -247,7 +251,7 @@ function ProjectsList({ selectedFirm, onViewProject, onManageServices }: { selec
 
   const getClientName = (clientId: number) => {
     const client = (clients as Client[]).find((c: Client) => c.id === clientId);
-    return client?.name || 'Неизвестный клиент';
+    return client?.name || t('неизвестный_клиент', 'Неизвестный клиент');
   };
 
   const getInstallationPersonName = (project: Project) => {
@@ -260,12 +264,12 @@ function ProjectsList({ selectedFirm, onViewProject, onManageServices }: { selec
     if (project.installationPersonLastName) {
       return project.installationPersonLastName;
     }
-    return 'Не указан клиент установки';
+    return t('не_указан_клиент_установки', 'Не указан клиент установки');
   };
 
   const getCrewName = (crewId: number) => {
     const crew = (crews as Crew[]).find((c: Crew) => c.id === crewId);
-    return crew?.name || 'Не назначена';
+    return crew?.name || t('не_назначена', 'Не назначена');
   };
 
   const getCrewUniqueNumber = (crewId: number) => {
@@ -345,20 +349,20 @@ function ProjectsList({ selectedFirm, onViewProject, onManageServices }: { selec
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-2xl font-bold">Проекты</h1>
-          <p className="text-gray-600">Управление проектами установки солнечных панелей</p>
+          <h1 className="text-2xl font-bold">{t('проекты', 'Проекты')}</h1>
+          <p className="text-gray-600">{t('управление_проектами_установки_солнечных_панелей', 'Управление проектами установки солнечных панелей')}</p>
         </div>
 
         <div className="flex space-x-2">
           <Button variant="outline" onClick={() => setIsTutorialOpen(true)}>
             <Sun className="h-4 w-4 mr-2" />
-            Руководство
+{t('руководство', 'Руководство')}
           </Button>
           <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
             <DialogTrigger asChild>
               <Button>
                 <Plus className="h-4 w-4 mr-2" />
-                Создать проект
+{t('создать_проект', 'Создать проект')}
               </Button>
             </DialogTrigger>
           <DialogContent className="max-w-2xl">
@@ -598,7 +602,7 @@ function ProjectsList({ selectedFirm, onViewProject, onManageServices }: { selec
 
       <div className="flex flex-col space-y-4 md:flex-row md:space-y-0 md:space-x-4 md:items-center">
         <Input
-          placeholder="Поиск проектов..."
+          placeholder={t('поиск_проектов', 'Поиск проектов...')}
           value={filter}
           onChange={(e) => setFilter(e.target.value)}
           className="max-w-sm"
@@ -608,7 +612,7 @@ function ProjectsList({ selectedFirm, onViewProject, onManageServices }: { selec
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">Все статусы</SelectItem>
+            <SelectItem value="all">{t('все_статусы', 'Все статусы')}</SelectItem>
             {Object.entries(statusLabels).map(([key, label]) => (
               <SelectItem key={key} value={key}>{label}</SelectItem>
             ))}
@@ -621,7 +625,7 @@ function ProjectsList({ selectedFirm, onViewProject, onManageServices }: { selec
             onCheckedChange={setHideCompleted}
           />
           <Label htmlFor="hide-completed" className="text-sm text-gray-600">
-            Скрыть завершенные
+{t('скрыть_завершенные', 'Скрыть завершенные')}
           </Label>
         </div>
       </div>
@@ -797,6 +801,7 @@ function ProjectsList({ selectedFirm, onViewProject, onManageServices }: { selec
 }
 
 export default function ProjectsWrapper({ selectedFirm, initialProjectId }: ProjectsWrapperProps) {
+  const { t } = useTranslation();
   const [viewMode, setViewMode] = useState<ViewMode>('list');
   const [selectedProjectId, setSelectedProjectId] = useState<number | null>(null);
 
