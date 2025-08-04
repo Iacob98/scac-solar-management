@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useTranslation } from '@shared/i18n';
+import { useI18n } from '@/hooks/useI18n';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
@@ -32,6 +33,7 @@ import {
 
 export default function Invoices() {
   const { t } = useTranslation();
+  const { formatCurrency, formatDate } = useI18n();
   const { toast } = useToast();
   const { user } = useAuth();
   const queryClient = useQueryClient();
