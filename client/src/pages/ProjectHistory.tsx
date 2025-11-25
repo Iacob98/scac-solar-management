@@ -1,4 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
+import { getAuthHeaders } from '@/lib/queryClient';
 import { format } from 'date-fns';
 import { ru } from 'date-fns/locale';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -123,7 +124,10 @@ export default function ProjectHistory({ projectId, onBack, embedded = false, li
   const { data: history = [], isLoading, error } = useQuery({
     queryKey: ['/api/projects', projectId, 'history'],
     queryFn: async () => {
-      const response = await fetch(`/api/projects/${projectId}/history`);
+      const authHeaders = await getAuthHeaders();
+      const response = await fetch(`/api/projects/${projectId}/history`, {
+        headers: authHeaders,
+      });
       if (!response.ok) {
         throw new Error('Failed to fetch project history');
       }
@@ -136,7 +140,10 @@ export default function ProjectHistory({ projectId, onBack, embedded = false, li
   const { data: project } = useQuery({
     queryKey: ['/api/projects', projectId],
     queryFn: async () => {
-      const response = await fetch(`/api/projects/${projectId}`);
+      const authHeaders = await getAuthHeaders();
+      const response = await fetch(`/api/projects/${projectId}`, {
+        headers: authHeaders,
+      });
       if (!response.ok) {
         throw new Error('Failed to fetch project');
       }
@@ -149,7 +156,10 @@ export default function ProjectHistory({ projectId, onBack, embedded = false, li
     queryKey: ['/api/crews', project?.firmId],
     enabled: !!project?.firmId,
     queryFn: async () => {
-      const response = await fetch(`/api/crews?firmId=${project.firmId}`);
+      const authHeaders = await getAuthHeaders();
+      const response = await fetch(`/api/crews?firmId=${project.firmId}`, {
+        headers: authHeaders,
+      });
       if (!response.ok) {
         throw new Error('Failed to fetch crews');
       }
@@ -162,7 +172,10 @@ export default function ProjectHistory({ projectId, onBack, embedded = false, li
     queryKey: ['/api/crew-snapshots', selectedSnapshot],
     enabled: !!selectedSnapshot,
     queryFn: async () => {
-      const response = await fetch(`/api/crew-snapshots/${selectedSnapshot}`);
+      const authHeaders = await getAuthHeaders();
+      const response = await fetch(`/api/crew-snapshots/${selectedSnapshot}`, {
+        headers: authHeaders,
+      });
       if (!response.ok) {
         throw new Error('Failed to fetch crew snapshot');
       }

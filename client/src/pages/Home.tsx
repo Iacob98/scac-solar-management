@@ -1,5 +1,6 @@
 import { useAuth } from '@/hooks/useAuth';
 import { useQuery } from '@tanstack/react-query';
+import { getAuthHeaders } from '@/lib/queryClient';
 import { MainLayout } from '@/components/Layout/MainLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -58,7 +59,10 @@ export default function Home() {
   const { data: crews = [] } = useQuery<Crew[]>({
     queryKey: ['/api/crews', selectedFirmId],
     queryFn: async () => {
-      const response = await fetch(`/api/crews?firmId=${selectedFirmId}`);
+      const authHeaders = await getAuthHeaders();
+      const response = await fetch(`/api/crews?firmId=${selectedFirmId}`, {
+        headers: authHeaders,
+      });
       if (!response.ok) throw new Error('Failed to fetch crews');
       return response.json();
     },

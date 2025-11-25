@@ -1,4 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
+import { getAuthHeaders } from '@/lib/queryClient';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -183,8 +184,10 @@ export default function Calendar() {
   const { data: projects = [], isLoading: projectsLoading } = useQuery({
     queryKey: ['/api/projects', selectedFirmId],
     queryFn: async () => {
+      const authHeaders = await getAuthHeaders();
       const response = await fetch(`/api/projects?firmId=${selectedFirmId}`, {
-        credentials: 'include'
+        credentials: 'include',
+        headers: authHeaders,
       });
       if (!response.ok) throw new Error('Failed to fetch projects');
       return response.json();
@@ -195,8 +198,10 @@ export default function Calendar() {
   const { data: crews = [], isLoading: crewsLoading } = useQuery({
     queryKey: ['/api/crews', selectedFirmId],
     queryFn: async () => {
+      const authHeaders = await getAuthHeaders();
       const response = await fetch(`/api/crews?firmId=${selectedFirmId}`, {
-        credentials: 'include'
+        credentials: 'include',
+        headers: authHeaders,
       });
       if (!response.ok) throw new Error('Failed to fetch crews');
       return response.json();
@@ -339,9 +344,10 @@ export default function Calendar() {
         updateData.workEndDate = newDate;
       }
       
+      const authHeaders = await getAuthHeaders();
       const response = await fetch(`/api/projects/${projectId}`, {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { ...authHeaders, 'Content-Type': 'application/json' },
         credentials: 'include',
         body: JSON.stringify(updateData)
       });

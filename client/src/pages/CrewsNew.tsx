@@ -17,7 +17,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
 import { MainLayout } from '@/components/Layout/MainLayout';
 import { CrewHistory } from '@/components/CrewHistory';
-import { apiRequest } from '@/lib/queryClient';
+import { apiRequest, getAuthHeaders } from '@/lib/queryClient';
 import { useLocation } from 'wouter';
 
 // Схема для простого редактирования бригады
@@ -574,9 +574,11 @@ export default function CrewsNew() {
     queryKey: ['/api/crews', selectedFirmId],
     queryFn: async () => {
       const timestamp = Date.now();
+      const authHeaders = await getAuthHeaders();
       const response = await fetch(`/api/crews?firmId=${selectedFirmId}&_t=${timestamp}`, {
         cache: 'no-cache',
         headers: {
+          ...authHeaders,
           'Cache-Control': 'no-cache, no-store, must-revalidate',
           'Pragma': 'no-cache',
         },
@@ -595,7 +597,10 @@ export default function CrewsNew() {
   const { data: crewMembers = [], isLoading: membersLoading } = useQuery<CrewMember[]>({
     queryKey: ['/api/crew-members', viewingMembers],
     queryFn: async () => {
-      const response = await fetch(`/api/crew-members?crewId=${viewingMembers}`);
+      const authHeaders = await getAuthHeaders();
+      const response = await fetch(`/api/crew-members?crewId=${viewingMembers}`, {
+        headers: authHeaders,
+      });
       return await response.json();
     },
     enabled: !!viewingMembers,
