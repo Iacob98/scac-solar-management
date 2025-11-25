@@ -34,8 +34,8 @@ export default function TestLogin({ onLoginSuccess }: TestLoginProps) {
   });
 
   const loginMutation = useMutation({
-    mutationFn: async (userId: string) => {
-      const response = await apiRequest('/api/auth/test-login', 'POST', { userId });
+    mutationFn: async (email: string) => {
+      const response = await apiRequest('/api/auth/test-login', 'POST', { email });
       return response.json();
     },
     onSuccess: () => {
@@ -58,8 +58,8 @@ export default function TestLogin({ onLoginSuccess }: TestLoginProps) {
     },
   });
 
-  const handleLogin = (userId: string) => {
-    loginMutation.mutate(userId);
+  const handleLogin = (email: string) => {
+    loginMutation.mutate(email);
   };
 
   if (isLoading) {
@@ -103,7 +103,7 @@ export default function TestLogin({ onLoginSuccess }: TestLoginProps) {
               <Card 
                 key={user.id} 
                 className="hover:shadow-md transition-shadow cursor-pointer border-l-4 border-l-blue-500"
-                onClick={() => handleLogin(user.id)}
+                onClick={() => handleLogin(user.email)}
               >
                 <CardContent className="p-4">
                   <div className="flex items-center justify-between">

@@ -33,7 +33,7 @@ import {
 export default function Invoices() {
   const { formatCurrency, formatDate } = useI18n();
   const { toast } = useToast();
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
   const queryClient = useQueryClient();
   const [, setLocation] = useLocation();
   const [selectedFirmId, setSelectedFirmId] = useState<string>('');
@@ -57,13 +57,13 @@ export default function Invoices() {
       const response = await apiRequest(`/api/invoices/${selectedFirmId}?_t=${Date.now()}`, 'GET');
       return response.json();
     },
-    enabled: !!selectedFirmId && user?.role === 'admin',
+    enabled: !!selectedFirmId && profile?.role === 'admin',
     retry: false,
     staleTime: 0,
   });
 
   // Show access denied message for non-admin users
-  if (user && user.role !== 'admin') {
+  if (profile && profile.role !== 'admin') {
     return (
       <MainLayout>
         <div className="max-w-4xl mx-auto p-6">

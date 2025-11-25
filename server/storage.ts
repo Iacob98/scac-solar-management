@@ -1,5 +1,5 @@
 import {
-  users,
+  profiles,
   firms,
   clients,
   crews,
@@ -200,23 +200,47 @@ export interface IStorage {
 export class DatabaseStorage implements IStorage {
   // User operations
   async getUser(id: string): Promise<User | undefined> {
-    const [user] = await db.select().from(users).where(eq(users.id, id));
+    const [user] = await db
+      .select({
+        id: profiles.id,
+        email: profiles.email,
+        firstName: profiles.first_name,
+        lastName: profiles.last_name,
+        profileImageUrl: profiles.profile_image_url,
+        role: profiles.role,
+        createdAt: profiles.created_at,
+        updatedAt: profiles.updated_at,
+      })
+      .from(profiles)
+      .where(eq(profiles.id, id));
     return user;
   }
 
   async getUsers(): Promise<User[]> {
-    return await db.select().from(users).orderBy(desc(users.createdAt));
+    return await db
+      .select({
+        id: profiles.id,
+        email: profiles.email,
+        firstName: profiles.first_name,
+        lastName: profiles.last_name,
+        profileImageUrl: profiles.profile_image_url,
+        role: profiles.role,
+        createdAt: profiles.created_at,
+        updatedAt: profiles.updated_at,
+      })
+      .from(profiles)
+      .orderBy(desc(profiles.created_at));
   }
 
   async upsertUser(userData: UpsertUser): Promise<User> {
     const [user] = await db
-      .insert(users)
+      .insert(profiles)
       .values(userData)
       .onConflictDoUpdate({
-        target: users.id,
+        target: profiles.id,
         set: {
           ...userData,
-          updatedAt: new Date(),
+          updated_at: new Date(),
         },
       })
       .returning();
@@ -229,19 +253,22 @@ export class DatabaseStorage implements IStorage {
     email: string;
     profileImageUrl: string;
   }>): Promise<User> {
+    const updateData: any = { updated_at: new Date() };
+    if (profileData.firstName !== undefined) updateData.first_name = profileData.firstName;
+    if (profileData.lastName !== undefined) updateData.last_name = profileData.lastName;
+    if (profileData.email !== undefined) updateData.email = profileData.email;
+    if (profileData.profileImageUrl !== undefined) updateData.profile_image_url = profileData.profileImageUrl;
+
     const [updated] = await db
-      .update(users)
-      .set({
-        ...profileData,
-        updatedAt: new Date(),
-      })
-      .where(eq(users.id, userId))
+      .update(profiles)
+      .set(updateData)
+      .where(eq(profiles.id, userId))
       .returning();
-    
+
     if (!updated) {
       throw new Error("User not found");
     }
-    
+
     return updated;
   }
 
@@ -257,7 +284,6 @@ export class DatabaseStorage implements IStorage {
         taxId: firms.taxId,
         logoUrl: firms.logoUrl,
         createdAt: firms.createdAt,
-        gcalMasterId: firms.gcalMasterId,
         postmarkServerToken: firms.postmarkServerToken,
         postmarkFromEmail: firms.postmarkFromEmail,
         postmarkMessageStream: firms.postmarkMessageStream,
@@ -281,7 +307,6 @@ export class DatabaseStorage implements IStorage {
         taxId: firms.taxId,
         logoUrl: firms.logoUrl,
         createdAt: firms.createdAt,
-        gcalMasterId: firms.gcalMasterId,
         postmarkServerToken: firms.postmarkServerToken,
         postmarkFromEmail: firms.postmarkFromEmail,
         postmarkMessageStream: firms.postmarkMessageStream,
@@ -306,7 +331,6 @@ export class DatabaseStorage implements IStorage {
         taxId: firms.taxId,
         logoUrl: firms.logoUrl,
         createdAt: firms.createdAt,
-        gcalMasterId: firms.gcalMasterId,
         postmarkServerToken: firms.postmarkServerToken,
         postmarkFromEmail: firms.postmarkFromEmail,
         postmarkMessageStream: firms.postmarkMessageStream,
@@ -353,17 +377,17 @@ export class DatabaseStorage implements IStorage {
   async getUsersByFirmId(firmId: string): Promise<User[]> {
     return await db
       .select({
-        id: users.id,
-        email: users.email,
-        firstName: users.firstName,
-        lastName: users.lastName,
-        profileImageUrl: users.profileImageUrl,
-        role: users.role,
-        createdAt: users.createdAt,
-        updatedAt: users.updatedAt,
+        id: profiles.id,
+        email: profiles.email,
+        firstName: profiles.first_name,
+        lastName: profiles.last_name,
+        profileImageUrl: profiles.profile_image_url,
+        role: profiles.role,
+        createdAt: profiles.created_at,
+        updatedAt: profiles.updated_at,
       })
-      .from(users)
-      .innerJoin(userFirms, eq(users.id, userFirms.userId))
+      .from(profiles)
+      .innerJoin(userFirms, eq(profiles.id, userFirms.userId))
       .where(eq(userFirms.firmId, firmId));
   }
 
@@ -961,14 +985,14 @@ export class DatabaseStorage implements IStorage {
         description: projectHistory.description,
         crewSnapshotId: projectHistory.crewSnapshotId,
         createdAt: projectHistory.createdAt,
-        userFirstName: users.firstName,
-        userLastName: users.lastName,
-        userEmail: users.email,
+        userFirstName: profiles.first_name,
+        userLastName: profiles.last_name,
+        userEmail: profiles.email,
         // Добавляем приоритет примечания для записей типа note_added
         notePriority: projectNotes.priority,
       })
       .from(projectHistory)
-      .leftJoin(users, eq(projectHistory.userId, users.id))
+      .leftJoin(profiles, eq(projectHistory.userId, profiles.id))
       .leftJoin(
         projectNotes, 
         and(
@@ -1027,17 +1051,17 @@ export class DatabaseStorage implements IStorage {
   async getFirmUsers(firmId: string): Promise<User[]> {
     return await db
       .select({
-        id: users.id,
-        email: users.email,
-        firstName: users.firstName,
-        lastName: users.lastName,
-        profileImageUrl: users.profileImageUrl,
-        role: users.role,
-        createdAt: users.createdAt,
-        updatedAt: users.updatedAt,
+        id: profiles.id,
+        email: profiles.email,
+        firstName: profiles.first_name,
+        lastName: profiles.last_name,
+        profileImageUrl: profiles.profile_image_url,
+        role: profiles.role,
+        createdAt: profiles.created_at,
+        updatedAt: profiles.updated_at,
       })
-      .from(users)
-      .innerJoin(userFirms, eq(users.id, userFirms.userId))
+      .from(profiles)
+      .innerJoin(userFirms, eq(profiles.id, userFirms.userId))
       .where(eq(userFirms.firmId, firmId));
   }
 

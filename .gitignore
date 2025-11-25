@@ -1,6 +1,38 @@
+# Dependencies
 node_modules
+
+# Production
 dist
+
+# Environment
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# OS
 .DS_Store
+
+# Server
 server/public
+
+# Vite
 vite.config.ts.*
+
+# Archives
 *.tar.gz
+
+# Replit
+.replit
+.upm/
+.cache/
+.config/
+
+# Uploads
+uploads/
+.local/
+
+# Database
+*.db
+*.db-journal

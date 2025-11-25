@@ -41,7 +41,7 @@ const passwordSchema = z.object({
 });
 
 export default function Settings() {
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState<'profile' | 'password'>('profile');
@@ -332,7 +332,7 @@ export default function Settings() {
                 <div className="bg-gray-50 p-4 rounded-lg">
                   <Label className="text-sm font-medium text-gray-700">Роль в системе</Label>
                   <p className="text-lg font-semibold text-gray-900 mt-1">
-                    {user?.role === 'admin' ? 'Администратор' : 'Руководитель проектов'}
+                    {profile?.role === 'admin' ? 'Администратор' : 'Руководитель проектов'}
                   </p>
                 </div>
 

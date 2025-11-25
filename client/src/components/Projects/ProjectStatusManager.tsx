@@ -44,7 +44,7 @@ interface ProjectStatusManagerProps {
 export function ProjectStatusManager({ project, selectedFirm }: ProjectStatusManagerProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const { user } = useAuth();
+  const { profile } = useAuth();
 
   const updateStatusMutation = useMutation({
     mutationFn: async (newStatus: string) => {
@@ -281,7 +281,7 @@ export function ProjectStatusManager({ project, selectedFirm }: ProjectStatusMan
           {project.status === 'invoice_sent' && (
             <div className="pt-2 border-t">
               <p className="text-sm text-cyan-700 font-medium mb-2">📧 Счет отправлен клиенту</p>
-              {user?.role === 'admin' ? (
+              {profile?.role === 'admin' ? (
                 <Button
                   onClick={() => updateStatusMutation.mutate('paid')}
                   disabled={updateStatusMutation.isPending}

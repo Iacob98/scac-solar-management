@@ -40,16 +40,28 @@ export const users = pgTable("users", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
+// Profiles table (Supabase Auth integration)
+export const profiles = pgTable("profiles", {
+  id: uuid("id").primaryKey().notNull(),
+  email: text("email").notNull().unique(),
+  first_name: text("first_name"),
+  last_name: text("last_name"),
+  profile_image_url: text("profile_image_url"),
+  role: text("role", { enum: ["admin", "leiter"] }).notNull().default("leiter"),
+  created_at: timestamp("created_at").defaultNow(),
+  updated_at: timestamp("updated_at").defaultNow(),
+});
+
 // Firms table
 export const firms = pgTable("firms", {
-  id: uuid("id").primaryKey().defaultRandom(),
+  id: serial("id").primaryKey(),
   name: varchar("name").notNull(),
   invoiceNinjaUrl: varchar("invoice_ninja_url").notNull(),
   token: varchar("token").notNull(),
   address: text("address"),
   taxId: varchar("tax_id"),
   logoUrl: varchar("logo_url"),
-  gcalMasterId: varchar("gcal_master_id"), // ID корпоративного календаря фирмы
+  // gcalMasterId: varchar("gcal_master_id"), // ID корпоративного календаря фирмы - REMOVED (не существует в БД)
   // Postmark integration fields
   postmarkServerToken: varchar("postmark_server_token"),
   postmarkFromEmail: varchar("postmark_from_email"),
@@ -85,14 +97,14 @@ export const firms = pgTable("firms", {
 
 // User-Firm junction table (many-to-many)
 export const userFirms = pgTable("user_firms", {
-  userId: varchar("user_id").notNull().references(() => users.id),
-  firmId: uuid("firm_id").notNull().references(() => firms.id),
+  userId: uuid("user_id").notNull().references(() => profiles.id),
+  firmId: integer("firm_id").notNull().references(() => firms.id),
 });
 
 // Clients table
 export const clients = pgTable("clients", {
   id: serial("id").primaryKey(),
-  firmId: uuid("firm_id").notNull().references(() => firms.id),
+  firmId: integer("firm_id").notNull().references(() => firms.id),
   ninjaClientId: varchar("ninja_client_id"),
   name: varchar("name").notNull(),
   email: varchar("email"),
@@ -104,7 +116,7 @@ export const clients = pgTable("clients", {
 // Crews table
 export const crews = pgTable("crews", {
   id: serial("id").primaryKey(),
-  firmId: uuid("firm_id").notNull().references(() => firms.id),
+  firmId: integer("firm_id").notNull().references(() => firms.id),
   name: varchar("name").notNull(),
   uniqueNumber: varchar("unique_number").notNull(), // Уникальный номер бригады
   leaderName: varchar("leader_name").notNull(),
@@ -135,9 +147,9 @@ export const crewMembers = pgTable("crew_members", {
 // Projects table
 export const projects = pgTable("projects", {
   id: serial("id").primaryKey(),
-  firmId: uuid("firm_id").notNull().references(() => firms.id),
+  firmId: integer("firm_id").notNull().references(() => firms.id),
   clientId: integer("client_id").notNull().references(() => clients.id),
-  leiterId: varchar("leiter_id").notNull().references(() => users.id),
+  leiterId: uuid("leiter_id").notNull().references(() => profiles.id),
   crewId: integer("crew_id").references(() => crews.id),
   startDate: date("start_date"),
   endDate: date("end_date"),
@@ -220,7 +232,7 @@ export const fileStorage = pgTable("file_storage", {
     enum: ["project_file", "report", "invoice", "document", "image", "profile"] 
   }).notNull(),
   projectId: integer("project_id").references(() => projects.id), // Опциональная связь с проектом
-  uploadedBy: varchar("uploaded_by").notNull().references(() => users.id), // Кто загрузил файл
+  uploadedBy: uuid("uploaded_by").notNull().references(() => profiles.id), // Кто загрузил файл
   uploadedAt: timestamp("uploaded_at").defaultNow(),
   isDeleted: boolean("is_deleted").default(false), // Мягкое удаление
   deletedAt: timestamp("deleted_at"),
@@ -249,7 +261,7 @@ export const invoiceQueue = pgTable("invoice_queue", {
 export const projectNotes = pgTable("project_notes", {
   id: serial("id").primaryKey(),
   projectId: integer("project_id").notNull().references(() => projects.id),
-  userId: varchar("user_id").notNull().references(() => users.id),
+  userId: uuid("user_id").notNull().references(() => profiles.id),
   content: text("content").notNull(),
   priority: varchar("priority", { 
     enum: ['normal', 'important', 'urgent', 'critical'] 
@@ -265,7 +277,7 @@ export const projectCrewSnapshots = pgTable("project_crew_snapshots", {
   snapshotDate: timestamp("snapshot_date").defaultNow().notNull(),
   crewData: jsonb("crew_data").notNull(), // Данные о бригаде на момент снимка
   membersData: jsonb("members_data").notNull(), // Массив участников на момент снимка
-  createdBy: varchar("created_by").notNull().references(() => users.id),
+  createdBy: uuid("created_by").notNull().references(() => profiles.id),
 });
 
 // Crew History table - история изменений состава бригад  
@@ -283,14 +295,14 @@ export const crewHistory = pgTable("crew_history", {
   endDate: date("end_date"), // Дата окончания работы (для удаленных)
   changeDescription: text("change_description"), // Описание изменения
   createdAt: timestamp("created_at").defaultNow(),
-  createdBy: varchar("created_by").references(() => users.id), // Кто внес изменение
+  createdBy: uuid("created_by").references(() => profiles.id), // Кто внес изменение
 });
 
 // Project History table - для отслеживания всех изменений в проекте
 export const projectHistory = pgTable("project_history", {
   id: serial("id").primaryKey(),
   projectId: integer("project_id").notNull().references(() => projects.id),
-  userId: varchar("user_id").notNull().references(() => users.id),
+  userId: uuid("user_id").notNull().references(() => profiles.id),
   changeType: varchar("change_type", { 
     enum: ['status_change', 'date_update', 'info_update', 'created', 'equipment_update', 'call_update', 'assignment_change', 'shared', 'file_added', 'file_deleted', 'report_added', 'report_updated', 'report_deleted', 'note_added', 'crew_assigned', 'crew_snapshot_created'] 
   }).notNull(),
@@ -306,8 +318,8 @@ export const projectHistory = pgTable("project_history", {
 export const projectShares = pgTable("project_shares", {
   id: serial("id").primaryKey(),
   projectId: integer("project_id").notNull().references(() => projects.id),
-  sharedBy: varchar("shared_by").notNull().references(() => users.id),
-  sharedWith: varchar("shared_with").notNull().references(() => users.id),
+  sharedBy: uuid("shared_by").notNull().references(() => profiles.id),
+  sharedWith: uuid("shared_with").notNull().references(() => profiles.id),
   permission: varchar("permission", { enum: ['view', 'edit'] }).default('view'),
   createdAt: timestamp("created_at").defaultNow(),
 }, (table) => {
@@ -510,7 +522,7 @@ export type CrewHistory = typeof crewHistory.$inferSelect;
 // Google Tokens table - хранит OAuth токены фирмы
 export const googleTokens = pgTable("google_tokens", {
   id: serial("id").primaryKey(),
-  firmId: uuid("firm_id").notNull().references(() => firms.id).unique(),
+  firmId: integer("firm_id").notNull().references(() => firms.id).unique(),
   accessToken: text("access_token").notNull(),
   refreshToken: text("refresh_token").notNull(),
   expiry: timestamp("expiry").notNull(),
@@ -521,7 +533,7 @@ export const googleTokens = pgTable("google_tokens", {
 // Google Calendar Settings table - настройки API для каждой фирмы
 export const googleCalendarSettings = pgTable("google_calendar_settings", {
   id: serial("id").primaryKey(),
-  firmId: uuid("firm_id").notNull().references(() => firms.id).unique(),
+  firmId: integer("firm_id").notNull().references(() => firms.id).unique(),
   clientId: varchar("client_id").notNull(),
   clientSecret: varchar("client_secret").notNull(),
   redirectUri: varchar("redirect_uri").notNull(),
@@ -534,7 +546,7 @@ export const googleCalendarSettings = pgTable("google_calendar_settings", {
 export const calendarLogs = pgTable("calendar_logs", {
   id: serial("id").primaryKey(),
   timestamp: timestamp("timestamp").defaultNow().notNull(),
-  userId: varchar("user_id").notNull().references(() => users.id),
+  userId: uuid("user_id").notNull().references(() => profiles.id),
   action: varchar("action").notNull(), // create_event, update_event, delete_event, etc.
   projectId: integer("project_id").references(() => projects.id),
   eventId: varchar("event_id"), // Google Calendar event ID

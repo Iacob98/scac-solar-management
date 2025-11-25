@@ -1,15 +1,13 @@
-import { Switch, Route } from "wouter";
+import { Switch, Route, Redirect, useLocation } from "wouter";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { useAuth } from "@/hooks/useAuth";
-import { useEffect } from "react";
-import { useToast } from "@/hooks/use-toast";
-import { isUnauthorizedError } from "@/lib/authUtils";
+import { AuthProvider, useAuth } from "@/hooks/useAuth";
 
 // Pages
-import Landing from "@/pages/Landing";
+import Login from "@/pages/Login";
+import Register from "@/pages/Register";
 import TestLogin from "@/pages/TestLogin";
 import Home from "@/pages/Home";
 import Projects from "@/pages/Projects";
@@ -31,9 +29,9 @@ import NotFound from "@/pages/not-found";
 import CrewUpload from "@/pages/CrewUpload";
 
 function ProtectedRoute({ component: Component, ...props }: any) {
-  const { isAuthenticated, isLoading, refetch } = useAuth();
+  const { user, loading } = useAuth();
 
-  if (isLoading) {
+  if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
@@ -41,8 +39,9 @@ function ProtectedRoute({ component: Component, ...props }: any) {
     );
   }
 
-  if (!isAuthenticated) {
-    return <TestLogin onLoginSuccess={() => refetch()} />;
+  if (!user) {
+    // Redirect to login page
+    return <Redirect to="/login" />;
   }
 
   return <Component {...props} />;
@@ -51,6 +50,18 @@ function ProtectedRoute({ component: Component, ...props }: any) {
 function Router() {
   return (
     <Switch>
+      {/* Public routes */}
+      <Route path="/login" component={Login} />
+      <Route path="/register" component={Register} />
+      <Route path="/test-login">
+        {() => {
+          const [, setLocation] = useLocation();
+          return <TestLogin onLoginSuccess={() => setLocation('/')} />;
+        }}
+      </Route>
+      <Route path="/crew-upload/:projectId/:token" component={CrewUpload} />
+
+      {/* Protected routes */}
       <Route path="/" component={() => <ProtectedRoute component={Home} />} />
       <Route path="/projects" component={() => <ProtectedRoute component={Projects} />} />
       <Route path="/projects/:id" component={() => <ProtectedRoute component={Projects} />} />
@@ -67,7 +78,8 @@ function Router() {
       <Route path="/admin/firms" component={() => <ProtectedRoute component={FirmsManagement} />} />
       <Route path="/admin/firms/:id/edit" component={() => <ProtectedRoute component={FirmEdit} />} />
       <Route path="/admin/users" component={() => <ProtectedRoute component={Users} />} />
-      <Route path="/crew-upload/:projectId/:token" component={CrewUpload} />
+
+      {/* 404 */}
       <Route component={NotFound} />
     </Switch>
   );
@@ -76,10 +88,12 @@ function Router() {
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <TooltipProvider>
-        <Toaster />
-        <Router />
-      </TooltipProvider>
+      <AuthProvider>
+        <TooltipProvider>
+          <Toaster />
+          <Router />
+        </TooltipProvider>
+      </AuthProvider>
     </QueryClientProvider>
   );
 }

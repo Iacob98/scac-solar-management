@@ -1,7 +1,9 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { setupAuth, isAuthenticated } from "./replitAuth";
+import { supabase } from "./supabaseClient";
+import { authenticateSupabase, requireAdmin as requireAdminMiddleware } from "./middleware/supabaseAuth.js";
+import authRouter from "./routes/auth.js";
 import { InvoiceNinjaService } from "./services/invoiceNinja";
 import { PostmarkService } from "./services/postmark";
 import { db } from "./db";
@@ -30,19 +32,18 @@ import { googleCalendarService } from "./services/googleCalendar";
 import fs from 'fs';
 import path from 'path';
 
-// Admin role check middleware
+// Admin role check middleware (legacy - use requireAdminMiddleware from supabaseAuth instead)
 const isAdmin = async (req: any, res: any, next: any) => {
   try {
-    const userId = req.user?.claims?.sub;
-    if (!userId) {
+    // New structure: req.user.id and req.user.role
+    if (!req.user) {
       return res.status(401).json({ message: "Unauthorized" });
     }
-    
-    const user = await storage.getUser(userId);
-    if (!user || user.role !== 'admin') {
+
+    if (req.user.role !== 'admin') {
       return res.status(403).json({ message: "Admin access required" });
     }
-    
+
     next();
   } catch (error) {
     console.error("Error in isAdmin middleware:", error);
@@ -80,23 +81,24 @@ function buildInstallationNotesGerman(installationPerson: any, project: any): st
 }
 
 export async function registerRoutes(app: Express): Promise<Server> {
-  await setupAuth(app);
+  // Supabase Auth routes (replaces Replit Auth)
+  app.use('/api/auth', authRouter);
 
   // File storage routes
   app.use('/api/files', fileRoutes);
-  
+
   // Google Calendar routes
   app.use('/api/google-calendar', googleCalendarRoutes);
   app.use('/api/google', googleRoutes);
-  
+
   // Email notification routes
   app.use('/api/notifications', emailNotificationRoutes);
   app.use('/api/calendar-demo', calendarDemoRoutes);
 
   // Test endpoint for history entries
-  app.get('/api/test-history', isAuthenticated, async (req: any, res) => {
+  app.get('/api/test-history', authenticateSupabase, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user.id;
       const result = await storage.createProjectHistoryEntry({
         projectId: 16,
         userId,
@@ -114,114 +116,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Development test users login
-  app.post('/api/auth/test-login', async (req, res) => {
+  // Auth routes moved to /api/auth router (see server/routes/auth.ts)
+
+
+  app.patch('/api/invoice/mark-paid', authenticateSupabase, async (req: any, res) => {
     try {
-      const { userId } = z.object({
-        userId: z.string(),
-      }).parse(req.body);
-
-      // Check if user exists in our system
-      const user = await storage.getUser(userId);
-      if (!user) {
-        return res.status(404).json({ message: "Test user not found" });
-      }
-
-      // Set session
-      if (req.session) {
-        (req.session as any).userId = userId;
-        (req.session as any).user = {
-          claims: {
-            sub: userId,
-            email: user.email,
-            name: `${user.firstName} ${user.lastName}`.trim(),
-          }
-        };
-        
-        // Force session save
-        req.session.save();
-      }
-
-      res.json({ success: true, user });
-    } catch (error) {
-      console.error("Error in test login:", error);
-      res.status(500).json({ message: "Test login failed" });
-    }
-  });
-
-  // Get available test users
-  app.get('/api/auth/test-users', async (req, res) => {
-    try {
-      const testUsers = [
-        { id: '41352215', name: 'Iacob Bujac', email: 'iasabujac@gmail.com', role: 'admin' },
-        { id: 'test_user_1', name: 'Maria Schneider', email: 'maria.schneider@solar.de', role: 'leiter' },
-        { id: 'test_user_2', name: 'Thomas Mueller', email: 'thomas.mueller@solar.de', role: 'leiter' },
-        { id: 'test_user_3', name: 'Anna Weber', email: 'anna.weber@solar.de', role: 'leiter' },
-        { id: 'test_user_4', name: 'Klaus Richter', email: 'klaus.richter@greenenergy.de', role: 'leiter' },
-        { id: 'test_user_5', name: 'Petra Wagner', email: 'petra.wagner@solarpower.de', role: 'leiter' },
-        { id: 'test_user_new_firm', name: 'Test Manager', email: 'manager@testsolar.de', role: 'leiter' },
-      ];
-      res.json(testUsers);
-    } catch (error) {
-      console.error("Error fetching test users:", error);
-      res.status(500).json({ message: "Failed to fetch test users" });
-    }
-  });
-
-  // Auth routes
-  app.get('/api/auth/user', isAuthenticated, async (req: any, res) => {
-    try {
-      const userId = req.user.claims.sub;
-      const user = await storage.getUser(userId);
-      if (!user) {
-        return res.status(404).json({ message: "User not found" });
-      }
-      res.json(user);
-    } catch (error) {
-      console.error("Error fetching user:", error);
-      res.status(500).json({ message: "Failed to fetch user" });
-    }
-  });
-
-  app.patch('/api/auth/profile', isAuthenticated, async (req: any, res) => {
-    try {
-      const userId = req.user.claims.sub;
-      const profileData = z.object({
-        firstName: z.string().optional(),
-        lastName: z.string().optional(),
-        email: z.string().email().optional(),
-        profileImageUrl: z.string().url().optional().or(z.literal('')),
-      }).parse(req.body);
-
-      const updatedUser = await storage.updateUserProfile(userId, profileData);
-      res.json(updatedUser);
-    } catch (error) {
-      console.error("Error updating profile:", error);
-      res.status(500).json({ message: "Failed to update profile" });
-    }
-  });
-
-  app.patch('/api/auth/password', isAuthenticated, async (req: any, res) => {
-    try {
-      const userId = req.user.claims.sub;
-      const passwordData = z.object({
-        currentPassword: z.string(),
-        newPassword: z.string().min(8),
-      }).parse(req.body);
-
-      // Note: This is a placeholder - password changes should be handled by Replit Auth
-      res.status(501).json({ message: "Password changes are handled by Replit Auth" });
-    } catch (error) {
-      console.error("Error changing password:", error);
-      res.status(500).json({ message: "Failed to change password" });
-    }
-  });
-
-
-
-  app.patch('/api/invoice/mark-paid', isAuthenticated, async (req: any, res) => {
-    try {
-      const userId = req.user.claims.sub;
+      const userId = req.user.id;
       const user = await storage.getUser(userId);
       
       if (!user) {
@@ -288,7 +188,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get('/api/catalog/products/:firmId', isAuthenticated, async (req: any, res) => {
+  app.get('/api/catalog/products/:firmId', authenticateSupabase, async (req: any, res) => {
     try {
       const { firmId } = req.params;
       
@@ -310,7 +210,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Global products endpoint using environment variables
-  app.get('/api/catalog/products', isAuthenticated, async (req: any, res) => {
+  app.get('/api/catalog/products', authenticateSupabase, async (req: any, res) => {
     try {
       const apiKey = process.env.INVOICE_NINJA_API_KEY;
       const baseUrl = process.env.INVOICE_NINJA_URL;
@@ -348,9 +248,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Firm routes
-  app.get('/api/firms', isAuthenticated, async (req: any, res) => {
+  app.get('/api/firms', authenticateSupabase, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user.id;
       const user = await storage.getUser(userId);
       
       if (!user) {
@@ -371,7 +271,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get('/api/firms/:id', isAuthenticated, async (req: any, res) => {
+  app.get('/api/firms/:id', authenticateSupabase, async (req: any, res) => {
     try {
       const { id } = req.params;
       const firm = await storage.getFirmById(id);
@@ -387,7 +287,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.put('/api/firms/:id', isAuthenticated, async (req: any, res) => {
+  app.put('/api/firms/:id', authenticateSupabase, async (req: any, res) => {
     try {
       const { id } = req.params;
       const firmData = req.body;
@@ -401,9 +301,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post('/api/firms/test-connection', isAuthenticated, async (req: any, res) => {
+  app.post('/api/firms/test-connection', authenticateSupabase, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user.id;
       const user = await storage.getUser(userId);
       
       if (!user || user.role !== 'admin') {
@@ -432,9 +332,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post('/api/firms', isAuthenticated, async (req: any, res) => {
+  app.post('/api/firms', authenticateSupabase, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user.id;
       const user = await storage.getUser(userId);
       
       if (!user || user.role !== 'admin') {
@@ -450,9 +350,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get('/api/firms/:id', isAuthenticated, async (req: any, res) => {
+  app.get('/api/firms/:id', authenticateSupabase, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user.id;
       const user = await storage.getUser(userId);
       const firmId = req.params.id;
       
@@ -477,9 +377,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.patch('/api/firms/:id', isAuthenticated, async (req: any, res) => {
+  app.patch('/api/firms/:id', authenticateSupabase, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user.id;
       const user = await storage.getUser(userId);
       
       if (!user || user.role !== 'admin') {
@@ -509,7 +409,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Client routes - sync with Invoice Ninja
-  app.get('/api/clients', isAuthenticated, async (req: any, res) => {
+  app.get('/api/clients', authenticateSupabase, async (req: any, res) => {
     try {
       const firmId = req.query.firmId as string;
       if (!firmId) {
@@ -555,7 +455,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get('/api/clients/single/:id', isAuthenticated, async (req: any, res) => {
+  app.get('/api/clients/single/:id', authenticateSupabase, async (req: any, res) => {
     try {
       const { id } = req.params;
       console.log('Fetching client with ID:', id);
@@ -568,7 +468,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.patch('/api/clients/:id', isAuthenticated, async (req: any, res) => {
+  app.patch('/api/clients/:id', authenticateSupabase, async (req: any, res) => {
     try {
       const { id } = req.params;
       const updateData = req.body;
@@ -597,7 +497,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post('/api/clients', isAuthenticated, async (req: any, res) => {
+  app.post('/api/clients', authenticateSupabase, async (req: any, res) => {
     try {
       const clientData = insertClientSchema.parse(req.body);
       
@@ -645,14 +545,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Crew routes
-  app.get('/api/crews', isAuthenticated, async (req: any, res) => {
+  app.get('/api/crews', authenticateSupabase, async (req: any, res) => {
     try {
       const firmId = req.query.firmId as string;
       if (!firmId) {
         return res.status(400).json({ message: "Firm ID is required" });
       }
       
-      const userId = req.user.claims.sub;
+      const userId = req.user.id;
       const user = await storage.getUser(userId);
       
       if (!user) {
@@ -691,12 +591,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get('/api/crews/single/:id', isAuthenticated, async (req: any, res) => {
+  app.get('/api/crews/single/:id', authenticateSupabase, async (req: any, res) => {
     try {
       const { id } = req.params;
       console.log('Fetching crew with ID:', id);
       
-      const userId = req.user.claims.sub;
+      const userId = req.user.id;
       const user = await storage.getUser(userId);
       
       if (!user) {
@@ -748,7 +648,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post('/api/crews', isAuthenticated, async (req: any, res) => {
+  app.post('/api/crews', authenticateSupabase, async (req: any, res) => {
     try {
       console.log('🚀 POST /api/crews - Request received');
       console.log('📋 Request body:', JSON.stringify(req.body, null, 2));
@@ -789,7 +689,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.put('/api/crews/:id', isAuthenticated, async (req: any, res) => {
+  app.put('/api/crews/:id', authenticateSupabase, async (req: any, res) => {
     try {
       const crewId = parseInt(req.params.id);
       const updateData = req.body;
@@ -801,7 +701,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.patch('/api/crews/:id', isAuthenticated, async (req: any, res) => {
+  app.patch('/api/crews/:id', authenticateSupabase, async (req: any, res) => {
     try {
       const crewId = parseInt(req.params.id);
       const updateData = req.body;
@@ -813,7 +713,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.delete('/api/crews/:id', isAuthenticated, async (req: any, res) => {
+  app.delete('/api/crews/:id', authenticateSupabase, async (req: any, res) => {
     try {
       const crewId = parseInt(req.params.id);
       await storage.deleteCrew(crewId);
@@ -825,7 +725,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Crew Members routes
-  app.get('/api/crew-members', isAuthenticated, async (req: any, res) => {
+  app.get('/api/crew-members', authenticateSupabase, async (req: any, res) => {
     try {
       const crewId = parseInt(req.query.crewId as string);
       if (!crewId) {
@@ -842,7 +742,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
 
 
-  app.post('/api/crew-members', isAuthenticated, async (req: any, res) => {
+  app.post('/api/crew-members', authenticateSupabase, async (req: any, res) => {
     try {
       const memberData = insertCrewMemberSchema.parse(req.body);
       const member = await storage.createCrewMember(memberData);
@@ -861,7 +761,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.put('/api/crew-members/:id', isAuthenticated, async (req: any, res) => {
+  app.put('/api/crew-members/:id', authenticateSupabase, async (req: any, res) => {
     try {
       const memberId = parseInt(req.params.id);
       const updateData = req.body;
@@ -873,7 +773,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.delete('/api/crew-members/:id', isAuthenticated, async (req: any, res) => {
+  app.delete('/api/crew-members/:id', authenticateSupabase, async (req: any, res) => {
     try {
       const memberId = parseInt(req.params.id);
       
@@ -907,7 +807,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Crew History Endpoints
-  app.get('/api/crews/:crewId/history', isAuthenticated, async (req: any, res) => {
+  app.get('/api/crews/:crewId/history', authenticateSupabase, async (req: any, res) => {
     try {
       const crewId = parseInt(req.params.crewId);
       const history = await storage.getCrewHistory(crewId);
@@ -918,7 +818,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post('/api/crews/:crewId/history', isAuthenticated, async (req: any, res) => {
+  app.post('/api/crews/:crewId/history', authenticateSupabase, async (req: any, res) => {
     try {
       const crewId = parseInt(req.params.crewId);
       const entry = {
@@ -936,7 +836,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Crew Statistics routes
-  app.get('/api/crews/stats/summary', isAuthenticated, async (req: any, res) => {
+  app.get('/api/crews/stats/summary', authenticateSupabase, async (req: any, res) => {
     try {
       const from = req.query.from as string;
       const to = req.query.to as string;
@@ -946,7 +846,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Date range (from/to) and firmId are required" });
       }
       
-      const userId = req.user.claims.sub;
+      const userId = req.user.id;
       const user = await storage.getUser(userId);
       
       if (!user) {
@@ -1020,7 +920,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get('/api/crews/:id/stats', isAuthenticated, async (req: any, res) => {
+  app.get('/api/crews/:id/stats', authenticateSupabase, async (req: any, res) => {
     try {
       const crewId = parseInt(req.params.id);
       const from = req.query.from as string;
@@ -1034,7 +934,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Date range (from/to) is required" });
       }
       
-      const userId = req.user.claims.sub;
+      const userId = req.user.id;
       const user = await storage.getUser(userId);
       
       if (!user) {
@@ -1088,7 +988,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get('/api/crews/:id/projects', isAuthenticated, async (req: any, res) => {
+  app.get('/api/crews/:id/projects', authenticateSupabase, async (req: any, res) => {
     try {
       const crewId = parseInt(req.params.id);
       const from = req.query.from as string;
@@ -1101,7 +1001,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Invalid crew ID" });
       }
       
-      const userId = req.user.claims.sub;
+      const userId = req.user.id;
       const user = await storage.getUser(userId);
       
       if (!user) {
@@ -1150,14 +1050,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Project routes
-  app.get('/api/projects', isAuthenticated, async (req: any, res) => {
+  app.get('/api/projects', authenticateSupabase, async (req: any, res) => {
     try {
       const firmId = req.query.firmId as string;
       if (!firmId) {
         return res.status(400).json({ message: "Firm ID is required" });
       }
       
-      const userId = req.user.claims.sub;
+      const userId = req.user.id;
       const user = await storage.getUser(userId);
       
       if (!user) {
@@ -1199,7 +1099,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get('/api/projects/:id', isAuthenticated, async (req: any, res) => {
+  app.get('/api/projects/:id', authenticateSupabase, async (req: any, res) => {
     try {
       const projectId = parseInt(req.params.id);
       console.log('Fetching project with ID:', projectId);
@@ -1208,7 +1108,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Invalid project ID" });
       }
       
-      const userId = req.user.claims.sub;
+      const userId = req.user.id;
       const user = await storage.getUser(userId);
       
       if (!user) {
@@ -1247,7 +1147,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Get project history
-  app.get('/api/projects/:id/history', isAuthenticated, async (req: any, res) => {
+  app.get('/api/projects/:id/history', authenticateSupabase, async (req: any, res) => {
     try {
       const projectId = parseInt(req.params.id);
       
@@ -1264,7 +1164,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   
   // Get crew snapshot by ID
-  app.get('/api/crew-snapshots/:id', isAuthenticated, async (req: any, res) => {
+  app.get('/api/crew-snapshots/:id', authenticateSupabase, async (req: any, res) => {
     try {
       const snapshotId = parseInt(req.params.id);
       
@@ -1285,7 +1185,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get('/api/project/:id', isAuthenticated, async (req: any, res) => {
+  app.get('/api/project/:id', authenticateSupabase, async (req: any, res) => {
     try {
       const projectId = parseInt(req.params.id);
       if (isNaN(projectId)) {
@@ -1305,9 +1205,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post('/api/projects', isAuthenticated, async (req: any, res) => {
+  app.post('/api/projects', authenticateSupabase, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user.id;
       console.log('Creating project with data:', req.body);
       
       // Очищаем пустые даты перед парсингом
@@ -1396,7 +1296,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.put('/api/projects/:id', isAuthenticated, async (req: any, res) => {
+  app.put('/api/projects/:id', authenticateSupabase, async (req: any, res) => {
     try {
       const projectId = parseInt(req.params.id);
       const updateData = req.body;
@@ -1408,11 +1308,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.patch('/api/projects/:id', isAuthenticated, async (req: any, res) => {
+  app.patch('/api/projects/:id', authenticateSupabase, async (req: any, res) => {
     try {
       const projectId = parseInt(req.params.id);
       const updateData = req.body;
-      const userId = req.user.claims.sub;
+      const userId = req.user.id;
       
       // Проверяем роль пользователя, если статус меняется на 'paid'
       if (updateData.status === 'paid') {
@@ -1586,7 +1486,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Service routes
-  app.get('/api/services', isAuthenticated, async (req: any, res) => {
+  app.get('/api/services', authenticateSupabase, async (req: any, res) => {
     try {
       const projectId = parseInt(req.query.projectId as string);
       if (!projectId) {
@@ -1601,7 +1501,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post('/api/services', isAuthenticated, async (req: any, res) => {
+  app.post('/api/services', authenticateSupabase, async (req: any, res) => {
     try {
       // Кастомная схема для API которая принимает строки для price и quantity
       const serviceApiSchema = insertServiceSchema.extend({
@@ -1613,7 +1513,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const service = await storage.createService(serviceData);
       
       // Добавляем запись в историю проекта
-      const userId = req.user.claims.sub;
+      const userId = req.user.id;
       if (userId && service.projectId) {
         await storage.createProjectHistoryEntry({
           projectId: service.projectId,
@@ -1630,7 +1530,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.patch('/api/services/:id', isAuthenticated, async (req: any, res) => {
+  app.patch('/api/services/:id', authenticateSupabase, async (req: any, res) => {
     try {
       const serviceId = parseInt(req.params.id);
       
@@ -1647,7 +1547,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const service = await storage.updateService(serviceId, serviceData);
       
       // Добавляем запись в историю проекта об изменении
-      const userId = req.user.claims.sub;
+      const userId = req.user.id;
       if (userId && service && service.projectId) {
         await storage.createProjectHistoryEntry({
           projectId: service.projectId,
@@ -1664,7 +1564,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.delete('/api/services/:id', isAuthenticated, async (req: any, res) => {
+  app.delete('/api/services/:id', authenticateSupabase, async (req: any, res) => {
     try {
       const serviceId = parseInt(req.params.id);
       
@@ -1674,7 +1574,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       await storage.deleteService(serviceId);
       
       // Добавляем запись в историю проекта
-      const userId = req.user.claims.sub;
+      const userId = req.user.id;
       if (userId && service && service.projectId) {
         await storage.createProjectHistoryEntry({
           projectId: service.projectId,
@@ -1692,7 +1592,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Project status management routes
-  app.patch('/api/projects/:id/status', isAuthenticated, async (req: any, res) => {
+  app.patch('/api/projects/:id/status', authenticateSupabase, async (req: any, res) => {
     try {
       const id = parseInt(req.params.id);
       const rawData = z.object({
@@ -1715,7 +1615,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const project = await storage.updateProject(id, validatedData);
       
       // Добавляем запись в историю проекта
-      const userId = req.user.claims.sub;
+      const userId = req.user.id;
       if (userId) {
         await storage.createProjectHistoryEntry({
           projectId: id,
@@ -1733,11 +1633,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // User management routes
-  app.get('/api/users', isAuthenticated, async (req: any, res) => {
+  app.get('/api/users', authenticateSupabase, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user.id;
       const user = await storage.getUser(userId);
-      
+
       if (!user || user.role !== 'admin') {
         return res.status(403).json({ message: "Access denied" });
       }
@@ -1750,11 +1650,132 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.post('/api/users', authenticateSupabase, isAdmin, async (req: any, res) => {
+    try {
+      const { email, firstName, lastName, role, firmIds } = req.body;
+
+      // Validate required fields
+      if (!email || !firstName || !lastName || !role) {
+        return res.status(400).json({
+          message: "Missing required fields: email, firstName, lastName, role"
+        });
+      }
+
+      // Validate role
+      if (role !== 'admin' && role !== 'leiter') {
+        return res.status(400).json({
+          message: "Invalid role. Must be 'admin' or 'leiter'"
+        });
+      }
+
+      // Create user in Supabase Auth
+      const { data: authData, error: authError } = await supabase.auth.admin.createUser({
+        email,
+        email_confirm: true,
+        user_metadata: {
+          first_name: firstName,
+          last_name: lastName,
+        }
+      });
+
+      if (authError) {
+        console.error("Error creating auth user:", authError);
+        return res.status(400).json({
+          message: `Failed to create user: ${authError.message}`
+        });
+      }
+
+      if (!authData.user) {
+        return res.status(500).json({
+          message: "Failed to create user: No user data returned"
+        });
+      }
+
+      // Create profile in database
+      const profile = await storage.upsertUser({
+        id: authData.user.id,
+        email,
+        firstName,
+        lastName,
+        role,
+      });
+
+      // Assign user to firms if role is leiter and firmIds are provided
+      if (role === 'leiter' && firmIds && Array.isArray(firmIds) && firmIds.length > 0) {
+        for (const firmId of firmIds) {
+          await storage.assignUserToFirm(authData.user.id, firmId);
+        }
+      }
+
+      console.log(`Created user ${email} with role ${role}`);
+      res.json(profile);
+    } catch (error) {
+      console.error("Error creating user:", error);
+      res.status(500).json({ message: "Failed to create user" });
+    }
+  });
+
+  // Update user
+  app.patch('/api/users/:id', authenticateSupabase, isAdmin, async (req: any, res) => {
+    try {
+      const { id } = req.params;
+      const { firstName, lastName, role, firmIds } = req.body;
+
+      // Get existing user
+      const existingUser = await storage.getUser(id);
+      if (!existingUser) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      // Update profile in database
+      const profile = await storage.upsertUser({
+        id,
+        email: existingUser.email,
+        firstName: firstName || existingUser.firstName,
+        lastName: lastName || existingUser.lastName,
+        role: role || existingUser.role,
+      });
+
+      // Update firm assignments if role is leiter
+      if (role === 'leiter' && firmIds !== undefined) {
+        // Get current firm assignments
+        const currentFirms = await storage.getFirmsByUserId(id);
+        const currentFirmIds = currentFirms.map(f => String(f.id));
+
+        // Remove user from firms not in the new list
+        for (const currentFirmId of currentFirmIds) {
+          if (!firmIds.includes(currentFirmId)) {
+            await storage.removeUserFromFirm(id, currentFirmId);
+          }
+        }
+
+        // Add user to new firms
+        for (const firmId of firmIds) {
+          if (!currentFirmIds.includes(firmId)) {
+            await storage.assignUserToFirm(id, firmId);
+          }
+        }
+      } else if (role === 'admin') {
+        // If user becomes admin, remove all firm assignments
+        const currentFirms = await storage.getFirmsByUserId(id);
+        for (const firm of currentFirms) {
+          await storage.removeUserFromFirm(id, String(firm.id));
+        }
+      }
+
+      console.log(`Updated user ${id} with role ${role}`);
+      res.json(profile);
+    } catch (error) {
+      console.error("Error updating user:", error);
+      res.status(500).json({ message: "Failed to update user" });
+    }
+  });
+
   // Invoice routes
-  app.get('/api/invoices/:firmId', isAuthenticated, async (req: any, res) => {
+  app.get('/api/invoices/:firmId', authenticateSupabase, async (req: any, res) => {
     try {
       const { firmId } = req.params;
-      const userId = req.user.claims.sub;
+      const userId = req.user.id;
       const user = await storage.getUser(userId);
       
       if (!user) {
@@ -1783,10 +1804,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Statistics routes
-  app.get('/api/stats/:firmId', isAuthenticated, async (req: any, res) => {
+  app.get('/api/stats/:firmId', authenticateSupabase, async (req: any, res) => {
     try {
       const { firmId } = req.params;
-      const userId = req.user.claims.sub;
+      const userId = req.user.id;
       const user = await storage.getUser(userId);
       
       if (!user) {
@@ -1808,10 +1829,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Invoice routes
   // Download invoice PDF and add to project files
-  app.post('/api/invoice/download-pdf/:projectId', isAuthenticated, async (req: any, res) => {
+  app.post('/api/invoice/download-pdf/:projectId', authenticateSupabase, async (req: any, res) => {
     try {
       const { projectId } = req.params;
-      const userId = req.user.claims.sub;
+      const userId = req.user.id;
       
       // Get project directly from database using SQL
       const projectResult = await db.select().from(projects).where(eq(projects.id, parseInt(projectId)));
@@ -1943,11 +1964,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post('/api/invoice/create', isAuthenticated, async (req: any, res) => {
+  app.post('/api/invoice/create', authenticateSupabase, async (req: any, res) => {
     try {
       console.log('Invoice creation request:', req.body);
       const { projectId } = req.body;
-      const userId = req.user.claims.sub;
+      const userId = req.user.id;
       console.log('User ID:', userId, 'Project ID:', projectId);
       
       if (!projectId) {
@@ -1966,7 +1987,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Get firm details for Invoice Ninja integration
-      const firms = await storage.getFirmsByUserId(req.user.claims.sub);
+      const firms = await storage.getFirmsByUserId(req.user.id);
       const firm = firms.find(f => f.id === project.firmId);
       
       if (!firm) {
@@ -2093,9 +2114,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Test Postmark connection
-  app.post('/api/postmark/test', isAuthenticated, async (req: any, res) => {
+  app.post('/api/postmark/test', authenticateSupabase, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user.id;
       const user = await storage.getUser(userId);
       
       if (!user || user.role !== 'admin') {
@@ -2140,10 +2161,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Send invoice by email
-  app.post('/api/invoice/send-email/:projectId', isAuthenticated, async (req: any, res) => {
+  app.post('/api/invoice/send-email/:projectId', authenticateSupabase, async (req: any, res) => {
     try {
       const { projectId } = req.params;
-      const userId = req.user.claims.sub;
+      const userId = req.user.id;
       
       const project = await storage.getProjectById(parseInt(projectId));
       if (!project) {
@@ -2294,7 +2315,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Generate crew upload token endpoint
-  app.post('/api/generate-crew-token/:projectId', isAuthenticated, async (req: any, res) => {
+  app.post('/api/generate-crew-token/:projectId', authenticateSupabase, async (req: any, res) => {
     try {
       const projectId = parseInt(req.params.projectId);
       
@@ -2492,14 +2513,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Invoice Ninja catalog routes
-  app.get('/api/catalog/products', isAuthenticated, async (req: any, res) => {
+  app.get('/api/catalog/products', authenticateSupabase, async (req: any, res) => {
     try {
       const firmId = req.query.firmId as string;
       if (!firmId) {
         return res.status(400).json({ message: "Firm ID is required" });
       }
 
-      const userId = req.user.claims.sub;
+      const userId = req.user.id;
       const firms = await storage.getFirmsByUserId(userId);
       const firm = firms.find(f => f.id === firmId);
       
@@ -2518,7 +2539,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Project Files routes
-  app.get('/api/projects/:id/files', isAuthenticated, async (req: any, res) => {
+  app.get('/api/projects/:id/files', authenticateSupabase, async (req: any, res) => {
     try {
       const projectId = parseInt(req.params.id);
       const files = await storage.getFilesByProjectId(projectId);
@@ -2529,7 +2550,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post('/api/projects/:id/files', isAuthenticated, async (req: any, res) => {
+  app.post('/api/projects/:id/files', authenticateSupabase, async (req: any, res) => {
     try {
       const projectId = parseInt(req.params.id);
       const fileData = insertProjectFileSchema.parse({
@@ -2540,7 +2561,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const file = await storage.createFile(fileData);
       
       // Добавляем запись в историю проекта
-      const userId = req.user.claims.sub;
+      const userId = req.user.id;
       if (userId) {
         const fileTypeLabels = {
           'report_photo': 'фото отчет',
@@ -2567,7 +2588,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
 
   // Project Reports routes
-  app.get('/api/projects/:id/reports', isAuthenticated, async (req: any, res) => {
+  app.get('/api/projects/:id/reports', authenticateSupabase, async (req: any, res) => {
     try {
       const projectId = parseInt(req.params.id);
       const reports = await storage.getReportsByProjectId(projectId);
@@ -2578,7 +2599,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post('/api/projects/:id/reports', isAuthenticated, async (req: any, res) => {
+  app.post('/api/projects/:id/reports', authenticateSupabase, async (req: any, res) => {
     try {
       const projectId = parseInt(req.params.id);
       const reportData = insertProjectReportSchema.parse({
@@ -2589,7 +2610,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const report = await storage.createReport(reportData);
       
       // Добавляем запись в историю проекта
-      const userId = req.user.claims.sub;
+      const userId = req.user.id;
       if (userId) {
         const stars = '★'.repeat(report.rating);
         await storage.createProjectHistoryEntry({
@@ -2607,14 +2628,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.patch('/api/reports/:id', isAuthenticated, async (req: any, res) => {
+  app.patch('/api/reports/:id', authenticateSupabase, async (req: any, res) => {
     try {
       const reportId = parseInt(req.params.id);
       const updateData = req.body;
       const report = await storage.updateReport(reportId, updateData);
       
       // Добавляем запись в историю проекта
-      const userId = req.user.claims.sub;
+      const userId = req.user.id;
       if (userId && report) {
         const stars = '★'.repeat(report.rating);
         await storage.createProjectHistoryEntry({
@@ -2632,7 +2653,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.delete('/api/reports/:id', isAuthenticated, async (req: any, res) => {
+  app.delete('/api/reports/:id', authenticateSupabase, async (req: any, res) => {
     try {
       const reportId = parseInt(req.params.id);
       
@@ -2642,7 +2663,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       await storage.deleteReport(reportId);
       
       // Добавляем запись в историю проекта
-      const userId = req.user.claims.sub;
+      const userId = req.user.id;
       if (userId && report) {
         const stars = '★'.repeat(report.rating);
         await storage.createProjectHistoryEntry({
@@ -2661,7 +2682,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Statistics routes
-  app.get('/api/stats', isAuthenticated, async (req: any, res) => {
+  app.get('/api/stats', authenticateSupabase, async (req: any, res) => {
     try {
       const firmId = req.query.firmId as string;
       if (!firmId) {
@@ -2677,7 +2698,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Project History routes  
-  app.get('/api/project-history/:projectId', isAuthenticated, async (req: any, res) => {
+  app.get('/api/project-history/:projectId', authenticateSupabase, async (req: any, res) => {
     try {
       const projectId = parseInt(req.params.projectId, 10);
       if (isNaN(projectId)) {
@@ -2693,7 +2714,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Project Notes routes
-  app.get('/api/projects/:projectId/notes', isAuthenticated, async (req: any, res) => {
+  app.get('/api/projects/:projectId/notes', authenticateSupabase, async (req: any, res) => {
     try {
       const projectId = parseInt(req.params.projectId);
       console.log('GET /api/projects/:projectId/notes - получение примечаний для проекта:', projectId);
@@ -2714,7 +2735,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post('/api/projects/:projectId/notes', isAuthenticated, async (req: any, res) => {
+  app.post('/api/projects/:projectId/notes', authenticateSupabase, async (req: any, res) => {
     try {
       const projectId = parseInt(req.params.projectId);
       const userId = req.user?.claims?.sub || req.user?.id;
@@ -2766,14 +2787,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Project Sharing routes
-  app.post('/api/projects/:projectId/share', isAuthenticated, async (req: any, res) => {
+  app.post('/api/projects/:projectId/share', authenticateSupabase, async (req: any, res) => {
     try {
       const projectId = parseInt(req.params.projectId, 10);
       if (isNaN(projectId)) {
         return res.status(400).json({ error: "Неверный ID проекта" });
       }
 
-      const userId = req.user.claims.sub;
+      const userId = req.user.id;
       if (!userId) {
         return res.status(401).json({ error: "Пользователь не авторизован" });
       }
@@ -2800,7 +2821,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get('/api/projects/:projectId/shares', isAuthenticated, async (req: any, res) => {
+  app.get('/api/projects/:projectId/shares', authenticateSupabase, async (req: any, res) => {
     try {
       const projectId = parseInt(req.params.projectId, 10);
       if (isNaN(projectId)) {
@@ -2815,7 +2836,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.delete('/api/projects/:projectId/shares/:userId', isAuthenticated, async (req: any, res) => {
+  app.delete('/api/projects/:projectId/shares/:userId', authenticateSupabase, async (req: any, res) => {
     try {
       const projectId = parseInt(req.params.projectId, 10);
       const { userId } = req.params;
@@ -2824,7 +2845,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "Неверный ID проекта" });
       }
 
-      const currentUserId = req.user.claims.sub;
+      const currentUserId = req.user.id;
       if (!currentUserId) {
         return res.status(401).json({ error: "Пользователь не авторизован" });
       }
@@ -2847,10 +2868,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Firm-User management endpoints
-  app.get('/api/firms/:firmId/users', isAuthenticated, async (req: any, res) => {
+  app.get('/api/firms/:firmId/users', authenticateSupabase, async (req: any, res) => {
     try {
       const { firmId } = req.params;
-      const userId = req.user.claims.sub;
+      const userId = req.user.id;
       const user = await storage.getUser(userId);
       
       if (!user) {
@@ -2873,7 +2894,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post('/api/firms/:firmId/users/:userId', isAuthenticated, isAdmin, async (req: any, res) => {
+  app.post('/api/firms/:firmId/users/:userId', authenticateSupabase, isAdmin, async (req: any, res) => {
     try {
       const { firmId, userId } = req.params;
       
@@ -2885,7 +2906,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.delete('/api/firms/:firmId/users/:userId', isAuthenticated, isAdmin, async (req: any, res) => {
+  app.delete('/api/firms/:firmId/users/:userId', authenticateSupabase, isAdmin, async (req: any, res) => {
     try {
       const { firmId, userId } = req.params;
       
@@ -2898,7 +2919,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Get users with their firm assignments
-  app.get('/api/users-with-firms', isAuthenticated, isAdmin, async (req: any, res) => {
+  app.get('/api/users-with-firms', authenticateSupabase, isAdmin, async (req: any, res) => {
     try {
       const allUsers = await storage.getUsers();
       const usersWithFirms = await Promise.all(
@@ -2918,9 +2939,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Синхронизация статуса платежа из Invoice Ninja
-  app.post('/api/invoices/sync-payment-status', isAuthenticated, async (req: any, res) => {
+  app.post('/api/invoices/sync-payment-status', authenticateSupabase, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user.id;
       const user = await storage.getUser(userId);
       
       if (!user) {
@@ -3019,9 +3040,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Синхронизация всех счетов фирмы с Invoice Ninja
-  app.post('/api/invoices/sync-all-payment-status/:firmId', isAuthenticated, async (req: any, res) => {
+  app.post('/api/invoices/sync-all-payment-status/:firmId', authenticateSupabase, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user.id;
       const { firmId } = req.params;
       
       // Verify user has access to this firm

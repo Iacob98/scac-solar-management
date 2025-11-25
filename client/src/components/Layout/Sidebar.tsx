@@ -2,7 +2,7 @@ import { Link, useLocation } from 'wouter';
 import { useAuth } from '@/hooks/useAuth';
 
 export function Sidebar() {
-  const { user } = useAuth();
+  const { profile } = useAuth();
   const [location] = useLocation();
 
   const menuItems = [
@@ -11,7 +11,7 @@ export function Sidebar() {
     { path: '/crews', label: 'Бригады', icon: 'groups' },
     { path: '/crews/statistics', label: 'Статистика', icon: 'analytics' },
     { path: '/calendar', label: 'Календарь', icon: 'event' },
-    ...(user?.role === 'admin' ? [{ path: '/invoices', label: 'Счета', icon: 'receipt' }] : []),
+    ...(profile?.role === 'admin' ? [{ path: '/invoices', label: 'Счета', icon: 'receipt' }] : []),
   ];
 
   const adminItems = [
@@ -61,7 +61,7 @@ export function Sidebar() {
           </Link>
         ))}
         
-        {user?.role === 'admin' && (
+        {profile?.role === 'admin' && (
           <div className="pt-4 border-t">
             <p className="text-xs font-medium text-gray-400 uppercase tracking-wider mb-2">
               Администрирование

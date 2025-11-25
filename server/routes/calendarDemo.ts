@@ -1,13 +1,12 @@
 import { Router } from 'express';
-import { requireAuth } from '../middleware/auth';
-import { isAuthenticated } from '../replitAuth';
+import { authenticateSupabase } from '../middleware/supabaseAuth.js';
 import { storage } from '../storage';
 import { googleCalendarService } from '../services/googleCalendar';
 
 const router = Router();
 
 // Демонстрация создания календарных событий
-router.post('/create-demo-events/:projectId/:crewId', requireAuth, async (req, res) => {
+router.post('/create-demo-events/:projectId/:crewId', authenticateSupabase, async (req, res) => {
   try {
     const projectId = parseInt(req.params.projectId);
     const crewId = parseInt(req.params.crewId);
@@ -73,7 +72,7 @@ router.post('/create-demo-events/:projectId/:crewId', requireAuth, async (req, r
 });
 
 // Создать реальные календарные события для проекта и бригады
-router.post('/create-real-events/:projectId/:crewId', isAuthenticated, async (req, res) => {
+router.post('/create-real-events/:projectId/:crewId', authenticateSupabase, async (req, res) => {
   try {
     const { projectId, crewId } = req.params;
     const projectIdInt = parseInt(projectId);

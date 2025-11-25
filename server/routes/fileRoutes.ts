@@ -2,7 +2,7 @@ import express from 'express';
 import multer from 'multer';
 import { storage } from '../storage';
 import { fileStorage as fileStorageService } from '../storage/fileStorage';
-import { isAuthenticated } from '../replitAuth';
+import { authenticateSupabase } from '../middleware/supabaseAuth.js';
 import type { InsertFileStorage, InsertProjectFile } from '@shared/schema';
 import { z } from 'zod';
 
@@ -63,14 +63,14 @@ const uploadFileSchema = z.object({
 });
 
 // Загрузка файла (используем legacy формат для совместимости)
-router.post('/upload', isAuthenticated, upload.single('file'), async (req, res) => {
+router.post('/upload', authenticateSupabase, upload.single('file'), async (req, res) => {
   try {
     if (!req.file) {
       return res.status(400).json({ message: 'Файл не предоставлен' });
     }
 
     const validatedData = uploadFileSchema.parse(req.body);
-    const userId = (req.user as any)?.claims?.sub || (req.user as any)?.id;
+    const userId = req.user.id;
     
     // Сохраняем файл в папку uploads (legacy формат)
     const fs = await import('fs');
@@ -142,7 +142,7 @@ router.post('/upload', isAuthenticated, upload.single('file'), async (req, res) 
 });
 
 // Получение файла
-router.get('/:fileId', isAuthenticated, async (req, res) => {
+router.get('/:fileId', authenticateSupabase, async (req, res) => {
   try {
     const fileId = parseInt(req.params.fileId);
     console.log(`🔍 GET /api/files/${fileId} - пользователь запрашивает файл`);
@@ -153,7 +153,7 @@ router.get('/:fileId', isAuthenticated, async (req, res) => {
     if (fileRecord && !fileRecord.isDeleted) {
       // Обрабатываем файл из новой системы
       if (fileRecord.projectId) {
-        const userId = (req.user as any)?.claims?.sub || (req.user as any)?.id;
+        const userId = req.user.id;
         const hasAccess = await storage.hasProjectAccess(userId, fileRecord.projectId);
         if (!hasAccess) {
           return res.status(403).json({ message: 'Нет доступа к файлу' });
@@ -179,7 +179,7 @@ router.get('/:fileId', isAuthenticated, async (req, res) => {
     }
 
     // Проверяем права доступа к legacy файлу
-    const userId = (req.user as any)?.claims?.sub || (req.user as any)?.id;
+    const userId = req.user.id;
     const hasAccess = await storage.hasProjectAccess(userId, legacyFile.projectId);
     if (!hasAccess) {
       return res.status(403).json({ message: 'Нет доступа к файлу' });
@@ -231,12 +231,12 @@ router.get('/:fileId', isAuthenticated, async (req, res) => {
 });
 
 // Получение списка файлов для проекта (объединяем legacy и новые файлы)
-router.get('/project/:projectId', isAuthenticated, async (req, res) => {
+router.get('/project/:projectId', authenticateSupabase, async (req, res) => {
   try {
     const projectId = parseInt(req.params.projectId);
-    
+
     // Проверяем доступ к проекту
-    const userId = (req.user as any)?.claims?.sub || (req.user as any)?.id;
+    const userId = req.user.id;
     const hasAccess = await storage.hasProjectAccess(userId, projectId);
     if (!hasAccess) {
       return res.status(403).json({ message: 'Нет доступа к проекту' });
@@ -273,7 +273,7 @@ router.get('/project/:projectId', isAuthenticated, async (req, res) => {
 });
 
 // Удаление файла
-router.delete('/:fileId', isAuthenticated, async (req, res) => {
+router.delete('/:fileId', authenticateSupabase, async (req, res) => {
   try {
     const fileId = parseInt(req.params.fileId);
 
@@ -282,8 +282,8 @@ router.delete('/:fileId', isAuthenticated, async (req, res) => {
     
     if (fileRecord && !fileRecord.isDeleted) {
       // Обрабатываем файл из новой системы
-      const userId = (req.user as any)?.claims?.sub || (req.user as any)?.id;
-      const userRole = (req.user as any)?.role || 'user';
+      const userId = req.user.id;
+      const userRole = req.user.role || 'user';
       
       // Проверяем права доступа
       if (fileRecord.projectId) {
@@ -327,7 +327,7 @@ router.delete('/:fileId', isAuthenticated, async (req, res) => {
     }
 
     // Проверяем права доступа к legacy файлу
-    const userId = (req.user as any)?.claims?.sub || (req.user as any)?.id;
+    const userId = req.user.id;
     const hasAccess = await storage.hasProjectAccess(userId, legacyFile.projectId);
     if (!hasAccess) {
       return res.status(403).json({ message: 'Нет доступа к файлу' });
@@ -356,7 +356,7 @@ router.delete('/:fileId', isAuthenticated, async (req, res) => {
 });
 
 // Получение статистики хранилища (только для админов)
-router.get('/admin/storage-stats', isAuthenticated, async (req, res) => {
+router.get('/admin/storage-stats', authenticateSupabase, async (req, res) => {
   try {
     if (req.user!.role !== 'admin') {
       return res.status(403).json({ message: 'Доступ запрещен' });

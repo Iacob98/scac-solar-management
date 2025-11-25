@@ -8,7 +8,7 @@ import { Bell, ChevronDown, Settings, LogOut, UserCircle } from 'lucide-react';
 import type { Firm } from '@shared/schema';
 
 export function TopHeader() {
-  const { user } = useAuth();
+  const { user, profile, signOut } = useAuth();
   const [selectedFirmId, setSelectedFirmId] = useState<string>(() => {
     // Initialize with saved value immediately to prevent flashing
     return localStorage.getItem('selectedFirmId') || '';
@@ -34,7 +34,7 @@ export function TopHeader() {
         // Clear invalid saved firm ID and auto-select
         console.log('Clearing invalid saved firm ID:', savedFirmId);
         localStorage.removeItem('selectedFirmId');
-        if (user?.role === 'admin' || firms.length === 1) {
+        if (profile?.role === 'admin' || firms.length === 1) {
           const firstFirmId = firms[0].id;
           console.log('Auto-selecting first firm after clearing invalid:', firstFirmId);
           setSelectedFirmId(firstFirmId);
@@ -42,7 +42,7 @@ export function TopHeader() {
         } else {
           setSelectedFirmId('');
         }
-      } else if (!savedFirmId && (user?.role === 'admin' || firms.length === 1)) {
+      } else if (!savedFirmId && (profile?.role === 'admin' || firms.length === 1)) {
         // Auto-select for new users
         const firstFirmId = firms[0].id;
         console.log('Auto-selecting first firm for new user:', firstFirmId);
@@ -100,15 +100,15 @@ export function TopHeader() {
           <DropdownMenuTrigger asChild>
             <div className="flex items-center space-x-3 cursor-pointer hover:bg-gray-50 rounded-lg p-2 transition-colors">
               <img
-                src={user?.profileImageUrl || "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=32&h=32"}
+                src={profile?.profile_image_url || "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=32&h=32"}
                 alt="User Avatar"
                 className="w-8 h-8 rounded-full object-cover"
               />
               <div className="text-sm">
                 <p className="font-medium">
-                  {user?.firstName} {user?.lastName}
+                  {profile?.first_name} {profile?.last_name}
                 </p>
-                <p className="text-gray-500">{user?.role === 'admin' ? 'Администратор' : 'Руководитель проектов'}</p>
+                <p className="text-gray-500">{profile?.role === 'admin' ? 'Администратор' : 'Руководитель проектов'}</p>
               </div>
               <ChevronDown className="w-4 h-4 text-gray-400" />
             </div>
@@ -119,7 +119,20 @@ export function TopHeader() {
               Настройки
             </DropdownMenuItem>
             <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={() => window.location.href = '/api/logout'}>
+            <DropdownMenuItem onClick={async () => {
+              console.log('[TopHeader] Logout clicked');
+              try {
+                const { error } = await signOut();
+                console.log('[TopHeader] signOut completed', { error });
+                localStorage.removeItem('selectedFirmId');
+                window.location.href = '/login';
+              } catch (err) {
+                console.error('[TopHeader] Logout error:', err);
+                // Всё равно редиректим на логин
+                localStorage.removeItem('selectedFirmId');
+                window.location.href = '/login';
+              }
+            }}>
               <LogOut className="w-4 h-4 mr-2" />
               Выход
             </DropdownMenuItem>

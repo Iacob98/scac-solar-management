@@ -28,7 +28,7 @@ const userSchema = z.object({
 
 export default function Users() {
   const { toast } = useToast();
-  const { user } = useAuth();
+  const { user, profile, loading } = useAuth();
   const queryClient = useQueryClient();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingUser, setEditingUser] = useState<any>(null);
@@ -53,8 +53,22 @@ export default function Users() {
     },
   });
 
-  // Check if user is admin
-  if (user?.role !== 'admin') {
+  // Показываем загрузку пока проверяем аутентификацию
+  if (loading) {
+    return (
+      <MainLayout>
+        <div className="flex items-center justify-center min-h-screen">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+            <p className="text-gray-600">Загрузка...</p>
+          </div>
+        </div>
+      </MainLayout>
+    );
+  }
+
+  // Check if user is admin AFTER loading is complete
+  if (profile?.role !== 'admin') {
     return (
       <MainLayout>
         <div className="p-4 sm:p-6 text-center">
@@ -86,39 +100,99 @@ export default function Users() {
 
   const createUserMutation = useMutation({
     mutationFn: async (data: z.infer<typeof userSchema>) => {
-      const response = await apiRequest('POST', '/api/users', data);
-      return response.json();
+      const response = await apiRequest('/api/users', 'POST', data);
+
+      try {
+        return await response.json();
+      } catch (parseError) {
+        console.error('Failed to parse server response:', parseError);
+        throw new Error('Сервер вернул неверный формат данных. Пожалуйста, попробуйте снова.');
+      }
     },
-    onSuccess: () => {
+    onSuccess: async () => {
       toast({
         title: 'Успешно',
         description: 'Пользователь успешно создан',
       });
-      queryClient.invalidateQueries({ queryKey: ['/api/users'] });
+
+      try {
+        await queryClient.invalidateQueries({ queryKey: ['/api/users-with-firms'] });
+      } catch (refetchError) {
+        console.error('Failed to refresh user list:', refetchError);
+      }
+
       setIsDialogOpen(false);
       form.reset();
     },
-    onError: (error) => {
+    onError: (error: Error) => {
+      console.error('User creation failed:', error);
       toast({
-        title: 'Ошибка',
-        description: error.message,
+        title: 'Ошибка создания пользователя',
+        description: error.message || 'Не удалось создать пользователя. Пожалуйста, попробуйте снова.',
+        variant: 'destructive',
+      });
+    },
+  });
+
+  const updateUserMutation = useMutation({
+    mutationFn: async ({ userId, data }: { userId: string; data: z.infer<typeof userSchema> }) => {
+      const response = await apiRequest(`/api/users/${userId}`, 'PATCH', data);
+
+      try {
+        return await response.json();
+      } catch (parseError) {
+        console.error('Failed to parse server response:', parseError);
+        throw new Error('Сервер вернул неверный формат данных. Пожалуйста, попробуйте снова.');
+      }
+    },
+    onSuccess: async () => {
+      toast({
+        title: 'Успешно',
+        description: 'Пользователь успешно обновлен',
+      });
+
+      try {
+        await queryClient.invalidateQueries({ queryKey: ['/api/users-with-firms'] });
+      } catch (refetchError) {
+        console.error('Failed to refresh user list:', refetchError);
+      }
+
+      setIsDialogOpen(false);
+      setEditingUser(null);
+      form.reset();
+    },
+    onError: (error: Error) => {
+      console.error('User update failed:', error);
+      toast({
+        title: 'Ошибка обновления пользователя',
+        description: error.message || 'Не удалось обновить пользователя. Пожалуйста, попробуйте снова.',
         variant: 'destructive',
       });
     },
   });
 
   const onSubmit = (data: z.infer<typeof userSchema>) => {
-    createUserMutation.mutate(data);
+    console.log('onSubmit called with data:', data);
+    console.log('firmIds type:', typeof data.firmIds, data.firmIds);
+    console.log('editingUser:', editingUser);
+
+    if (editingUser) {
+      updateUserMutation.mutate({ userId: editingUser.id, data });
+    } else {
+      createUserMutation.mutate(data);
+    }
   };
 
   const openEditDialog = (user: any) => {
     setEditingUser(user);
+    // Extract firm IDs from the firms array and convert to strings
+    const firmIds = user.firms?.map((firm: Firm) => String(firm.id)) || [];
     form.reset({
       email: user.email || '',
       firstName: user.firstName || '',
       lastName: user.lastName || '',
       role: user.role || 'leiter',
-      firmIds: user.firmIds || [],
+      firmIds: firmIds,
     });
     setIsDialogOpen(true);
   };
@@ -168,7 +242,9 @@ export default function Users() {
                   {editingUser ? 'Редактировать пользователя' : 'Добавить нового пользователя'}
                 </DialogTitle>
               </DialogHeader>
-              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+              <form onSubmit={form.handleSubmit(onSubmit, (errors) => {
+                console.log('Form validation errors:', errors);
+              })} className="space-y-6">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
                     <Label htmlFor="firstName">Имя</Label>
@@ -239,28 +315,31 @@ export default function Users() {
                   <div>
                     <Label>Назначенные фирмы</Label>
                     <div className="space-y-2 mt-2">
-                      {firms.map((firm) => (
-                        <div key={firm.id} className="flex items-center space-x-2">
-                          <input
-                            type="checkbox"
-                            id={`firm-${firm.id}`}
-                            value={firm.id}
-                            checked={form.watch('firmIds')?.includes(firm.id)}
-                            onChange={(e) => {
-                              const currentIds = form.watch('firmIds') || [];
-                              if (e.target.checked) {
-                                form.setValue('firmIds', [...currentIds, firm.id]);
-                              } else {
-                                form.setValue('firmIds', currentIds.filter(id => id !== firm.id));
-                              }
-                            }}
-                            className="rounded border-gray-300 text-primary focus:ring-primary"
-                          />
-                          <label htmlFor={`firm-${firm.id}`} className="text-sm font-medium">
-                            {firm.name}
-                          </label>
-                        </div>
-                      ))}
+                      {firms.map((firm) => {
+                        const firmIdStr = String(firm.id);
+                        return (
+                          <div key={firm.id} className="flex items-center space-x-2">
+                            <input
+                              type="checkbox"
+                              id={`firm-${firm.id}`}
+                              value={firmIdStr}
+                              checked={form.watch('firmIds')?.includes(firmIdStr)}
+                              onChange={(e) => {
+                                const currentIds = form.watch('firmIds') || [];
+                                if (e.target.checked) {
+                                  form.setValue('firmIds', [...currentIds, firmIdStr]);
+                                } else {
+                                  form.setValue('firmIds', currentIds.filter(id => id !== firmIdStr));
+                                }
+                              }}
+                              className="rounded border-gray-300 text-primary focus:ring-primary"
+                            />
+                            <label htmlFor={`firm-${firm.id}`} className="text-sm font-medium">
+                              {firm.name}
+                            </label>
+                          </div>
+                        );
+                      })}
                     </div>
                   </div>
                 )}
@@ -268,10 +347,10 @@ export default function Users() {
                 <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2">
                   <Button
                     type="submit"
-                    disabled={createUserMutation.isPending}
+                    disabled={createUserMutation.isPending || updateUserMutation.isPending}
                     className="flex-1"
                   >
-                    {createUserMutation.isPending ? 'Сохранение...' : 'Сохранить'}
+                    {(createUserMutation.isPending || updateUserMutation.isPending) ? 'Сохранение...' : 'Сохранить'}
                   </Button>
                   <Button
                     type="button"

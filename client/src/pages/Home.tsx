@@ -23,7 +23,7 @@ import Tutorial from '@/components/Tutorial';
 import { useToast } from '@/hooks/use-toast';
 
 export default function Home() {
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
   const { toast } = useToast();
   const [selectedFirmId, setSelectedFirmId] = useState<string>('');
   const [isTutorialOpen, setIsTutorialOpen] = useState(false);
@@ -104,7 +104,7 @@ export default function Home() {
     }
   ];
 
-  if (user?.role === 'admin') {
+  if (profile?.role === 'admin') {
     quickActions.push(
       {
         title: 'Фирмы',
@@ -131,7 +131,7 @@ export default function Home() {
         {/* Welcome Section */}
         <div className="bg-gradient-to-r from-blue-600 to-blue-800 text-white rounded-lg p-8">
           <h1 className="text-3xl font-bold mb-2">
-            Добро пожаловать, {user?.firstName} {user?.lastName}!
+            Добро пожаловать, {profile?.first_name} {profile?.last_name}!
           </h1>
           <p className="text-blue-100 text-lg">
             Система управления проектами установки солнечных панелей
@@ -144,7 +144,7 @@ export default function Home() {
               </div>
               <div className="flex items-center space-x-2">
                 <UserCircle className="w-4 h-4" />
-                <span>Роль: {user?.role === 'admin' ? 'Администратор' : 'Руководитель проектов'}</span>
+                <span>Роль: {profile?.role === 'admin' ? 'Администратор' : 'Руководитель проектов'}</span>
               </div>
             </div>
             <Button 
