@@ -7,6 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Upload, FileText, Image, File } from 'lucide-react';
+import { getAuthHeaders } from '@/lib/queryClient';
 
 interface FileUploadProps {
   projectId?: number;
@@ -21,8 +22,11 @@ export function FileUpload({ projectId, onFileUploaded }: FileUploadProps) {
 
   const uploadMutation = useMutation({
     mutationFn: async (formData: FormData) => {
+      const authHeaders = await getAuthHeaders();
+      // For FormData, pass authHeaders directly (browser will add Content-Type with boundary)
       const response = await fetch('/api/files/upload', {
         method: 'POST',
+        headers: authHeaders,
         body: formData,
         credentials: 'include'
       });

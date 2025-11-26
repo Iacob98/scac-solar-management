@@ -209,23 +209,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Global products endpoint using environment variables
+  // Global products endpoint - uses first firm's Invoice Ninja credentials
   app.get('/api/catalog/products', authenticateSupabase, async (req: any, res) => {
     try {
-      const apiKey = process.env.INVOICE_NINJA_API_KEY;
-      const baseUrl = process.env.INVOICE_NINJA_URL;
-      
-      console.log('API credentials:', { apiKey: apiKey ? 'exists' : 'missing', baseUrl });
-      
-      if (!apiKey || !baseUrl) {
-        return res.status(500).json({ message: "Invoice Ninja API credentials not configured" });
+      // Get credentials from first firm in database
+      const firms = await storage.getFirms();
+      const firm = firms[0];
+
+      if (!firm || !firm.token || !firm.invoiceNinjaUrl) {
+        console.log('No firm with Invoice Ninja credentials found');
+        return res.status(500).json({ message: "Invoice Ninja API credentials not configured in firm settings" });
       }
 
-      const ninjaService = new InvoiceNinjaService(apiKey, baseUrl);
+      console.log('Using firm credentials:', { firmId: firm.id, firmName: firm.name, baseUrl: firm.invoiceNinjaUrl });
+
+      const ninjaService = new InvoiceNinjaService(firm.token, firm.invoiceNinjaUrl);
       const products = await ninjaService.getProducts();
-      
+
       console.log('Raw products from Invoice Ninja:', products.length);
-      
+
       // Transform products to match our expected format
       const transformedProducts = products.map(product => ({
         id: product.id,
@@ -237,9 +239,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         category: product.custom_value1 || 'Услуги',
         unit: product.custom_value2 || product.custom_value1 || 'шт'
       }));
-      
+
       console.log('Transformed products:', transformedProducts.length);
-      
+
       res.json(transformedProducts);
     } catch (error) {
       console.error("Error fetching products from Invoice Ninja:", error);
@@ -532,15 +534,53 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
         
         res.json(client);
-      } catch (ninjaError) {
-        console.warn("Warning: Could not create client in Invoice Ninja, creating locally only:", ninjaError);
+      } catch (ninjaError: any) {
+        console.warn("Warning: Could not create client in Invoice Ninja, creating locally only:", ninjaError?.message || String(ninjaError));
         // Fallback: create only in local database
         const client = await storage.createClient(clientData);
         res.json(client);
       }
-    } catch (error) {
-      console.error("Error creating client:", error);
+    } catch (error: any) {
+      console.error("Error creating client:", error?.message || String(error));
       res.status(500).json({ message: "Failed to create client" });
+    }
+  });
+
+  // Delete client
+  app.delete('/api/clients/:id', authenticateSupabase, async (req: any, res) => {
+    try {
+      const clientId = parseInt(req.params.id);
+
+      // Get the client to check it exists and get firmId
+      const client = await storage.getClientById(clientId);
+      if (!client) {
+        return res.status(404).json({ message: 'Client not found' });
+      }
+
+      // Get firm info to access Invoice Ninja
+      const firm = await storage.getFirmById(client.firmId);
+      if (!firm) {
+        return res.status(404).json({ message: 'Firm not found' });
+      }
+
+      // Try to delete from Invoice Ninja if client has ninjaClientId
+      if (client.ninjaClientId) {
+        try {
+          const invoiceNinja = new InvoiceNinjaService(firm.token, firm.invoiceNinjaUrl);
+          await invoiceNinja.deleteClient(client.ninjaClientId);
+        } catch (ninjaError: any) {
+          console.warn("Warning: Could not delete client from Invoice Ninja:", ninjaError?.message || String(ninjaError));
+          // Continue with local deletion even if Invoice Ninja fails
+        }
+      }
+
+      // Delete from local database
+      await storage.deleteClient(clientId);
+
+      res.json({ message: 'Client deleted successfully' });
+    } catch (error: any) {
+      console.error("Error deleting client:", error?.message || String(error));
+      res.status(500).json({ message: "Failed to delete client" });
     }
   });
 
@@ -655,10 +695,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log('👤 User:', req.user?.claims?.sub);
       
       const { members, ...crewData } = req.body;
-      
+
+      // Convert firmId to number if it's a string
+      if (crewData.firmId && typeof crewData.firmId === 'string') {
+        crewData.firmId = parseInt(crewData.firmId, 10);
+      }
+
       console.log('🔧 Separated crew data:', JSON.stringify(crewData, null, 2));
       console.log('👥 Members:', JSON.stringify(members, null, 2));
-      
+
       // Validate crew data
       const validatedCrewData = insertCrewSchema.parse(crewData);
       console.log('✅ Crew data validated:', JSON.stringify(validatedCrewData, null, 2));
@@ -749,7 +794,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Записываем в историю бригады добавление участника
       const today = new Date().toISOString().split('T')[0];
-      const userId = req.user?.claims?.sub || req.session?.userId;
+      const userId = req.user?.id;
       if (userId) {
         await storage.logCrewMemberAdded(memberData.crewId, member, today, userId);
       }
@@ -781,11 +826,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const member = await storage.getCrewMemberById(memberId);
       if (member) {
         const today = new Date().toISOString().split('T')[0];
-        const userId = req.user?.claims?.sub || req.session?.userId;
-        
+        const userId = req.user?.id;
+
         // Определяем дату начала работы (можно использовать дату создания или задать)
         const startDate = '2025-01-01'; // Упрощено для демонстрации
-        
+
         if (userId) {
           await storage.logCrewMemberRemoved(
             member.crewId,
@@ -1212,6 +1257,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Очищаем пустые даты перед парсингом
       const cleanedData = { ...req.body, leiterId: userId };
+
+      // Преобразуем firmId в число если это строка
+      if (typeof cleanedData.firmId === 'string') {
+        cleanedData.firmId = parseInt(cleanedData.firmId, 10);
+      }
+
       if (cleanedData.workStartDate === '') {
         cleanedData.workStartDate = null;
       }
@@ -1291,7 +1342,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log('Project created successfully:', project);
       res.json(project);
     } catch (error) {
-      console.error("Error creating project:", error);
+      console.error("Error creating project:", error instanceof Error ? error.message : String(error));
       res.status(500).json({ message: "Failed to create project", error: error instanceof Error ? error.message : String(error) });
     }
   });

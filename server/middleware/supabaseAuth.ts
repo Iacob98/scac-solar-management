@@ -29,14 +29,22 @@ export async function authenticateSupabase(
 ) {
   try {
     const authHeader = req.headers.authorization;
+    const queryToken = req.query.token as string | undefined;
 
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    // Поддерживаем токен из header или query parameter (для отображения файлов в браузере)
+    let token: string | undefined;
+
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      token = authHeader.substring(7); // Убираем "Bearer "
+    } else if (queryToken) {
+      token = queryToken;
+    }
+
+    if (!token) {
       return res.status(401).json({
         error: 'Missing or invalid authorization header'
       });
     }
-
-    const token = authHeader.substring(7); // Убираем "Bearer "
 
     // Верифицируем токен и получаем пользователя
     const { data: { user }, error: authError } = await supabase.auth.getUser(token);

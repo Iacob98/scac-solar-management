@@ -81,7 +81,8 @@ export interface IStorage {
   getClientByNinjaId(firmId: string, ninjaClientId: string): Promise<Client | undefined>;
   createClient(client: InsertClient): Promise<Client>;
   updateClient(id: number, client: Partial<InsertClient>): Promise<Client>;
-  
+  deleteClient(id: number): Promise<void>;
+
   // Crew operations
   getCrewsByFirmId(firmId: string): Promise<Crew[]>;
   getCrewById(id: number): Promise<Crew | undefined>;
@@ -437,6 +438,10 @@ export class DatabaseStorage implements IStorage {
       .where(eq(clients.id, id))
       .returning();
     return updated;
+  }
+
+  async deleteClient(id: number): Promise<void> {
+    await db.delete(clients).where(eq(clients.id, id));
   }
 
   // Crew operations

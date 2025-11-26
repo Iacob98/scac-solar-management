@@ -98,7 +98,7 @@ router.post('/upload', authenticateSupabase, upload.single('file'), async (req, 
     const fileRecord: InsertProjectFile = {
       projectId: validatedData.projectId!,
       fileName: fileName,
-      fileUrl: null, // Не используем прямые URL, только API
+      fileUrl: `/api/files/download/${fileName}`, // API URL для скачивания
       fileType: req.file.mimetype
     };
 
@@ -272,14 +272,63 @@ router.get('/project/:projectId', authenticateSupabase, async (req, res) => {
   }
 });
 
+// Скачивание файла по имени (для API URL /api/files/download/:fileName)
+router.get('/download/:fileName', authenticateSupabase, async (req, res) => {
+  try {
+    const fileName = req.params.fileName;
+    console.log(`📥 GET /api/files/download/${fileName} - запрос на скачивание файла`);
+
+    const fs = await import('fs');
+    const path = await import('path');
+
+    const filePath = path.join(process.cwd(), 'uploads', fileName);
+
+    // Проверяем существует ли файл
+    if (!fs.existsSync(filePath)) {
+      console.log(`❌ Файл не найден: ${filePath}`);
+      return res.status(404).json({ message: 'Файл не найден' });
+    }
+
+    const fileBuffer = fs.readFileSync(filePath);
+    const mimeType = getMimeTypeFromExtension(fileName);
+
+    console.log(`📄 Отправляем файл: ${fileName}, MIME: ${mimeType}, размер: ${fileBuffer.length} байт`);
+
+    res.set({
+      'Content-Type': mimeType,
+      'Content-Length': fileBuffer.length.toString(),
+      'Content-Disposition': `inline; filename="${encodeURIComponent(fileName)}"`,
+      'Cache-Control': 'no-cache, no-store, must-revalidate',
+      'Pragma': 'no-cache',
+      'Expires': '0'
+    });
+
+    res.send(fileBuffer);
+
+  } catch (error: any) {
+    console.error('Error downloading file by name:', error);
+    res.status(500).json({
+      message: 'Ошибка при скачивании файла',
+      error: error.message
+    });
+  }
+});
+
 // Удаление файла
 router.delete('/:fileId', authenticateSupabase, async (req, res) => {
   try {
-    const fileId = parseInt(req.params.fileId);
+    const fileIdParam = req.params.fileId;
+    const fileId = parseInt(fileIdParam);
 
-    // Сначала пытаемся найти в новой системе файлов
-    const fileRecord = await storage.getFileRecord(req.params.fileId);
-    
+    // Проверяем, является ли fileId UUID (для новой системы) или числом (для legacy)
+    const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(fileIdParam);
+
+    // Сначала пытаемся найти в новой системе файлов (только если это UUID)
+    let fileRecord = null;
+    if (isUUID) {
+      fileRecord = await storage.getFileRecord(fileIdParam);
+    }
+
     if (fileRecord && !fileRecord.isDeleted) {
       // Обрабатываем файл из новой системы
       const userId = req.user.id;
@@ -294,12 +343,13 @@ router.delete('/:fileId', authenticateSupabase, async (req, res) => {
       }
 
       // Проверяем, что пользователь может удалить файл
-      if (fileRecord.uploadedBy !== parseInt(userId) && userRole !== 'admin') {
+      // uploadedBy is UUID string, userId is also UUID string
+      if (fileRecord.uploadedBy !== userId && userRole !== 'admin') {
         return res.status(403).json({ message: 'Нет прав на удаление файла' });
       }
 
       // Мягкое удаление в базе данных
-      await storage.deleteFileRecord(req.params.fileId);
+      await storage.deleteFileRecord(fileIdParam);
       // Удаляем физический файл
       await fileStorageService.deleteFile(fileRecord.fileName);
 
@@ -337,10 +387,13 @@ router.delete('/:fileId', authenticateSupabase, async (req, res) => {
     await storage.deleteFile(fileId);
 
     // Добавляем запись в историю проекта для legacy файла
-    await storage.createProjectHistoryEntry({
+    await storage.addProjectHistory({
       projectId: legacyFile.projectId,
       userId,
       changeType: 'file_deleted',
+      fieldName: 'file',
+      oldValue: legacyFile.fileName,
+      newValue: null,
       description: `Удален файл: ${legacyFile.fileName}`,
     });
 

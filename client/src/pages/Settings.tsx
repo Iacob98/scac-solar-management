@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useToast } from '@/hooks/use-toast';
-import { apiRequest } from '@/lib/queryClient';
+import { apiRequest, getAuthHeaders } from '@/lib/queryClient';
 import { MainLayout } from '@/components/Layout/MainLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -73,9 +73,17 @@ export default function Settings() {
       formData.append('file', file);
       formData.append('category', 'profile');
 
-      const response = await apiRequest('POST', '/api/files/upload', formData, {
-        'Content-Type': undefined, // Let browser set boundary
+      const authHeaders = await getAuthHeaders();
+      const response = await fetch('/api/files/upload', {
+        method: 'POST',
+        headers: authHeaders,
+        body: formData,
+        credentials: 'include'
       });
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || 'Ошибка загрузки');
+      }
       return response.json();
     },
     onSuccess: (data) => {

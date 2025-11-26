@@ -7,12 +7,20 @@ import { setupVite, serveStatic, log } from "./vite";
 const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
-app.use(fileUpload({
-  limits: { fileSize: 10 * 1024 * 1024 }, // 10MB limit
-  abortOnLimit: true,
-  responseOnLimit: "File size limit has been reached",
-  createParentPath: true
-}));
+// Conditionally apply express-fileupload only for non-file routes
+// File routes use multer instead
+app.use((req, res, next) => {
+  // Skip express-fileupload for /api/files routes (they use multer)
+  if (req.path.startsWith('/api/files')) {
+    return next();
+  }
+  return fileUpload({
+    limits: { fileSize: 10 * 1024 * 1024 }, // 10MB limit
+    abortOnLimit: true,
+    responseOnLimit: "File size limit has been reached",
+    createParentPath: true
+  })(req, res, next);
+});
 
 app.use((req, res, next) => {
   const start = Date.now();

@@ -11,7 +11,8 @@ import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Plus, Edit, Mail, Phone, MapPin, User } from 'lucide-react';
+import { Plus, Edit, Mail, Phone, MapPin, User, Trash2 } from 'lucide-react';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -29,6 +30,7 @@ export default function Clients() {
   const [selectedFirmId, setSelectedFirmId] = useState<string>('');
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingClient, setEditingClient] = useState<any>(null);
+  const [deletingClient, setDeletingClient] = useState<Client | null>(null);
 
   const form = useForm<z.infer<typeof clientSchema>>({
     resolver: zodResolver(clientSchema),
@@ -60,7 +62,7 @@ export default function Clients() {
     mutationFn: async (data: z.infer<typeof clientSchema>) => {
       const response = await apiRequest('/api/clients', 'POST', {
         ...data,
-        firmId: selectedFirmId,
+        firmId: parseInt(selectedFirmId, 10),
       });
       return response.json();
     },
@@ -86,7 +88,7 @@ export default function Clients() {
     mutationFn: async (data: z.infer<typeof clientSchema>) => {
       const response = await apiRequest(`/api/clients/${editingClient.id}`, 'PATCH', {
         ...data,
-        firmId: selectedFirmId,
+        firmId: parseInt(selectedFirmId, 10),
       });
       return response.json();
     },
@@ -102,6 +104,28 @@ export default function Clients() {
       toast({
         title: 'Ошибка',
         description: error.message || 'Ошибка при обновлении клиента',
+        variant: 'destructive',
+      });
+    },
+  });
+
+  const deleteClientMutation = useMutation({
+    mutationFn: async (clientId: number) => {
+      const response = await apiRequest(`/api/clients/${clientId}`, 'DELETE');
+      return response.json();
+    },
+    onSuccess: () => {
+      toast({
+        title: 'Успех',
+        description: 'Клиент успешно удален',
+      });
+      queryClient.invalidateQueries({ queryKey: ['/api/clients'] });
+      setDeletingClient(null);
+    },
+    onError: (error: any) => {
+      toast({
+        title: 'Ошибка',
+        description: error.message || 'Ошибка при удалении клиента',
         variant: 'destructive',
       });
     },
@@ -327,14 +351,25 @@ export default function Clients() {
                       )}
                     </TableCell>
                     <TableCell>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => openEditDialog(client)}
-                        title="Редактировать клиента"
-                      >
-                        <Edit className="w-4 h-4" />
-                      </Button>
+                      <div className="flex items-center gap-1">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => openEditDialog(client)}
+                          title="Редактировать клиента"
+                        >
+                          <Edit className="w-4 h-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setDeletingClient(client)}
+                          title="Удалить клиента"
+                          className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))}
@@ -343,6 +378,36 @@ export default function Clients() {
           )}
         </div>
       </div>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={!!deletingClient} onOpenChange={(open) => !open && setDeletingClient(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Удалить клиента?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Вы уверены, что хотите удалить клиента "{deletingClient?.name}"?
+              {deletingClient?.ninjaClientId && (
+                <span className="block mt-2 text-amber-600">
+                  Клиент также будет удален из Invoice Ninja.
+                </span>
+              )}
+              <span className="block mt-2 font-medium">
+                Это действие нельзя отменить.
+              </span>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Отмена</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => deletingClient && deleteClientMutation.mutate(deletingClient.id)}
+              className="bg-red-600 hover:bg-red-700"
+              disabled={deleteClientMutation.isPending}
+            >
+              {deleteClientMutation.isPending ? 'Удаление...' : 'Удалить'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </MainLayout>
   );
 }

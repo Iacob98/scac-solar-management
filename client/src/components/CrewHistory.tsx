@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { UserPlus, UserMinus, Calendar, Users } from 'lucide-react';
 import { format } from 'date-fns';
+import { getAuthHeaders } from '@/lib/queryClient';
 // import { ru } from 'date-fns/locale';
 
 interface CrewHistoryEntry {
@@ -35,7 +36,10 @@ export function CrewHistory({ crewId, crewName }: CrewHistoryProps) {
   const { data: history = [], isLoading, error } = useQuery({
     queryKey: ['crew-history', crewId],
     queryFn: async () => {
-      const response = await fetch(`/api/crews/${crewId}/history`);
+      const authHeaders = await getAuthHeaders();
+      const response = await fetch(`/api/crews/${crewId}/history`, {
+        headers: authHeaders,
+      });
       if (!response.ok) {
         throw new Error('Не удалось загрузить историю бригады');
       }

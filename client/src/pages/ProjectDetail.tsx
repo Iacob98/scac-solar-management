@@ -20,7 +20,7 @@ import { ru } from 'date-fns/locale';
 import { type Project, type Service, type Client, type Crew, insertProjectReportSchema, insertProjectFileSchema, insertProjectNoteSchema, type ProjectReport, type ProjectFile, type ProjectNote } from '@shared/schema';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
-import { apiRequest } from '@/lib/queryClient';
+import { apiRequest, getAuthHeaders } from '@/lib/queryClient';
 import ServicesPage from './Services';
 import ProjectHistory from './ProjectHistory';
 import { ProjectShareButton } from '@/components/ProjectShareButton';
@@ -316,8 +316,10 @@ export default function ProjectDetail({ projectId, selectedFirm, onBack }: Proje
       formData.append('category', 'project_file');
       formData.append('projectId', projectId.toString());
 
+      const authHeaders = await getAuthHeaders();
       const response = await fetch('/api/files/upload', {
         method: 'POST',
+        headers: authHeaders,
         body: formData,
         credentials: 'include'
       });

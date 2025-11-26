@@ -79,11 +79,18 @@ function EditCrewForm({ crew, onUpdate }: { crew: Crew, onUpdate: any }) {
   useEffect(() => {
     const fetchMembers = async () => {
       try {
-        const response = await fetch(`/api/crew-members?crewId=${crew.id}`);
+        const authHeaders = await getAuthHeaders();
+        const response = await fetch(`/api/crew-members?crewId=${crew.id}`, {
+          headers: authHeaders,
+        });
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
         const members = await response.json();
-        setCrewMembers(members);
+        setCrewMembers(Array.isArray(members) ? members : []);
       } catch (error) {
         console.error('Error fetching crew members:', error);
+        setCrewMembers([]);
       } finally {
         setMembersLoading(false);
       }
@@ -116,11 +123,18 @@ function EditCrewForm({ crew, onUpdate }: { crew: Crew, onUpdate: any }) {
   // Функция для обновления списка участников
   const refreshMembers = async () => {
     try {
-      const response = await fetch(`/api/crew-members?crewId=${crew.id}`);
+      const authHeaders = await getAuthHeaders();
+      const response = await fetch(`/api/crew-members?crewId=${crew.id}`, {
+        headers: authHeaders,
+      });
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
       const members = await response.json();
-      setCrewMembers(members);
+      setCrewMembers(Array.isArray(members) ? members : []);
     } catch (error) {
       console.error('Error refreshing members:', error);
+      setCrewMembers([]);
     }
   };
 
@@ -536,7 +550,7 @@ function EditCrewForm({ crew, onUpdate }: { crew: Crew, onUpdate: any }) {
 }
 
 const extendedCrewSchema = insertCrewSchema.omit({ firmId: true }).extend({
-  firmId: z.string().uuid('Требуется действительный ID фирмы').optional(),
+  firmId: z.string().min(1, 'ID фирмы обязателен').optional(),
   members: z.array(z.object({
     firstName: z.string().min(1, 'Имя обязательно'),
     lastName: z.string().min(1, 'Фамилия обязательна'),
@@ -608,6 +622,7 @@ export default function CrewsNew() {
 
   const form = useForm<ExtendedCrewForm>({
     resolver: zodResolver(extendedCrewSchema),
+    mode: 'onChange',
     defaultValues: {
       firmId: selectedFirmId || '',
       name: '',
@@ -812,10 +827,15 @@ export default function CrewsNew() {
                 </DialogDescription>
               </DialogHeader>
               <Form {...form}>
-                <form onSubmit={form.handleSubmit((data) => {
-                  console.log('🔥 Form submit event triggered!', data);
-                  onSubmit(data);
-                })} className="space-y-6">
+                <form onSubmit={form.handleSubmit(
+                  (data) => {
+                    console.log('🔥 Form submit event triggered!', data);
+                    onSubmit(data);
+                  },
+                  (errors) => {
+                    console.error('❌ Form validation errors:', errors);
+                  }
+                )} className="space-y-6">
                   {/* Основная информация о бригаде */}
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <FormField

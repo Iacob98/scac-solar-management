@@ -23,6 +23,15 @@ export async function getAuthHeaders(): Promise<HeadersInit> {
   return headers;
 }
 
+/**
+ * Get the current access token for use in URL query parameters
+ * Used for file viewing in browser (img, iframe, new tab)
+ */
+export async function getAccessToken(): Promise<string | null> {
+  const { data: { session } } = await supabase.auth.getSession();
+  return session?.access_token || null;
+}
+
 export async function apiRequest(
   url: string,
   method: string,

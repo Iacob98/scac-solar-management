@@ -310,6 +310,20 @@ export class InvoiceNinjaService {
     }
   }
 
+  async deleteClient(clientId: string): Promise<void> {
+    try {
+      console.log('Deleting client from Invoice Ninja:', clientId);
+
+      await axios.delete(
+        `${this.baseUrl}/api/v1/clients/${clientId}`,
+        { headers: this.getHeaders() }
+      );
+    } catch (error: any) {
+      console.error('Error deleting client from Invoice Ninja:', error.response?.data || error.message);
+      throw new Error(`Failed to delete client: ${error.response?.data?.message || error.message}`);
+    }
+  }
+
   async createInvoice(invoiceData: CreateInvoiceRequest): Promise<InvoiceNinjaInvoice> {
     try {
       console.log('Creating invoice with data:', invoiceData);
