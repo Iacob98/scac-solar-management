@@ -38,7 +38,10 @@ export default function Home() {
   const { data: projects = [] } = useQuery<Project[]>({
     queryKey: ['/api/projects', selectedFirmId],
     queryFn: async () => {
-      const response = await fetch(`/api/projects?firmId=${selectedFirmId}`);
+      const authHeaders = await getAuthHeaders();
+      const response = await fetch(`/api/projects?firmId=${selectedFirmId}`, {
+        headers: authHeaders,
+      });
       if (!response.ok) throw new Error('Failed to fetch projects');
       return response.json();
     },
@@ -48,7 +51,10 @@ export default function Home() {
   const { data: clients = [] } = useQuery<Client[]>({
     queryKey: ['/api/clients', selectedFirmId],
     queryFn: async () => {
-      const response = await fetch(`/api/clients?firmId=${selectedFirmId}`);
+      const authHeaders = await getAuthHeaders();
+      const response = await fetch(`/api/clients?firmId=${selectedFirmId}`, {
+        headers: authHeaders,
+      });
       if (!response.ok) throw new Error('Failed to fetch clients');
       return response.json();
     },

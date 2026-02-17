@@ -51,7 +51,7 @@ export function ProjectsTable({ firmId, filters }: ProjectsTableProps) {
 
   const updateProjectMutation = useMutation({
     mutationFn: async ({ id, status }: { id: number; status: string }) => {
-      const response = await apiRequest('PUT', `/api/projects/${id}`, { status });
+      const response = await apiRequest(`/api/projects/${id}`, 'PUT', { status });
       return response.json();
     },
     onSuccess: () => {
@@ -72,7 +72,7 @@ export function ProjectsTable({ firmId, filters }: ProjectsTableProps) {
 
   const createInvoiceMutation = useMutation({
     mutationFn: async (projectId: number) => {
-      const response = await apiRequest('POST', '/api/invoices/create', { projectId });
+      const response = await apiRequest('/api/invoices/create', 'POST', { projectId });
       return response.json();
     },
     onSuccess: () => {

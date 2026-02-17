@@ -64,6 +64,17 @@ export default function Users() {
     },
   });
 
+  // Hooks must be called unconditionally - move queries before early returns
+  const { data: users = [], isLoading: loadingUsers } = useQuery<(User & { firms?: Firm[] })[]>({
+    queryKey: ['/api/users-with-firms'],
+    enabled: !loading && profile?.role === 'admin',
+  });
+
+  const { data: firms = [], isLoading: loadingFirms } = useQuery<Firm[]>({
+    queryKey: ['/api/firms'],
+    enabled: !loading && profile?.role === 'admin',
+  });
+
   // Показываем загрузку пока проверяем аутентификацию
   if (loading) {
     return (
@@ -100,14 +111,6 @@ export default function Users() {
       </MainLayout>
     );
   }
-
-  const { data: users = [], isLoading: loadingUsers } = useQuery<(User & { firms?: Firm[] })[]>({
-    queryKey: ['/api/users-with-firms'],
-  });
-
-  const { data: firms = [], isLoading: loadingFirms } = useQuery<Firm[]>({
-    queryKey: ['/api/firms'],
-  });
 
   const createUserMutation = useMutation({
     mutationFn: async (data: z.infer<typeof userSchema>) => {

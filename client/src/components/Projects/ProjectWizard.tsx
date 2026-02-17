@@ -81,7 +81,7 @@ export function ProjectWizard({ isOpen, onClose, firmId }: ProjectWizardProps) {
 
   const createProjectMutation = useMutation({
     mutationFn: async (data: any) => {
-      const response = await apiRequest('POST', '/api/projects', data);
+      const response = await apiRequest('/api/projects', 'POST', data);
       return response.json();
     },
     onSuccess: (project) => {
@@ -103,7 +103,7 @@ export function ProjectWizard({ isOpen, onClose, firmId }: ProjectWizardProps) {
 
   const createServiceMutation = useMutation({
     mutationFn: async (data: any) => {
-      const response = await apiRequest('POST', '/api/services', {
+      const response = await apiRequest('/api/services', 'POST', {
         ...data,
         projectId: projectData?.id,
       });
@@ -128,7 +128,7 @@ export function ProjectWizard({ isOpen, onClose, firmId }: ProjectWizardProps) {
 
   const deleteServiceMutation = useMutation({
     mutationFn: async (serviceId: number) => {
-      await apiRequest('DELETE', `/api/services/${serviceId}`);
+      await apiRequest(`/api/services/${serviceId}`, 'DELETE');
     },
     onSuccess: (_, serviceId) => {
       setServices(prev => prev.filter(s => s.id !== serviceId));

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -7,18 +7,33 @@ import { FileUpload } from '@/components/FileUpload';
 import { FileList } from '@/components/FileList';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { HardDrive, Upload, List, FolderOpen } from 'lucide-react';
+import { apiRequest } from '@/lib/queryClient';
 
 interface Project {
   id: number;
-  title: string;
+  teamNumber: string | null;
   status: string;
+  clientId: number;
 }
 
 export function FileStorage() {
   const [selectedProjectId, setSelectedProjectId] = useState<number | null>(null);
+  const [selectedFirmId, setSelectedFirmId] = useState<string>('');
+
+  useEffect(() => {
+    const firmId = localStorage.getItem('selectedFirmId');
+    if (firmId) {
+      setSelectedFirmId(firmId);
+    }
+  }, []);
 
   const { data: projects = [] } = useQuery<Project[]>({
-    queryKey: ['/api/projects'],
+    queryKey: ['/api/projects', selectedFirmId],
+    queryFn: async () => {
+      const response = await apiRequest(`/api/projects?firmId=${selectedFirmId}`, 'GET');
+      return response.json();
+    },
+    enabled: !!selectedFirmId,
   });
 
   return (
@@ -51,7 +66,7 @@ export function FileStorage() {
               <SelectContent>
                 {projects.map((project) => (
                   <SelectItem key={project.id} value={project.id.toString()}>
-                    {project.title}
+                    {project.teamNumber || `PROJ-${project.id}`}
                   </SelectItem>
                 ))}
               </SelectContent>

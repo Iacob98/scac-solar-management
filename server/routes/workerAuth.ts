@@ -121,7 +121,7 @@ router.post('/generate-pin', authenticateSupabase, async (req, res) => {
     // Generate PIN
     console.log('[WorkerAuth] Generating PIN for member:', memberId);
     const pin = await workerAuthService.createPinForMember(memberId);
-    console.log('[WorkerAuth] PIN generated:', pin);
+    console.log('[WorkerAuth] PIN generated for member:', memberId);
 
     res.json({
       success: true,

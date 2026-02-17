@@ -120,12 +120,14 @@ function Router() {
       {/* Public routes */}
       <Route path="/login" component={Login} />
       <Route path="/register" component={Register} />
-      <Route path="/test-login">
-        {() => {
-          const [, setLocation] = useLocation();
-          return <TestLogin onLoginSuccess={() => setLocation('/')} />;
-        }}
-      </Route>
+      {import.meta.env.DEV && (
+        <Route path="/test-login">
+          {() => {
+            const [, setLocation] = useLocation();
+            return <TestLogin onLoginSuccess={() => setLocation('/')} />;
+          }}
+        </Route>
+      )}
       {/* Old crew upload route - redirect to worker portal */}
       <Route path="/crew-upload/:projectId/:token">
         {() => <Redirect to="/worker/login" />}

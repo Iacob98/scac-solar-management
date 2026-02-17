@@ -10,7 +10,7 @@ interface WorkerLayoutProps {
 }
 
 export function WorkerLayout({ children, title }: WorkerLayoutProps) {
-  const { user, signOut } = useAuth();
+  const { user, profile, signOut } = useAuth();
 
   return (
     <div className="flex flex-col min-h-screen bg-gray-50">
@@ -28,7 +28,7 @@ export function WorkerLayout({ children, title }: WorkerLayoutProps) {
         <div className="flex items-center gap-2">
           <div className="flex items-center gap-2 text-sm text-gray-600">
             <User className="w-4 h-4" />
-            <span className="hidden sm:inline">{user?.first_name || 'Worker'}</span>
+            <span className="hidden sm:inline">{profile?.first_name || 'Worker'}</span>
           </div>
           <Button
             variant="ghost"

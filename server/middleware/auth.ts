@@ -3,13 +3,7 @@ import { storage } from '../storage';
 import type { User } from '@shared/schema';
 
 // Расширяем интерфейс Request для включения пользователя
-declare global {
-  namespace Express {
-    interface Request {
-      user?: User;
-    }
-  }
-}
+// Note: Express Request.user type is declared in supabaseAuth.ts
 
 /**
  * Middleware для проверки аутентификации

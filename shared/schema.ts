@@ -44,13 +44,13 @@ export const users = pgTable("users", {
 export const profiles = pgTable("profiles", {
   id: uuid("id").primaryKey().notNull(),
   email: text("email").notNull().unique(),
-  first_name: text("first_name"),
-  last_name: text("last_name"),
-  profile_image_url: text("profile_image_url"),
+  firstName: text("first_name"),
+  lastName: text("last_name"),
+  profileImageUrl: text("profile_image_url"),
   role: text("role", { enum: ["admin", "leiter", "worker"] }).notNull().default("leiter"),
-  crew_member_id: integer("crew_member_id"), // Link to crew_member for workers
-  created_at: timestamp("created_at").defaultNow(),
-  updated_at: timestamp("updated_at").defaultNow(),
+  crewMemberId: integer("crew_member_id"), // Link to crew_member for workers
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
 });
 
 // Firms table
@@ -360,7 +360,7 @@ export const reclamationHistory = pgTable("reclamation_history", {
 });
 
 // Relations
-export const usersRelations = relations(users, ({ many }) => ({
+export const profilesRelations = relations(profiles, ({ many }) => ({
   userFirms: many(userFirms),
   projects: many(projects),
 }));
@@ -373,7 +373,7 @@ export const firmsRelations = relations(firms, ({ many }) => ({
 }));
 
 export const userFirmsRelations = relations(userFirms, ({ one }) => ({
-  user: one(users, { fields: [userFirms.userId], references: [users.id] }),
+  user: one(profiles, { fields: [userFirms.userId], references: [profiles.id] }),
   firm: one(firms, { fields: [userFirms.firmId], references: [firms.id] }),
 }));
 
@@ -397,13 +397,13 @@ export const crewMembersRelations = relations(crewMembers, ({ one, many }) => ({
 export const crewHistoryRelations = relations(crewHistory, ({ one }) => ({
   crew: one(crews, { fields: [crewHistory.crewId], references: [crews.id] }),
   member: one(crewMembers, { fields: [crewHistory.memberId], references: [crewMembers.id] }),
-  createdByUser: one(users, { fields: [crewHistory.createdBy], references: [users.id] }),
+  createdByUser: one(profiles, { fields: [crewHistory.createdBy], references: [profiles.id] }),
 }));
 
 export const projectsRelations = relations(projects, ({ one, many }) => ({
   firm: one(firms, { fields: [projects.firmId], references: [firms.id] }),
   client: one(clients, { fields: [projects.clientId], references: [clients.id] }),
-  leiter: one(users, { fields: [projects.leiterId], references: [users.id] }),
+  leiter: one(profiles, { fields: [projects.leiterId], references: [profiles.id] }),
   crew: one(crews, { fields: [projects.crewId], references: [crews.id] }),
   services: many(services),
   invoices: many(invoices),
@@ -430,7 +430,7 @@ export const projectFilesRelations = relations(projectFiles, ({ one }) => ({
 
 export const fileStorageRelations = relations(fileStorage, ({ one }) => ({
   project: one(projects, { fields: [fileStorage.projectId], references: [projects.id] }),
-  uploadedByUser: one(users, { fields: [fileStorage.uploadedBy], references: [users.id] }),
+  uploadedByUser: one(profiles, { fields: [fileStorage.uploadedBy], references: [profiles.id] }),
 }));
 
 export const projectReportsRelations = relations(projectReports, ({ one }) => ({
@@ -439,24 +439,24 @@ export const projectReportsRelations = relations(projectReports, ({ one }) => ({
 
 export const projectCrewSnapshotsRelations = relations(projectCrewSnapshots, ({ one }) => ({
   project: one(projects, { fields: [projectCrewSnapshots.projectId], references: [projects.id] }),
-  createdByUser: one(users, { fields: [projectCrewSnapshots.createdBy], references: [users.id] }),
+  createdByUser: one(profiles, { fields: [projectCrewSnapshots.createdBy], references: [profiles.id] }),
 }));
 
 export const projectHistoryRelations = relations(projectHistory, ({ one }) => ({
   project: one(projects, { fields: [projectHistory.projectId], references: [projects.id] }),
-  user: one(users, { fields: [projectHistory.userId], references: [users.id] }),
+  user: one(profiles, { fields: [projectHistory.userId], references: [profiles.id] }),
   crewSnapshot: one(projectCrewSnapshots, { fields: [projectHistory.crewSnapshotId], references: [projectCrewSnapshots.id] }),
 }));
 
 export const projectSharesRelations = relations(projectShares, ({ one }) => ({
   project: one(projects, { fields: [projectShares.projectId], references: [projects.id] }),
-  sharedByUser: one(users, { fields: [projectShares.sharedBy], references: [users.id] }),
-  sharedWithUser: one(users, { fields: [projectShares.sharedWith], references: [users.id] }),
+  sharedByUser: one(profiles, { fields: [projectShares.sharedBy], references: [profiles.id] }),
+  sharedWithUser: one(profiles, { fields: [projectShares.sharedWith], references: [profiles.id] }),
 }));
 
 export const projectNotesRelations = relations(projectNotes, ({ one }) => ({
   project: one(projects, { fields: [projectNotes.projectId], references: [projects.id] }),
-  user: one(users, { fields: [projectNotes.userId], references: [users.id] }),
+  user: one(profiles, { fields: [projectNotes.userId], references: [profiles.id] }),
 }));
 
 export const reclamationsRelations = relations(reclamations, ({ one, many }) => ({
@@ -477,8 +477,8 @@ export const reclamationHistoryRelations = relations(reclamationHistory, ({ one 
 }));
 
 // Schema types
-export type UpsertUser = typeof users.$inferInsert;
-export type User = typeof users.$inferSelect;
+export type UpsertUser = typeof profiles.$inferInsert;
+export type User = typeof profiles.$inferSelect;
 
 export const insertFirmSchema = createInsertSchema(firms).omit({ id: true, createdAt: true });
 export type InsertFirm = z.infer<typeof insertFirmSchema>;

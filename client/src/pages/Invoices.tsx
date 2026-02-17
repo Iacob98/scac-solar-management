@@ -62,6 +62,16 @@ export default function Invoices() {
     staleTime: 0,
   });
 
+  // Hooks must be called unconditionally - move query before early return
+  const { data: projects = [] } = useQuery<Project[]>({
+    queryKey: ['/api/projects', selectedFirmId],
+    queryFn: async () => {
+      const response = await apiRequest(`/api/projects?firmId=${selectedFirmId}`, 'GET');
+      return response.json();
+    },
+    enabled: !!selectedFirmId && profile?.role === 'admin',
+  });
+
   // Show access denied message for non-admin users
   if (profile && profile.role !== 'admin') {
     return (
@@ -89,15 +99,6 @@ export default function Invoices() {
       </MainLayout>
     );
   }
-
-  const { data: projects = [] } = useQuery<Project[]>({
-    queryKey: ['/api/projects', selectedFirmId],
-    queryFn: async () => {
-      const response = await apiRequest(`/api/projects?firmId=${selectedFirmId}`, 'GET');
-      return response.json();
-    },
-    enabled: !!selectedFirmId,
-  });
 
   const markPaidMutation = useMutation({
     mutationFn: async ({ invoiceNumber }: { invoiceNumber: string }) => {

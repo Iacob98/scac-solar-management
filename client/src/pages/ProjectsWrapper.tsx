@@ -168,10 +168,13 @@ function ProjectsList({ selectedFirm, onViewProject, onManageServices }: { selec
   });
 
   const createInvoiceMutation = useMutation({
-    mutationFn: (projectId: number) => apiRequest('/api/invoice/create', 'POST', { projectId }),
+    mutationFn: async (projectId: number) => {
+      const response = await apiRequest('/api/invoice/create', 'POST', { projectId });
+      return response.json();
+    },
     onSuccess: async (data: any, projectId: number) => {
       queryClient.invalidateQueries({ queryKey: ['/api/projects', selectedFirm] });
-      toast({ 
+      toast({
         title: 'Счет создан успешно',
         description: `Счет №${data.invoiceNumber} создан в Invoice Ninja`
       });

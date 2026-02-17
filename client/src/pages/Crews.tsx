@@ -60,7 +60,7 @@ export default function Crews() {
 
   const createCrewMutation = useMutation({
     mutationFn: async (data: z.infer<typeof crewSchema>) => {
-      const response = await apiRequest('POST', '/api/crews', {
+      const response = await apiRequest('/api/crews', 'POST', {
         ...data,
         firmId: selectedFirmId,
         uniqueNumber: `CREW-${Date.now()}`, // Generate unique number
@@ -88,7 +88,7 @@ export default function Crews() {
 
   const updateCrewMutation = useMutation({
     mutationFn: async (data: z.infer<typeof crewSchema>) => {
-      const response = await apiRequest('PUT', `/api/crews/${editingCrew.id}`, data);
+      const response = await apiRequest(`/api/crews/${editingCrew.id}`, 'PUT', data);
       return response.json();
     },
     onSuccess: () => {
@@ -112,7 +112,7 @@ export default function Crews() {
 
   const deleteCrewMutation = useMutation({
     mutationFn: async (crewId: number) => {
-      const response = await apiRequest('DELETE', `/api/crews/${crewId}`);
+      const response = await apiRequest(`/api/crews/${crewId}`, 'DELETE');
       return response.json();
     },
     onSuccess: () => {

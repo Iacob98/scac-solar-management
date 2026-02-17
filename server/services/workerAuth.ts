@@ -26,6 +26,7 @@ export interface WorkerLoginResult {
 export class WorkerAuthService {
   /**
    * Generate a random 6-digit PIN
+   * TODO: Hash PINs before storing (bcrypt/argon2). Currently stored in plaintext.
    */
   generatePin(): string {
     return crypto.randomInt(100000, 999999).toString();
@@ -36,7 +37,7 @@ export class WorkerAuthService {
    */
   async createPinForMember(memberId: number): Promise<string> {
     const pin = this.generatePin();
-    console.log('[WorkerAuth] Creating PIN for member:', memberId, 'PIN:', pin);
+    console.log('[WorkerAuth] Creating PIN for member:', memberId);
 
     const result = await db
       .update(crewMembers)
@@ -47,7 +48,7 @@ export class WorkerAuthService {
       .where(eq(crewMembers.id, memberId))
       .returning({ id: crewMembers.id, pin: crewMembers.pin });
 
-    console.log('[WorkerAuth] Update result:', result);
+    console.log('[WorkerAuth] PIN updated for member:', memberId);
 
     return pin;
   }
@@ -197,19 +198,7 @@ export class WorkerAuthService {
       throw new Error(`Failed to create session: ${signInError?.message}`);
     }
 
-    // For local development, use signInWithPassword with a known password
-    // In production, you might want to use magic links or other methods
-    // Generate a session directly
-    const { data: sessionData, error: sessionError } = await supabase.auth.admin.createUser({
-      email: member.memberEmail,
-      email_confirm: true,
-    });
-
-    // Since we can't easily create a session with admin API,
-    // we'll use a workaround: sign in with a service token approach
-    // The frontend will need to exchange the token for a session
-
-    // For now, let's create a signed JWT that the frontend can use
+    // Get user data to create a session
     const { data: userData } = await supabase.auth.admin.getUserById(authUserId!);
 
     if (!userData?.user) {

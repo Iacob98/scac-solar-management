@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useMemo, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useRoute, useLocation } from 'wouter';
 import { WorkerLayout } from '@/components/Layout/WorkerLayout';
@@ -149,6 +149,17 @@ export default function WorkerProjectDetail() {
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [commentText, setCommentText] = useState('');
   const [activeTab, setActiveTab] = useState('info');
+
+  // Create and cleanup object URLs to prevent memory leaks
+  const filePreviewUrls = useMemo(() => {
+    return selectedFiles.map(file => URL.createObjectURL(file));
+  }, [selectedFiles]);
+
+  useEffect(() => {
+    return () => {
+      filePreviewUrls.forEach(url => URL.revokeObjectURL(url));
+    };
+  }, [filePreviewUrls]);
   const [viewerImage, setViewerImage] = useState<{ src: string; alt: string } | null>(null);
 
   const projectId = params?.id ? parseInt(params.id) : null;
@@ -587,7 +598,7 @@ export default function WorkerProjectDetail() {
                       {selectedFiles.map((file, index) => (
                         <div key={index} className="relative aspect-square">
                           <img
-                            src={URL.createObjectURL(file)}
+                            src={filePreviewUrls[index]}
                             alt={file.name}
                             className="w-full h-full object-cover rounded-lg"
                           />

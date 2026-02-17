@@ -168,13 +168,13 @@ router.post('/upload', authenticateSupabase, upload.single('file'), async (req, 
 
 // Публичный доступ к аватаркам профиля (без аутентификации)
 // ВАЖНО: Этот роут должен быть ПЕРЕД /:fileId, иначе он не будет работать
-router.get('/avatar/:fileName', async (req, res) => {
+router.get('/avatar/:fileName', authenticateSupabase, async (req, res) => {
   try {
-    const fileName = req.params.fileName;
-    console.log(`👤 GET /api/files/avatar/${fileName} - запрос аватарки`);
-
     const fs = await import('fs');
     const path = await import('path');
+
+    // Sanitize fileName to prevent path traversal
+    const fileName = path.basename(req.params.fileName);
 
     const filePath = path.join(process.cwd(), 'uploads', fileName);
 
@@ -352,11 +352,11 @@ router.get('/project/:projectId', authenticateSupabase, async (req, res) => {
 // Скачивание файла по имени (для API URL /api/files/download/:fileName)
 router.get('/download/:fileName', authenticateSupabase, async (req, res) => {
   try {
-    const fileName = req.params.fileName;
-    console.log(`📥 GET /api/files/download/${fileName} - запрос на скачивание файла`);
-
     const fs = await import('fs');
     const path = await import('path');
+
+    // Sanitize fileName to prevent path traversal
+    const fileName = path.basename(req.params.fileName);
 
     const filePath = path.join(process.cwd(), 'uploads', fileName);
 

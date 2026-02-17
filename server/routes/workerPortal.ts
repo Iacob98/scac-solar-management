@@ -43,20 +43,20 @@ async function requireWorker(req: express.Request, res: express.Response, next: 
     return res.status(403).json({ error: 'Worker access required' });
   }
 
-  // First check if crew_member_id is already in the user profile from auth middleware
-  if (req.user.crew_member_id) {
-    // Get crew info using crew_member_id from profile
+  // First check if crewMemberId is already in the user profile from auth middleware
+  if (req.user.crewMemberId) {
+    // Get crew info using crewMemberId from profile
     const [memberInfo] = await db
       .select({ crewId: crewMembers.crewId })
       .from(crewMembers)
-      .where(eq(crewMembers.id, req.user.crew_member_id));
+      .where(eq(crewMembers.id, req.user.crewMemberId));
 
     if (!memberInfo) {
       return res.status(403).json({ error: 'Crew member not found' });
     }
 
     (req as any).workerInfo = {
-      crewMemberId: req.user.crew_member_id,
+      crewMemberId: req.user.crewMemberId,
       crewId: memberInfo.crewId,
     };
 

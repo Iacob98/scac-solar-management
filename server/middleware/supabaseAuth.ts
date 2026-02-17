@@ -8,11 +8,13 @@ declare global {
       user?: {
         id: string;
         email: string;
-        first_name?: string;
-        last_name?: string;
-        profile_image_url?: string;
+        firstName?: string | null;
+        lastName?: string | null;
+        profileImageUrl?: string | null;
         role: 'admin' | 'leiter' | 'worker';
-        crew_member_id?: number;
+        crewMemberId?: number | null;
+        createdAt?: Date | null;
+        updatedAt?: Date | null;
       };
       supabaseClient?: ReturnType<typeof createSupabaseClient>;
     }
@@ -67,7 +69,7 @@ export async function authenticateSupabase(
       .eq('id', user.id)
       .single();
 
-    console.log('Profile data:', profile);
+    console.log('Profile found for user:', user.id);
 
     if (profileError || !profile) {
       console.error('Profile not found or error:', profileError);
@@ -80,11 +82,11 @@ export async function authenticateSupabase(
     req.user = {
       id: profile.id,
       email: profile.email,
-      first_name: profile.first_name,
-      last_name: profile.last_name,
-      profile_image_url: profile.profile_image_url,
+      firstName: profile.first_name,
+      lastName: profile.last_name,
+      profileImageUrl: profile.profile_image_url,
       role: profile.role,
-      crew_member_id: profile.crew_member_id
+      crewMemberId: profile.crew_member_id
     };
 
     // Создаем Supabase клиент с токеном пользователя (для RLS)
@@ -204,9 +206,9 @@ export async function optionalAuth(
         req.user = {
           id: profile.id,
           email: profile.email,
-          first_name: profile.first_name,
-          last_name: profile.last_name,
-          profile_image_url: profile.profile_image_url,
+          firstName: profile.first_name,
+          lastName: profile.last_name,
+          profileImageUrl: profile.profile_image_url,
           role: profile.role
         };
         req.supabaseClient = createSupabaseClient(token);

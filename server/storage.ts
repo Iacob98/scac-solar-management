@@ -252,13 +252,13 @@ export class DatabaseStorage implements IStorage {
       .select({
         id: profiles.id,
         email: profiles.email,
-        firstName: profiles.first_name,
-        lastName: profiles.last_name,
-        profileImageUrl: profiles.profile_image_url,
+        firstName: profiles.firstName,
+        lastName: profiles.lastName,
+        profileImageUrl: profiles.profileImageUrl,
         role: profiles.role,
-        crew_member_id: profiles.crew_member_id,
-        createdAt: profiles.created_at,
-        updatedAt: profiles.updated_at,
+        crewMemberId: profiles.crewMemberId,
+        createdAt: profiles.createdAt,
+        updatedAt: profiles.updatedAt,
       })
       .from(profiles)
       .where(eq(profiles.id, id));
@@ -270,15 +270,16 @@ export class DatabaseStorage implements IStorage {
       .select({
         id: profiles.id,
         email: profiles.email,
-        firstName: profiles.first_name,
-        lastName: profiles.last_name,
-        profileImageUrl: profiles.profile_image_url,
+        firstName: profiles.firstName,
+        lastName: profiles.lastName,
+        profileImageUrl: profiles.profileImageUrl,
         role: profiles.role,
-        createdAt: profiles.created_at,
-        updatedAt: profiles.updated_at,
+        crewMemberId: profiles.crewMemberId,
+        createdAt: profiles.createdAt,
+        updatedAt: profiles.updatedAt,
       })
       .from(profiles)
-      .orderBy(desc(profiles.created_at));
+      .orderBy(desc(profiles.createdAt));
   }
 
   async upsertUser(userData: UpsertUser): Promise<User> {
@@ -289,7 +290,7 @@ export class DatabaseStorage implements IStorage {
         target: profiles.id,
         set: {
           ...userData,
-          updated_at: new Date(),
+          updatedAt: new Date(),
         },
       })
       .returning();
@@ -302,11 +303,11 @@ export class DatabaseStorage implements IStorage {
     email: string;
     profileImageUrl: string;
   }>): Promise<User> {
-    const updateData: any = { updated_at: new Date() };
-    if (profileData.firstName !== undefined) updateData.first_name = profileData.firstName;
-    if (profileData.lastName !== undefined) updateData.last_name = profileData.lastName;
+    const updateData: any = { updatedAt: new Date() };
+    if (profileData.firstName !== undefined) updateData.firstName = profileData.firstName;
+    if (profileData.lastName !== undefined) updateData.lastName = profileData.lastName;
     if (profileData.email !== undefined) updateData.email = profileData.email;
-    if (profileData.profileImageUrl !== undefined) updateData.profile_image_url = profileData.profileImageUrl;
+    if (profileData.profileImageUrl !== undefined) updateData.profileImageUrl = profileData.profileImageUrl;
 
     const [updated] = await db
       .update(profiles)
@@ -422,12 +423,13 @@ export class DatabaseStorage implements IStorage {
       .select({
         id: profiles.id,
         email: profiles.email,
-        firstName: profiles.first_name,
-        lastName: profiles.last_name,
-        profileImageUrl: profiles.profile_image_url,
+        firstName: profiles.firstName,
+        lastName: profiles.lastName,
+        profileImageUrl: profiles.profileImageUrl,
         role: profiles.role,
-        createdAt: profiles.created_at,
-        updatedAt: profiles.updated_at,
+        crewMemberId: profiles.crewMemberId,
+        createdAt: profiles.createdAt,
+        updatedAt: profiles.updatedAt,
       })
       .from(profiles)
       .innerJoin(userFirms, eq(profiles.id, userFirms.userId))
@@ -1052,7 +1054,7 @@ export class DatabaseStorage implements IStorage {
 
   async getProjectHistory(projectId: number): Promise<ProjectHistory[]> {
     return await db
-      .select({
+      .selectDistinctOn([projectHistory.id], {
         id: projectHistory.id,
         projectId: projectHistory.projectId,
         userId: projectHistory.userId,
@@ -1063,17 +1065,17 @@ export class DatabaseStorage implements IStorage {
         description: projectHistory.description,
         crewSnapshotId: projectHistory.crewSnapshotId,
         createdAt: projectHistory.createdAt,
-        userFirstName: profiles.first_name,
-        userLastName: profiles.last_name,
+        userFirstName: profiles.firstName,
+        userLastName: profiles.lastName,
         userEmail: profiles.email,
-        userProfileImageUrl: profiles.profile_image_url,
+        userProfileImageUrl: profiles.profileImageUrl,
         // Добавляем приоритет примечания для записей типа note_added
         notePriority: projectNotes.priority,
       })
       .from(projectHistory)
       .leftJoin(profiles, eq(projectHistory.userId, profiles.id))
       .leftJoin(
-        projectNotes, 
+        projectNotes,
         and(
           eq(projectHistory.changeType, 'note_added'),
           eq(projectNotes.projectId, projectHistory.projectId),
@@ -1084,7 +1086,7 @@ export class DatabaseStorage implements IStorage {
         )
       )
       .where(eq(projectHistory.projectId, projectId))
-      .orderBy(desc(projectHistory.createdAt));
+      .orderBy(projectHistory.id, desc(projectHistory.createdAt));
   }
 
   // Project Sharing operations
@@ -1132,12 +1134,13 @@ export class DatabaseStorage implements IStorage {
       .select({
         id: profiles.id,
         email: profiles.email,
-        firstName: profiles.first_name,
-        lastName: profiles.last_name,
-        profileImageUrl: profiles.profile_image_url,
+        firstName: profiles.firstName,
+        lastName: profiles.lastName,
+        profileImageUrl: profiles.profileImageUrl,
         role: profiles.role,
-        createdAt: profiles.created_at,
-        updatedAt: profiles.updated_at,
+        crewMemberId: profiles.crewMemberId,
+        createdAt: profiles.createdAt,
+        updatedAt: profiles.updatedAt,
       })
       .from(profiles)
       .innerJoin(userFirms, eq(profiles.id, userFirms.userId))
@@ -1398,7 +1401,7 @@ export class DatabaseStorage implements IStorage {
       changeType: 'member_added',
       memberId: member.id,
       memberName: `${member.firstName} ${member.lastName}`,
-      memberSpecialization: member.specialization,
+      memberSpecialization: member.role,
       startDate,
       changeDescription: `Участник ${member.firstName} ${member.lastName} добавлен в бригаду`,
       createdBy,
@@ -1639,9 +1642,9 @@ export class DatabaseStorage implements IStorage {
         sourceUserId: notifications.sourceUserId,
         createdAt: notifications.createdAt,
         // Добавляем информацию об отправителе
-        sourceUserFirstName: profiles.first_name,
-        sourceUserLastName: profiles.last_name,
-        sourceUserProfileImage: profiles.profile_image_url,
+        sourceUserFirstName: profiles.firstName,
+        sourceUserLastName: profiles.lastName,
+        sourceUserProfileImage: profiles.profileImageUrl,
       })
       .from(notifications)
       .leftJoin(profiles, eq(notifications.sourceUserId, profiles.id))

@@ -148,10 +148,10 @@ router.get('/user', authenticateSupabase, (req, res) => {
   res.json({
     id: req.user.id,
     email: req.user.email,
-    firstName: req.user.first_name,
-    lastName: req.user.last_name,
+    firstName: req.user.firstName,
+    lastName: req.user.lastName,
     role: req.user.role,
-    profileImageUrl: req.user.profile_image_url
+    profileImageUrl: req.user.profileImageUrl
   });
 });
 
@@ -194,9 +194,9 @@ router.patch('/profile', authenticateSupabase, async (req, res) => {
         req.user.id,
         {
           user_metadata: {
-            first_name: profileData.firstName || req.user.first_name,
-            last_name: profileData.lastName || req.user.last_name,
-            profile_image_url: profileData.profileImageUrl || req.user.profile_image_url
+            first_name: profileData.firstName || req.user.firstName,
+            last_name: profileData.lastName || req.user.lastName,
+            profile_image_url: profileData.profileImageUrl || req.user.profileImageUrl
           }
         }
       );

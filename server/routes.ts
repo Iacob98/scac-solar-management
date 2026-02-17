@@ -78,6 +78,30 @@ function buildInstallationNotesGerman(installationPerson: any, project: any): st
   return notes.join('\n');
 }
 
+// Authorization helpers
+async function requireProjectAccess(req: any, projectId: number): Promise<boolean> {
+  const userId = req.user?.id;
+  if (!userId) return false;
+  if (req.user.role === 'admin') return true;
+  return await storage.hasProjectAccess(userId, projectId);
+}
+
+async function requireCrewAccess(req: any, crewId: number): Promise<boolean> {
+  const userId = req.user?.id;
+  if (!userId) return false;
+  if (req.user.role === 'admin') return true;
+  const crew = await storage.getCrewById(crewId);
+  if (!crew) return false;
+  return await storage.hasUserFirmAccess(userId, crew.firmId.toString());
+}
+
+async function requireFirmAccessCheck(req: any, firmId: string): Promise<boolean> {
+  const userId = req.user?.id;
+  if (!userId) return false;
+  if (req.user.role === 'admin') return true;
+  return await storage.hasUserFirmAccess(userId, firmId);
+}
+
 export async function registerRoutes(app: Express): Promise<Server> {
   // Supabase Auth routes (replaces Replit Auth)
   app.use('/api/auth', authRouter);
@@ -274,29 +298,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get('/api/firms/:id', authenticateSupabase, async (req: any, res) => {
-    try {
-      const { id } = req.params;
-      const firm = await storage.getFirmById(id);
-      
-      if (!firm) {
-        return res.status(404).json({ message: "Firm not found" });
-      }
-      
-      res.json(firm);
-    } catch (error) {
-      console.error("Error fetching firm:", error);
-      res.status(500).json({ message: "Failed to fetch firm" });
-    }
-  });
-
   app.put('/api/firms/:id', authenticateSupabase, async (req: any, res) => {
     try {
       const { id } = req.params;
+      // Only admins or users with firm access can update
+      if (!(await requireFirmAccessCheck(req, id))) {
+        return res.status(403).json({ message: "Access denied" });
+      }
       const firmData = req.body;
-      
+
       const updated = await storage.updateFirm(id, firmData);
-      
+
       res.json(updated);
     } catch (error) {
       console.error("Error updating firm:", error);
@@ -319,7 +331,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "URL and API token are required" });
       }
 
-      const ninjaService = new InvoiceNinjaService(invoiceNinjaUrl, token);
+      const ninjaService = new InvoiceNinjaService(token, invoiceNinjaUrl);
       const companyInfo = await ninjaService.getCompanyInfo();
       
       res.json({
@@ -738,6 +750,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.put('/api/crews/:id', authenticateSupabase, async (req: any, res) => {
     try {
       const crewId = parseInt(req.params.id);
+      if (!(await requireCrewAccess(req, crewId))) {
+        return res.status(403).json({ message: "Access denied" });
+      }
       const updateData = req.body;
       const crew = await storage.updateCrew(crewId, updateData);
       res.json(crew);
@@ -750,6 +765,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.patch('/api/crews/:id', authenticateSupabase, async (req: any, res) => {
     try {
       const crewId = parseInt(req.params.id);
+      if (!(await requireCrewAccess(req, crewId))) {
+        return res.status(403).json({ message: "Access denied" });
+      }
       const updateData = req.body;
       const crew = await storage.updateCrew(crewId, updateData);
       res.json(crew);
@@ -762,6 +780,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.delete('/api/crews/:id', authenticateSupabase, async (req: any, res) => {
     try {
       const crewId = parseInt(req.params.id);
+      if (!(await requireCrewAccess(req, crewId))) {
+        return res.status(403).json({ message: "Access denied" });
+      }
       await storage.deleteCrew(crewId);
       res.json({ message: "Crew deleted successfully" });
     } catch (error) {
@@ -810,9 +831,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.put('/api/crew-members/:id', authenticateSupabase, async (req: any, res) => {
     try {
       const memberId = parseInt(req.params.id);
+      // Check access via crew
+      const member = await storage.getCrewMemberById(memberId);
+      if (!member) {
+        return res.status(404).json({ message: "Crew member not found" });
+      }
+      if (!(await requireCrewAccess(req, member.crewId))) {
+        return res.status(403).json({ message: "Access denied" });
+      }
       const updateData = req.body;
-      const member = await storage.updateCrewMember(memberId, updateData);
-      res.json(member);
+      const updated = await storage.updateCrewMember(memberId, updateData);
+      res.json(updated);
     } catch (error) {
       console.error("Error updating crew member:", error);
       res.status(500).json({ message: "Failed to update crew member" });
@@ -822,9 +851,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.delete('/api/crew-members/:id', authenticateSupabase, async (req: any, res) => {
     try {
       const memberId = parseInt(req.params.id);
-      
+
       // Получаем данные участника перед удалением для истории
       const member = await storage.getCrewMemberById(memberId);
+      if (member && !(await requireCrewAccess(req, member.crewId))) {
+        return res.status(403).json({ message: "Access denied" });
+      }
       if (member) {
         const today = new Date().toISOString().split('T')[0];
         const userId = req.user?.id;
@@ -836,7 +868,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           await storage.logCrewMemberRemoved(
             member.crewId,
             `${member.firstName} ${member.lastName}`,
-            member.specialization || 'Не указана',
+            member.role || 'Не указана',
             startDate,
             today,
             userId
@@ -1198,11 +1230,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get('/api/projects/:id/history', authenticateSupabase, async (req: any, res) => {
     try {
       const projectId = parseInt(req.params.id);
-      
+
       if (isNaN(projectId)) {
         return res.status(400).json({ message: "Invalid project ID" });
       }
-      
+
+      if (!(await requireProjectAccess(req, projectId))) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+
       const history = await storage.getProjectHistory(projectId);
       res.json(history);
     } catch (error) {
@@ -1239,13 +1275,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (isNaN(projectId)) {
         return res.status(400).json({ message: "Invalid project ID" });
       }
-      
+
+      if (!(await requireProjectAccess(req, projectId))) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+
       const project = await storage.getProjectById(projectId);
-      
+
       if (!project) {
         return res.status(404).json({ message: "Project not found" });
       }
-      
+
       res.json(project);
     } catch (error) {
       console.error("Error fetching project:", error);
@@ -1353,6 +1393,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.put('/api/projects/:id', authenticateSupabase, async (req: any, res) => {
     try {
       const projectId = parseInt(req.params.id);
+      if (!(await requireProjectAccess(req, projectId))) {
+        return res.status(403).json({ message: "Access denied" });
+      }
       const updateData = req.body;
       const project = await storage.updateProject(projectId, updateData);
       res.json(project);
@@ -2452,6 +2495,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get('/api/projects/:id/files', authenticateSupabase, async (req: any, res) => {
     try {
       const projectId = parseInt(req.params.id);
+      if (!(await requireProjectAccess(req, projectId))) {
+        return res.status(403).json({ message: "Access denied" });
+      }
       const files = await storage.getFilesByProjectId(projectId);
       res.json(files);
     } catch (error) {
@@ -2501,6 +2547,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get('/api/projects/:id/reports', authenticateSupabase, async (req: any, res) => {
     try {
       const projectId = parseInt(req.params.id);
+      if (!(await requireProjectAccess(req, projectId))) {
+        return res.status(403).json({ message: "Access denied" });
+      }
       const reports = await storage.getReportsByProjectId(projectId);
       res.json(reports);
     } catch (error) {
@@ -2627,17 +2676,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get('/api/projects/:projectId/notes', authenticateSupabase, async (req: any, res) => {
     try {
       const projectId = parseInt(req.params.projectId);
-      console.log('GET /api/projects/:projectId/notes - получение примечаний для проекта:', projectId);
-      
+
       if (isNaN(projectId)) {
-        console.log('Неверный ID проекта:', req.params.projectId);
         return res.status(400).json({ error: "Неверный ID проекта" });
       }
-      
+
+      if (!(await requireProjectAccess(req, projectId))) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+
       const notes = await db.select().from(projectNotes).where(eq(projectNotes.projectId, projectId));
-      console.log('Найдено примечаний:', notes.length);
-      console.log('Примечания:', notes);
-      
+
       res.json(notes);
     } catch (error) {
       console.error("Ошибка получения примечаний проекта:", error);

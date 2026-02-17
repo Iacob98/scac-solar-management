@@ -131,7 +131,7 @@ export default function TestLogin({ onLoginSuccess }: TestLoginProps) {
                         disabled={loginMutation.isPending}
                         onClick={(e) => {
                           e.stopPropagation();
-                          handleLogin(user.id);
+                          handleLogin(user.email);
                         }}
                       >
                         {loginMutation.isPending ? 'Вход...' : 'Войти'}
