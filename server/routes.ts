@@ -2095,11 +2095,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Get firm details for Invoice Ninja integration
-      const firms = await storage.getFirmsByUserId(req.user.id);
-      const firm = firms.find(f => f.id === project.firmId);
-      
+      const userFirms = await storage.getFirmsByUserId(req.user.id);
+      console.log(`User firms: [${userFirms.map(f => `${f.id}(${f.name})`).join(', ')}], project.firmId: ${project.firmId}`);
+      const firm = userFirms.find(f => f.id === project.firmId);
+
       if (!firm) {
-        return res.status(404).json({ message: "Firm not found" });
+        return res.status(404).json({ message: `Firm not found. User has access to firms: [${userFirms.map(f => f.id).join(',')}], project needs firmId: ${project.firmId}` });
       }
 
       const client = await storage.getClientsByFirmId(String(firm.id));
