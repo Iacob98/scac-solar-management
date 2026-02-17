@@ -35,7 +35,10 @@ const statusLabels = {
   work_in_progress: 'Работы в процессе',
   work_completed: 'Работы завершены',
   invoiced: 'Счет выставлен',
-  paid: 'Оплачен'
+  send_invoice: 'Отправить счет',
+  invoice_sent: 'Счет отправлен',
+  paid: 'Оплачен',
+  reclamation: 'Рекламация'
 };
 
 const statusColors = {
@@ -46,7 +49,10 @@ const statusColors = {
   work_in_progress: 'bg-yellow-100 text-yellow-800',
   work_completed: 'bg-green-100 text-green-800',
   invoiced: 'bg-indigo-100 text-indigo-800',
-  paid: 'bg-emerald-100 text-emerald-800'
+  send_invoice: 'bg-cyan-100 text-cyan-800',
+  invoice_sent: 'bg-teal-100 text-teal-800',
+  paid: 'bg-emerald-100 text-emerald-800',
+  reclamation: 'bg-red-100 text-red-800'
 };
 
 interface ProjectsProps {
@@ -204,27 +210,38 @@ function ProjectsList({ selectedFirm, onViewProject, onManageServices }: Project
   console.log('STATUS FILTER:', statusFilter);
   
   const filteredProjects = projects.filter((project: any) => {
-    console.log('FILTERING PROJECT:', project.id, 'UNIQUE ID:', project.installationPersonUniqueId);
-    
     const clientName = getClientName(project.clientId);
+    const installationName = [
+      project.installationPersonFirstName,
+      project.installationPersonLastName
+    ].filter(Boolean).join(' ').toLowerCase();
     const searchTerm = filter.toLowerCase();
-    
-    const matchesSearch = !filter || 
+
+    const matchesSearch = !filter ||
       (project.notes && project.notes.toLowerCase().includes(searchTerm)) ||
       (clientName && clientName.toLowerCase().includes(searchTerm)) ||
-      (project.teamNumber && project.teamNumber.toLowerCase().includes(searchTerm)) ||
+      (installationName && installationName.includes(searchTerm)) ||
+      (project.installationPersonAddress && project.installationPersonAddress.toLowerCase().includes(searchTerm)) ||
       (project.installationPersonUniqueId && project.installationPersonUniqueId.toLowerCase().includes(searchTerm));
-    
+
     const matchesStatus = statusFilter === 'all' || project.status === statusFilter;
-    
-    console.log('SEARCH RESULT FOR PROJECT', project.id, ':', matchesSearch);
-    
+
     return matchesSearch && matchesStatus;
   });
 
   const getClientName = (clientId: number) => {
     const client = (clients as Client[]).find((c: Client) => c.id === clientId);
     return client?.name || 'Неизвестный клиент';
+  };
+
+  // Получить имя клиента установки из проекта
+  const getInstallationPersonName = (project: Project) => {
+    const firstName = project.installationPersonFirstName;
+    const lastName = project.installationPersonLastName;
+    if (firstName || lastName) {
+      return [firstName, lastName].filter(Boolean).join(' ');
+    }
+    return 'Не указан клиент установки';
   };
 
   const getCrewName = (crewId: number) => {
@@ -420,13 +437,19 @@ function ProjectsList({ selectedFirm, onViewProject, onManageServices }: Project
               <CardHeader className="pb-3">
                 <div className="flex justify-between items-start">
                   <div>
-                    <CardTitle className="text-lg">{getClientName(project.clientId)}</CardTitle>
+                    <CardTitle className="text-lg">{getInstallationPersonName(project)}</CardTitle>
                     <div className="flex items-center space-x-4 text-sm text-gray-500 mt-1">
-                      <span className="flex items-center">
+                      <span className="flex items-center" title="Клиент Invoice Ninja">
+                        <Building2 className="h-4 w-4 mr-1" />
+                        {getClientName(project.clientId)}
+                      </span>
+                      <span className="flex items-center" title="Бригада">
                         <Users className="h-4 w-4 mr-1" />
                         {getCrewName(project.crewId || 0)}
                       </span>
-                      <span>#{project.teamNumber}</span>
+                      {project.installationPersonUniqueId && (
+                        <span title="ID клиента">#{project.installationPersonUniqueId}</span>
+                      )}
                       {project.startDate && (
                         <span className="flex items-center">
                           <CalendarIcon className="h-4 w-4 mr-1" />

@@ -9,7 +9,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, Dialog
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { ArrowLeft, FileText, Users, Package, Clock, Euro, Calendar, Building2, Phone, History, Star, Plus, Upload, Image, Trash2, Eye, MessageSquare, Download, Send, Edit } from 'lucide-react';
+import { ArrowLeft, FileText, Users, Package, Clock, Euro, Calendar, Building2, Phone, History, Star, Plus, Upload, Image, Trash2, Eye, MessageSquare, Download, Send, Edit, X, ZoomIn, ZoomOut, AlertTriangle } from 'lucide-react';
+import { ImageViewer } from '@/components/ui/image-viewer';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -25,7 +26,7 @@ import ServicesPage from './Services';
 import ProjectHistory from './ProjectHistory';
 import { ProjectShareButton } from '@/components/ProjectShareButton';
 import { ProjectStatusManager } from '@/components/Projects/ProjectStatusManager';
-import { GoogleCalendarWidget } from '@/components/GoogleCalendarWidget';
+import { CreateReclamationDialog } from '@/components/Reclamation/CreateReclamationDialog';
 
 interface ProjectDetailProps {
   projectId: number;
@@ -40,6 +41,7 @@ const statusLabels = {
   work_scheduled: 'Работы запланированы',
   work_in_progress: 'Работы в процессе',
   work_completed: 'Работы завершены',
+  reclamation: 'Рекламация',
   invoiced: 'Счет выставлен',
   send_invoice: 'Отправить счет',
   invoice_sent: 'Счет отправлен',
@@ -53,6 +55,7 @@ const statusColors = {
   work_scheduled: 'bg-purple-100 text-purple-800',
   work_in_progress: 'bg-orange-100 text-orange-800',
   work_completed: 'bg-emerald-100 text-emerald-800',
+  reclamation: 'bg-red-100 text-red-800',
   invoiced: 'bg-indigo-100 text-indigo-800',
   send_invoice: 'bg-purple-100 text-purple-800',
   invoice_sent: 'bg-cyan-100 text-cyan-800',
@@ -98,8 +101,10 @@ export default function ProjectDetail({ projectId, selectedFirm, onBack }: Proje
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [isNoteDialogOpen, setIsNoteDialogOpen] = useState(false);
   const [isCrewChangeDialogOpen, setIsCrewChangeDialogOpen] = useState(false);
+  const [viewerImage, setViewerImage] = useState<{ src: string; alt: string } | null>(null);
+  const [isReclamationDialogOpen, setIsReclamationDialogOpen] = useState(false);
   const { toast } = useToast();
-  const { user } = useAuth();
+  const { user, accessToken } = useAuth();
   const queryClient = useQueryClient();
 
   const { data: project, isLoading: projectLoading, error: projectError } = useQuery({
@@ -728,13 +733,6 @@ export default function ProjectDetail({ projectId, selectedFirm, onBack }: Proje
               </CardContent>
             </Card>
 
-            {/* Google Calendar Integration */}
-            <GoogleCalendarWidget 
-              projectId={project.id}
-              crewId={project.crewId || undefined}
-              projectStatus={project.status}
-            />
-
             {/* Финансовая информация */}
             {project.invoiceNumber && (
               <Card className="border-l-4 border-l-orange-500 shadow-sm">
@@ -749,7 +747,7 @@ export default function ProjectDetail({ projectId, selectedFirm, onBack }: Proje
                     <p className="text-sm text-gray-500">Номер счета</p>
                     <p className="font-medium text-gray-900">#{project.invoiceNumber}</p>
                   </div>
-                  
+
                   {project.invoiceUrl && (
                     <Button variant="outline" size="sm" asChild className="w-full">
                       <a href={project.invoiceUrl} target="_blank" rel="noopener noreferrer">
@@ -758,6 +756,51 @@ export default function ProjectDetail({ projectId, selectedFirm, onBack }: Proje
                       </a>
                     </Button>
                   )}
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Рекламация - кнопка создания для завершенных проектов */}
+            {['work_completed', 'invoiced', 'send_invoice', 'invoice_sent', 'paid'].includes(project.status) && (
+              <Card className="border-l-4 border-l-red-500 shadow-sm">
+                <CardHeader className="pb-3">
+                  <CardTitle className="flex items-center text-lg">
+                    <AlertTriangle className="h-5 w-5 mr-2 text-red-600" />
+                    Рекламация
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  <p className="text-sm text-gray-600">
+                    Если обнаружены проблемы с качеством выполненной работы, создайте рекламацию.
+                  </p>
+                  <Button
+                    variant="destructive"
+                    className="w-full"
+                    onClick={() => setIsReclamationDialogOpen(true)}
+                  >
+                    <AlertTriangle className="h-4 w-4 mr-2" />
+                    Создать рекламацию
+                  </Button>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Статус рекламации */}
+            {project.status === 'reclamation' && (
+              <Card className="border-l-4 border-l-red-500 shadow-sm bg-red-50">
+                <CardHeader className="pb-3">
+                  <CardTitle className="flex items-center text-lg text-red-800">
+                    <AlertTriangle className="h-5 w-5 mr-2 text-red-600" />
+                    Активная рекламация
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  <p className="text-sm text-red-700">
+                    Проект находится в статусе рекламации. Бригада должна исправить выявленные проблемы.
+                  </p>
+                  <div className="text-xs text-red-600">
+                    Статус изменится после завершения исправлений бригадой.
+                  </div>
                 </CardContent>
               </Card>
             )}
@@ -1118,42 +1161,52 @@ export default function ProjectDetail({ projectId, selectedFirm, onBack }: Proje
                     </div>
                   ) : (
                     <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                      {allFiles.map((file: any) => (
-                        <div key={file.id} className="relative group cursor-pointer">
-                          {file.fileType && file.fileType.startsWith('image/') ? (
-                            <img
-                              src={file.fileUrl}
-                              alt={file.fileName || 'Фото отчет'}
-                              className="w-full h-40 object-cover rounded-lg"
-                              onError={(e) => {
-                                (e.target as HTMLImageElement).src = '/placeholder-image.svg';
-                              }}
-                            />
-                          ) : (
-                            <div className="w-full h-40 bg-gray-100 rounded-lg flex items-center justify-center">
-                              <FileText className="h-12 w-12 text-gray-400" />
+                      {allFiles.map((file: any) => {
+                        const fileUrlWithToken = `${file.fileUrl}?token=${accessToken}`;
+                        const isImage = file.fileType && file.fileType.startsWith('image/');
+                        return (
+                          <div key={file.id} className="relative group cursor-pointer">
+                            {isImage ? (
+                              <img
+                                src={fileUrlWithToken}
+                                alt={file.fileName || 'Фото отчет'}
+                                className="w-full h-40 object-cover rounded-lg"
+                                onError={(e) => {
+                                  (e.target as HTMLImageElement).src = '/placeholder-image.svg';
+                                }}
+                              />
+                            ) : (
+                              <div className="w-full h-40 bg-gray-100 rounded-lg flex items-center justify-center">
+                                <FileText className="h-12 w-12 text-gray-400" />
+                              </div>
+                            )}
+                            <div className="absolute inset-0 bg-black bg-opacity-50 opacity-0 group-hover:opacity-100 transition-opacity rounded-lg flex items-center justify-center gap-2">
+                              <Button
+                                size="sm"
+                                variant="secondary"
+                                onClick={() => {
+                                  if (isImage) {
+                                    setViewerImage({ src: fileUrlWithToken, alt: file.fileName || 'Фото' });
+                                  } else {
+                                    window.open(fileUrlWithToken, '_blank');
+                                  }
+                                }}
+                              >
+                                <Eye className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="destructive"
+                                onClick={() => deleteFileMutation.mutate(file.id.toString())}
+                                disabled={deleteFileMutation.isPending}
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
                             </div>
-                          )}
-                          <div className="absolute inset-0 bg-black bg-opacity-50 opacity-0 group-hover:opacity-100 transition-opacity rounded-lg flex items-center justify-center gap-2">
-                            <Button
-                              size="sm"
-                              variant="secondary"
-                              onClick={() => window.open(file.fileUrl, '_blank')}
-                            >
-                              <Eye className="h-4 w-4" />
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="destructive"
-                              onClick={() => deleteFileMutation.mutate(file.id.toString())}
-                              disabled={deleteFileMutation.isPending}
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
+                            <p className="text-xs text-gray-600 mt-2 truncate">{file.fileName}</p>
                           </div>
-                          <p className="text-xs text-gray-600 mt-2 truncate">{file.fileName}</p>
-                        </div>
-                      ))}
+                        );
+                      })}
                       {allFiles.length === 0 && (
                         <div className="col-span-full text-center py-8">
                           <Image className="h-12 w-12 mx-auto text-gray-400 mb-4" />
@@ -1406,8 +1459,8 @@ export default function ProjectDetail({ projectId, selectedFirm, onBack }: Proje
             <div className="text-sm text-gray-600">
               Текущая команда: <span className="font-medium">{(crew as Crew)?.name || 'Не назначена'}</span>
             </div>
-            <Select 
-              value={project?.crewId?.toString() || 'none'} 
+            <Select
+              value={project?.crewId?.toString() || 'none'}
               onValueChange={(value) => {
                 updateCrewMutation.mutate(value === 'none' ? null : parseInt(value));
               }}
@@ -1430,6 +1483,23 @@ export default function ProjectDetail({ projectId, selectedFirm, onBack }: Proje
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Image Viewer Modal */}
+      <ImageViewer
+        src={viewerImage?.src || ''}
+        alt={viewerImage?.alt || ''}
+        isOpen={!!viewerImage}
+        onClose={() => setViewerImage(null)}
+      />
+
+      {/* Reclamation Dialog */}
+      <CreateReclamationDialog
+        open={isReclamationDialogOpen}
+        onOpenChange={setIsReclamationDialogOpen}
+        projectId={project.id}
+        firmId={project.firmId}
+        currentCrewId={project.crewId || undefined}
+      />
 
     </div>
   );

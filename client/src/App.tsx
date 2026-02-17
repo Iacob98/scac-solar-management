@@ -21,15 +21,22 @@ import FirmsManagement from "@/pages/admin/FirmsManagement";
 import FirmEdit from "@/pages/FirmEdit";
 import Settings from "@/pages/Settings";
 import Calendar from "@/pages/Calendar";
-import CalendarTest from "@/pages/CalendarTest";
 import { FileStorage } from "@/pages/FileStorage";
-import GoogleCalendar from "@/pages/GoogleCalendar";
-import GoogleCalendarSetup from "@/pages/GoogleCalendarSetup";
 import NotFound from "@/pages/not-found";
-import CrewUpload from "@/pages/CrewUpload";
+// CrewUpload is deprecated - replaced by Worker Portal with PIN authentication
+// import CrewUpload from "@/pages/CrewUpload";
 
-function ProtectedRoute({ component: Component, ...props }: any) {
-  const { user, loading } = useAuth();
+// Worker Pages
+import WorkerLogin from "@/pages/worker/WorkerLogin";
+import WorkerDashboard from "@/pages/worker/WorkerDashboard";
+import WorkerProjects from "@/pages/worker/WorkerProjects";
+import WorkerProjectDetail from "@/pages/worker/WorkerProjectDetail";
+import WorkerCalendar from "@/pages/worker/WorkerCalendar";
+import WorkerProfile from "@/pages/worker/WorkerProfile";
+import WorkerReclamations from "@/pages/worker/WorkerReclamations";
+
+function ProtectedRoute({ component: Component, adminOnly = false, ...props }: any) {
+  const { user, profile, loading } = useAuth();
 
   if (loading) {
     return (
@@ -42,6 +49,66 @@ function ProtectedRoute({ component: Component, ...props }: any) {
   if (!user) {
     // Redirect to login page
     return <Redirect to="/login" />;
+  }
+
+  // Use profile.role as primary source, fallback to user.role
+  const userRole = profile?.role || user.role;
+
+  // If role is still loading, show loading spinner
+  if (!userRole && user) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
+
+  // Workers should be redirected to worker dashboard
+  if (userRole === 'worker') {
+    return <Redirect to="/worker" />;
+  }
+
+  // Admin only routes
+  if (adminOnly && userRole !== 'admin') {
+    return <Redirect to="/" />;
+  }
+
+  return <Component {...props} />;
+}
+
+// Protected route for worker-only pages
+function WorkerRoute({ component: Component, ...props }: any) {
+  const { user, profile, loading } = useAuth();
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
+
+  if (!user) {
+    // Redirect to worker login page
+    return <Redirect to="/worker/login" />;
+  }
+
+  // Wait for profile to load to check the role
+  // Use profile.role as primary source, fallback to user.role
+  const userRole = profile?.role || user.role;
+
+  // If role is still loading (user exists but profile not yet), show loading
+  if (!userRole && user) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
+
+  // Non-workers should go to the main app
+  if (userRole !== 'worker') {
+    return <Redirect to="/" />;
   }
 
   return <Component {...props} />;
@@ -59,9 +126,23 @@ function Router() {
           return <TestLogin onLoginSuccess={() => setLocation('/')} />;
         }}
       </Route>
-      <Route path="/crew-upload/:projectId/:token" component={CrewUpload} />
+      {/* Old crew upload route - redirect to worker portal */}
+      <Route path="/crew-upload/:projectId/:token">
+        {() => <Redirect to="/worker/login" />}
+      </Route>
 
-      {/* Protected routes */}
+      {/* Worker public routes */}
+      <Route path="/worker/login" component={WorkerLogin} />
+
+      {/* Worker protected routes */}
+      <Route path="/worker" component={() => <WorkerRoute component={WorkerDashboard} />} />
+      <Route path="/worker/reclamations" component={() => <WorkerRoute component={WorkerReclamations} />} />
+      <Route path="/worker/projects" component={() => <WorkerRoute component={WorkerProjects} />} />
+      <Route path="/worker/projects/:id" component={() => <WorkerRoute component={WorkerProjectDetail} />} />
+      <Route path="/worker/calendar" component={() => <WorkerRoute component={WorkerCalendar} />} />
+      <Route path="/worker/profile" component={() => <WorkerRoute component={WorkerProfile} />} />
+
+      {/* Admin/Leiter protected routes */}
       <Route path="/" component={() => <ProtectedRoute component={Home} />} />
       <Route path="/projects" component={() => <ProtectedRoute component={Projects} />} />
       <Route path="/projects/:id" component={() => <ProtectedRoute component={Projects} />} />
@@ -71,13 +152,10 @@ function Router() {
       <Route path="/invoices" component={() => <ProtectedRoute component={Invoices} />} />
       <Route path="/files" component={() => <ProtectedRoute component={FileStorage} />} />
       <Route path="/calendar" component={() => <ProtectedRoute component={Calendar} />} />
-      <Route path="/google-calendar" component={() => <ProtectedRoute component={GoogleCalendar} />} />
-      <Route path="/google-setup" component={() => <ProtectedRoute component={GoogleCalendarSetup} />} />
       <Route path="/settings" component={() => <ProtectedRoute component={Settings} />} />
-      <Route path="/calendar-test" component={() => <ProtectedRoute component={CalendarTest} />} />
-      <Route path="/admin/firms" component={() => <ProtectedRoute component={FirmsManagement} />} />
-      <Route path="/admin/firms/:id/edit" component={() => <ProtectedRoute component={FirmEdit} />} />
-      <Route path="/admin/users" component={() => <ProtectedRoute component={Users} />} />
+      <Route path="/admin/firms" component={() => <ProtectedRoute component={FirmsManagement} adminOnly />} />
+      <Route path="/admin/firms/:id/edit" component={() => <ProtectedRoute component={FirmEdit} adminOnly />} />
+      <Route path="/admin/users" component={() => <ProtectedRoute component={Users} adminOnly />} />
 
       {/* 404 */}
       <Route component={NotFound} />

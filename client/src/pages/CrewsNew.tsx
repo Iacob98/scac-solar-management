@@ -8,7 +8,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Plus, Users, Phone, Edit, Trash2, Archive, Settings, MapPin, User, Building2, BarChart, Calendar, CheckCircle } from 'lucide-react';
+import { Plus, Users, Phone, Edit, Trash2, Archive, Settings, MapPin, User, Building2, BarChart, Calendar, CheckCircle, Key, Copy, Eye, EyeOff, Loader2 } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -19,6 +19,263 @@ import { MainLayout } from '@/components/Layout/MainLayout';
 import { CrewHistory } from '@/components/CrewHistory';
 import { apiRequest, getAuthHeaders } from '@/lib/queryClient';
 import { useLocation } from 'wouter';
+
+// Компонент для управления PIN-кодом работника
+function WorkerPinManager({ member, onPinChange }: { member: CrewMember; onPinChange: () => void }) {
+  const { toast } = useToast();
+  const [showPin, setShowPin] = useState(false);
+  const [generatedPin, setGeneratedPin] = useState<string | null>(null);
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [isRevoking, setIsRevoking] = useState(false);
+
+  // Check if member has email
+  const hasEmail = !!member.memberEmail;
+  // Check if member has PIN (we'll need to fetch this status)
+  const [pinStatus, setPinStatus] = useState<{ hasPin: boolean; pinCreatedAt?: string } | null>(null);
+  const [isLoadingStatus, setIsLoadingStatus] = useState(true);
+
+  // Fetch PIN status on mount
+  useEffect(() => {
+    const fetchStatus = async () => {
+      try {
+        const authHeaders = await getAuthHeaders();
+        const response = await fetch(`/api/worker-auth/member-status/${member.id}`, {
+          headers: authHeaders,
+        });
+        if (response.ok) {
+          const data = await response.json();
+          setPinStatus(data);
+        }
+      } catch (error) {
+        console.error('Error fetching PIN status:', error);
+      } finally {
+        setIsLoadingStatus(false);
+      }
+    };
+    fetchStatus();
+  }, [member.id]);
+
+  const handleGeneratePin = async () => {
+    if (!hasEmail) {
+      toast({
+        title: 'Email обязателен',
+        description: 'Для генерации PIN необходимо указать email участника',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    setIsGenerating(true);
+    try {
+      const authHeaders = await getAuthHeaders();
+      const response = await fetch('/api/worker-auth/generate-pin', {
+        method: 'POST',
+        headers: {
+          ...authHeaders,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ memberId: member.id }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to generate PIN');
+      }
+
+      const data = await response.json();
+      setGeneratedPin(data.pin);
+      setShowPin(true);
+      setPinStatus({ hasPin: true, pinCreatedAt: new Date().toISOString() });
+      onPinChange();
+
+      toast({
+        title: 'PIN сгенерирован',
+        description: `PIN для ${member.firstName} ${member.lastName}: ${data.pin}`,
+      });
+    } catch (error: any) {
+      toast({
+        title: 'Ошибка',
+        description: error.message,
+        variant: 'destructive',
+      });
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
+  const handleRevokePin = async () => {
+    if (!confirm(`Отозвать доступ для ${member.firstName} ${member.lastName}? Работник больше не сможет войти в портал.`)) {
+      return;
+    }
+
+    setIsRevoking(true);
+    try {
+      const authHeaders = await getAuthHeaders();
+      const response = await fetch('/api/worker-auth/revoke-pin', {
+        method: 'POST',
+        headers: {
+          ...authHeaders,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ memberId: member.id }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to revoke PIN');
+      }
+
+      setPinStatus({ hasPin: false });
+      setGeneratedPin(null);
+      onPinChange();
+
+      toast({
+        title: 'Доступ отозван',
+        description: `PIN для ${member.firstName} ${member.lastName} деактивирован`,
+      });
+    } catch (error: any) {
+      toast({
+        title: 'Ошибка',
+        description: error.message,
+        variant: 'destructive',
+      });
+    } finally {
+      setIsRevoking(false);
+    }
+  };
+
+  const copyToClipboard = (text: string) => {
+    navigator.clipboard.writeText(text);
+    toast({
+      title: 'Скопировано',
+      description: 'PIN скопирован в буфер обмена',
+    });
+  };
+
+  if (isLoadingStatus) {
+    return (
+      <div className="flex items-center gap-2 text-xs text-gray-400">
+        <Loader2 className="h-3 w-3 animate-spin" />
+        Проверка...
+      </div>
+    );
+  }
+
+  return (
+    <div className="mt-2 pt-2 border-t">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <Key className="h-3 w-3 text-gray-400" />
+          <span className="text-xs text-gray-500">Портал работника:</span>
+          {pinStatus?.hasPin ? (
+            <Badge variant="default" className="text-xs bg-green-100 text-green-700">
+              Активен
+            </Badge>
+          ) : (
+            <Badge variant="secondary" className="text-xs">
+              Неактивен
+            </Badge>
+          )}
+        </div>
+
+        <div className="flex items-center gap-1">
+          {pinStatus?.hasPin ? (
+            <>
+              <Button
+                size="sm"
+                variant="ghost"
+                className="h-7 text-xs"
+                onClick={handleGeneratePin}
+                disabled={isGenerating || !hasEmail}
+                title="Сгенерировать новый PIN"
+              >
+                {isGenerating ? (
+                  <Loader2 className="h-3 w-3 animate-spin" />
+                ) : (
+                  <>
+                    <Key className="h-3 w-3 mr-1" />
+                    Новый PIN
+                  </>
+                )}
+              </Button>
+              <Button
+                size="sm"
+                variant="ghost"
+                className="h-7 text-xs text-red-600 hover:text-red-700"
+                onClick={handleRevokePin}
+                disabled={isRevoking}
+                title="Отозвать доступ"
+              >
+                {isRevoking ? (
+                  <Loader2 className="h-3 w-3 animate-spin" />
+                ) : (
+                  'Отозвать'
+                )}
+              </Button>
+            </>
+          ) : (
+            <Button
+              size="sm"
+              variant="outline"
+              className="h-7 text-xs"
+              onClick={handleGeneratePin}
+              disabled={isGenerating || !hasEmail}
+              title={hasEmail ? 'Сгенерировать PIN' : 'Для генерации PIN необходимо указать email'}
+            >
+              {isGenerating ? (
+                <Loader2 className="h-3 w-3 animate-spin mr-1" />
+              ) : (
+                <Key className="h-3 w-3 mr-1" />
+              )}
+              Сгенерировать PIN
+            </Button>
+          )}
+        </div>
+      </div>
+
+      {/* Show generated PIN */}
+      {generatedPin && (
+        <div className="mt-2 p-2 bg-green-50 border border-green-200 rounded-md">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-green-700">PIN для входа:</span>
+              <code className="text-sm font-mono font-bold text-green-800">
+                {showPin ? generatedPin : '••••••'}
+              </code>
+            </div>
+            <div className="flex items-center gap-1">
+              <Button
+                size="sm"
+                variant="ghost"
+                className="h-6 w-6 p-0"
+                onClick={() => setShowPin(!showPin)}
+              >
+                {showPin ? <EyeOff className="h-3 w-3" /> : <Eye className="h-3 w-3" />}
+              </Button>
+              <Button
+                size="sm"
+                variant="ghost"
+                className="h-6 w-6 p-0"
+                onClick={() => copyToClipboard(generatedPin)}
+              >
+                <Copy className="h-3 w-3" />
+              </Button>
+            </div>
+          </div>
+          <p className="text-xs text-green-600 mt-1">
+            Сохраните этот PIN! После закрытия он не будет показан снова.
+          </p>
+        </div>
+      )}
+
+      {!hasEmail && (
+        <p className="text-xs text-amber-600 mt-1">
+          Для активации доступа к порталу необходимо указать email участника
+        </p>
+      )}
+    </div>
+  );
+}
 
 // Схема для простого редактирования бригады
 const editCrewSchema = z.object({
@@ -46,7 +303,6 @@ function EditCrewForm({ crew, onUpdate }: { crew: Crew, onUpdate: any }) {
     uniqueNumber: z.string().min(1, 'Уникальный номер обязателен'),
     phone: z.string().optional(),
     memberEmail: z.string().email('Неверный формат email').optional().or(z.literal('')),
-    googleCalendarId: z.string().optional(),
     role: z.enum(['leader', 'worker', 'specialist']).default('worker'),
   });
 
@@ -59,7 +315,6 @@ function EditCrewForm({ crew, onUpdate }: { crew: Crew, onUpdate: any }) {
       uniqueNumber: `WRK-${Date.now().toString().slice(-4)}`,
       phone: '',
       memberEmail: '',
-      googleCalendarId: '',
       role: 'worker',
     },
   });
@@ -153,7 +408,6 @@ function EditCrewForm({ crew, onUpdate }: { crew: Crew, onUpdate: any }) {
         uniqueNumber: `WRK-${Date.now().toString().slice(-4)}`,
         phone: '',
         memberEmail: '',
-        googleCalendarId: '',
         role: 'worker',
       });
       setShowAddMemberForm(false);
@@ -376,42 +630,19 @@ function EditCrewForm({ crew, onUpdate }: { crew: Crew, onUpdate: any }) {
                   name="memberEmail"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Google Email для календаря</FormLabel>
+                      <FormLabel>Email</FormLabel>
                       <FormControl>
-                        <Input 
-                          type="email" 
-                          placeholder="user@gmail.com" 
-                          {...field} 
+                        <Input
+                          type="email"
+                          placeholder="user@example.com"
+                          {...field}
                         />
                       </FormControl>
                       <FormMessage />
-                      <p className="text-xs text-gray-500">
-                        Email аккаунта Google для автоматического добавления событий в календарь
-                      </p>
                     </FormItem>
                   )}
                 />
-                
-                <FormField
-                  control={memberForm.control}
-                  name="googleCalendarId"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>ID календаря Google (опционально)</FormLabel>
-                      <FormControl>
-                        <Input 
-                          placeholder="primary или calendar@group.calendar.google.com" 
-                          {...field} 
-                        />
-                      </FormControl>
-                      <FormMessage />
-                      <p className="text-xs text-gray-500">
-                        Используйте 'primary' для основного календаря или укажите ID конкретного календаря
-                      </p>
-                    </FormItem>
-                  )}
-                />
-                
+
                 <FormField
                   control={memberForm.control}
                   name="role"
@@ -499,8 +730,8 @@ function EditCrewForm({ crew, onUpdate }: { crew: Crew, onUpdate: any }) {
                   </div>
                 </div>
                 <div className="flex space-x-1">
-                  <Button 
-                    size="sm" 
+                  <Button
+                    size="sm"
                     variant="ghost"
                     onClick={() => {
                       setEditingMember(member);
@@ -511,7 +742,6 @@ function EditCrewForm({ crew, onUpdate }: { crew: Crew, onUpdate: any }) {
                         uniqueNumber: member.uniqueNumber,
                         phone: member.phone || '',
                         memberEmail: member.memberEmail || '',
-                        googleCalendarId: member.googleCalendarId || '',
                         role: (member.role as 'leader' | 'worker' | 'specialist') || 'worker',
                       });
                       setShowAddMemberForm(true);
@@ -519,8 +749,8 @@ function EditCrewForm({ crew, onUpdate }: { crew: Crew, onUpdate: any }) {
                   >
                     <Edit className="h-3 w-3" />
                   </Button>
-                  <Button 
-                    size="sm" 
+                  <Button
+                    size="sm"
                     variant="ghost"
                     className="text-red-600 hover:text-red-700"
                     onClick={() => {
@@ -533,6 +763,8 @@ function EditCrewForm({ crew, onUpdate }: { crew: Crew, onUpdate: any }) {
                   </Button>
                 </div>
               </div>
+              {/* Worker Portal PIN Management */}
+              <WorkerPinManager member={member} onPinChange={refreshMembers} />
             </Card>
           ))}
           
@@ -558,7 +790,6 @@ const extendedCrewSchema = insertCrewSchema.omit({ firmId: true }).extend({
     uniqueNumber: z.string().min(1, 'Уникальный номер обязателен'),
     phone: z.string().optional().default(''),
     memberEmail: z.string().email('Неверный формат email').optional().or(z.literal('')),
-    googleCalendarId: z.string().optional().default(''),
     role: z.enum(['leader', 'worker', 'specialist']).default('worker'),
   })).optional().default([]),
 });
@@ -637,8 +868,7 @@ export default function CrewsNew() {
         uniqueNumber: `WRK-${Date.now().toString().slice(-4)}`,
         phone: '',
         role: 'worker',
-        memberEmail: '',
-        googleCalendarId: ''
+        memberEmail: ''
       }],
     },
   });
@@ -738,8 +968,7 @@ export default function CrewsNew() {
         uniqueNumber: `WRK-${String(Date.now()).slice(-4)}`,
         phone: '',
         role: 'worker',
-        memberEmail: '',
-        googleCalendarId: ''
+        memberEmail: ''
       }
     ]);
   };
@@ -1199,6 +1428,7 @@ export default function CrewsNew() {
                           <p>Номер: {member.uniqueNumber}</p>
                           <p>Роль: {member.role === 'leader' ? 'Руководитель' : member.role === 'specialist' ? 'Специалист' : 'Рабочий'}</p>
                           {member.phone && <p className="truncate">Телефон: {member.phone}</p>}
+                          {member.memberEmail && <p className="truncate">Email: {member.memberEmail}</p>}
                           {member.address && <p className="truncate">Адрес: {member.address}</p>}
                         </div>
                       </div>
@@ -1206,6 +1436,11 @@ export default function CrewsNew() {
                         {member.role === 'leader' ? 'Руководитель' : member.role === 'specialist' ? 'Специалист' : 'Рабочий'}
                       </Badge>
                     </div>
+                    {/* Worker Portal PIN Management */}
+                    <WorkerPinManager
+                      member={member}
+                      onPinChange={() => queryClient.invalidateQueries({ queryKey: ['/api/crew-members', viewingMembers] })}
+                    />
                   </Card>
                 ))}
               </div>

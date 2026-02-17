@@ -22,13 +22,11 @@ import {
 } from "@shared/schema";
 import { z } from "zod";
 import fileRoutes from "./routes/fileRoutes";
-import googleCalendarRoutes from "./routes/googleCalendar";
-import emailNotificationRoutes from "./routes/emailNotifications";
-import calendarDemoRoutes from "./routes/calendarDemo";
-import googleRoutes from "./routes/google";
+import workerAuthRoutes from "./routes/workerAuth";
+import workerPortalRoutes from "./routes/workerPortal";
+import reclamationRoutes from "./routes/reclamations";
+import notificationRoutes from "./routes/notifications";
 import { fileStorageService } from "./storage/fileStorage";
-import { emailNotificationService } from "./services/emailNotifications";
-import { googleCalendarService } from "./services/googleCalendar";
 import fs from 'fs';
 import path from 'path';
 
@@ -87,13 +85,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // File storage routes
   app.use('/api/files', fileRoutes);
 
-  // Google Calendar routes
-  app.use('/api/google-calendar', googleCalendarRoutes);
-  app.use('/api/google', googleRoutes);
+  // Worker portal routes
+  app.use('/api/worker-auth', workerAuthRoutes);
+  app.use('/api/worker', workerPortalRoutes);
 
-  // Email notification routes
-  app.use('/api/notifications', emailNotificationRoutes);
-  app.use('/api/calendar-demo', calendarDemoRoutes);
+  // Reclamation routes - only mount on /api/reclamations
+  // The /api/projects/:id/reclamation routes are handled separately below
+  app.use('/api/reclamations', authenticateSupabase, reclamationRoutes);
+
+  // Notification routes
+  app.use('/api/notifications', authenticateSupabase, notificationRoutes);
 
   // Test endpoint for history entries
   app.get('/api/test-history', authenticateSupabase, async (req: any, res) => {
@@ -915,7 +916,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
             projectsCount: parseInt(projectsData.total.toString()),
             completedProjects: stats.metrics.completedObjects,
             overduePercentage: stats.metrics.overdueShare,
-            avgCompletionTime: stats.metrics.avgDurationDays
+            avgCompletionTime: stats.metrics.avgDurationDays,
+            reclamationsCount: stats.metrics.reclamations?.total || 0
           });
         }
       } else {
@@ -941,7 +943,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           if (hasAccess) {
             const projectsData = await storage.getCrewProjects(crew.id, { from, to, status: 'all', page: 1, size: 1000 });
             const stats = await storage.getCrewStatistics(crew.id, from, to);
-            
+
             crewsSummary.push({
               id: crew.id,
               name: crew.name,
@@ -949,7 +951,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
               projectsCount: parseInt(projectsData.total.toString()),
               completedProjects: stats.metrics.completedObjects,
               overduePercentage: stats.metrics.overdueShare,
-              avgCompletionTime: stats.metrics.avgDurationDays
+              avgCompletionTime: stats.metrics.avgDurationDays,
+              reclamationsCount: stats.metrics.reclamations?.total || 0
             });
           }
         }
@@ -1406,55 +1409,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
             description = `Статус изменен с "${statusLabels[oldValue] || oldValue}" на "${statusLabels[newValue] || newValue}"`;
           } else if (key === 'equipmentExpectedDate' || key === 'equipmentArrivedDate') {
             changeType = 'equipment_update';
-            description = key === 'equipmentExpectedDate' 
+            description = key === 'equipmentExpectedDate'
               ? `Дата ожидания оборудования изменена на ${new Date(newValue as string).toLocaleDateString('ru-RU')}`
               : `Дата поступления оборудования изменена на ${new Date(newValue as string).toLocaleDateString('ru-RU')}`;
-            
-            // Отправляем email уведомление о готовности оборудования
-            if (key === 'equipmentArrivedDate' && newValue && currentProject?.crewId) {
-              try {
-                await emailNotificationService.sendEquipmentReadyNotification(projectId, currentProject.crewId);
-                console.log(`Email notification sent for equipment ready: project ${projectId}`);
-              } catch (emailError) {
-                console.warn(`Failed to send email notification for equipment ready:`, emailError);
-              }
-            }
-            
-            // Отправляем email уведомление об изменении сроков оборудования
-            if (key === 'equipmentExpectedDate' && currentProject?.crewId && newValue !== oldValue) {
-              try {
-                await emailNotificationService.sendProjectDateUpdateNotification(projectId, currentProject.crewId, 'equipment_date');
-                console.log(`Email notification sent for equipment date update: project ${projectId}`);
-              } catch (emailError) {
-                console.warn(`Failed to send email notification for equipment date update:`, emailError);
-              }
-            }
           } else if (key === 'workStartDate' || key === 'workEndDate') {
             changeType = 'date_update';
             description = key === 'workStartDate'
               ? `Дата начала работ изменена на ${new Date(newValue as string).toLocaleDateString('ru-RU')}`
               : `Дата окончания работ изменена на ${new Date(newValue as string).toLocaleDateString('ru-RU')}`;
-            
-            // Отправляем email уведомление о изменении дат работ
-            if (currentProject?.crewId && newValue !== oldValue) {
-              try {
-                await emailNotificationService.sendProjectDateUpdateNotification(projectId, currentProject.crewId, 'work_date');
-                console.log(`Email notification sent for work date update: project ${projectId}`);
-              } catch (emailError) {
-                console.warn(`Failed to send email notification for work date update:`, emailError);
-              }
-              
-              // Обновляем Google Calendar события при изменении дат работ
-              try {
-                await googleCalendarService.updateProjectDates(projectId, currentProject.crewId, {
-                  workStartDate: key === 'workStartDate' ? newValue : currentProject.workStartDate,
-                  workEndDate: key === 'workEndDate' ? newValue : currentProject.workEndDate
-                });
-                console.log(`Google Calendar events updated for project ${projectId}`);
-              } catch (calendarError) {
-                console.warn(`Failed to update Google Calendar events:`, calendarError);
-              }
-            }
           } else if (key === 'needsCallForEquipmentDelay' || key === 'needsCallForCrewDelay' || key === 'needsCallForDateChange') {
             changeType = 'call_update';
             description = newValue 
@@ -1492,14 +1454,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
                   description += ` (участники: ${membersList})`;
                 }
                 crewSnapshotId = snapshot.id;
-                
-                // Создаем события в Google Calendar для участников бригады
-                try {
-                  await googleCalendarService.createProjectEventForCrewMembers(projectId, newValue);
-                  console.log(`Google Calendar events created for project assignment: project ${projectId} to crew ${newValue}`);
-                } catch (calendarError) {
-                  console.warn(`Failed to create Google Calendar events for project assignment:`, calendarError);
-                }
 
                 // Генерируем токен для загрузки фотографий бригадой
                 try {
@@ -1703,7 +1657,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post('/api/users', authenticateSupabase, isAdmin, async (req: any, res) => {
     try {
-      const { email, firstName, lastName, role, firmIds } = req.body;
+      const { email, firstName, lastName, role, firmIds, password } = req.body;
 
       // Validate required fields
       if (!email || !firstName || !lastName || !role) {
@@ -1719,9 +1673,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
 
+      // Password is required for leiter role
+      if (role === 'leiter' && !password) {
+        return res.status(400).json({
+          message: "Password is required for leiter role"
+        });
+      }
+
+      // Validate password length
+      if (password && password.length < 6) {
+        return res.status(400).json({
+          message: "Password must be at least 6 characters"
+        });
+      }
+
       // Create user in Supabase Auth
       const { data: authData, error: authError } = await supabase.auth.admin.createUser({
         email,
+        password: role === 'leiter' ? password : undefined,
         email_confirm: true,
         user_metadata: {
           first_name: firstName,
@@ -1819,6 +1788,51 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error updating user:", error);
       res.status(500).json({ message: "Failed to update user" });
+    }
+  });
+
+  // Reset password for leiter
+  app.post('/api/users/:id/reset-password', authenticateSupabase, isAdmin, async (req: any, res) => {
+    try {
+      const { id } = req.params;
+      const { newPassword } = req.body;
+
+      // Validate password
+      if (!newPassword || newPassword.length < 6) {
+        return res.status(400).json({
+          message: "Password must be at least 6 characters"
+        });
+      }
+
+      // Check if user exists and is a leiter
+      const user = await storage.getUser(id);
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      if (user.role !== 'leiter') {
+        return res.status(400).json({
+          message: "Password reset is only available for leiter users"
+        });
+      }
+
+      // Reset password via Supabase Admin API
+      const { error } = await supabase.auth.admin.updateUserById(id, {
+        password: newPassword
+      });
+
+      if (error) {
+        console.error("Error resetting password:", error);
+        return res.status(500).json({
+          message: `Failed to reset password: ${error.message}`
+        });
+      }
+
+      console.log(`Password reset for user ${id} by admin ${req.user.id}`);
+      res.json({ success: true, message: "Password reset successfully" });
+    } catch (error) {
+      console.error("Error resetting password:", error);
+      res.status(500).json({ message: "Failed to reset password" });
     }
   });
 
@@ -2365,202 +2379,47 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Generate crew upload token endpoint
+  // DEPRECATED: Generate crew upload token endpoint
+  // This endpoint is deprecated in favor of the Worker Portal with PIN authentication
+  // Workers should now use /worker/login with their email and PIN
   app.post('/api/generate-crew-token/:projectId', authenticateSupabase, async (req: any, res) => {
-    try {
-      const projectId = parseInt(req.params.projectId);
-      
-      if (isNaN(projectId)) {
-        return res.status(400).json({ message: "Invalid project ID" });
-      }
-
-      const token = await storage.generateCrewUploadToken(projectId);
-      
-      // Определяем базовый URL для Replit
-      const getBaseUrl = () => {
-        if (process.env.REPLIT_DOMAINS) {
-          return `https://${process.env.REPLIT_DOMAINS.split(',')[0]}`;
-        }
-        if (process.env.REPL_SLUG && process.env.REPL_OWNER) {
-          return `https://${process.env.REPL_SLUG}.${process.env.REPL_OWNER}.repl.co`;
-        }
-        return process.env.NODE_ENV === 'development' ? 'http://localhost:5000' : 'https://scac.app';
-      };
-
-      res.json({
-        success: true,
-        token,
-        uploadUrl: `${getBaseUrl()}/upload/${projectId}/${token}`
-      });
-    } catch (error) {
-      console.error("Error generating crew upload token:", error);
-      res.status(500).json({ message: "Failed to generate token" });
-    }
+    // Return deprecation notice instead of generating token
+    res.status(410).json({
+      message: "Эта функция устарела. Теперь работники используют Портал Работника с PIN-аутентификацией.",
+      deprecated: true,
+      replacement: "/worker/login"
+    });
   });
 
-  // Crew Upload API endpoints
+  // DEPRECATED: Crew Upload API endpoints
+  // These endpoints are deprecated in favor of the Worker Portal with PIN authentication
   app.get('/api/crew-upload/:projectId/:token/validate', async (req: any, res) => {
-    try {
-      const { projectId, token } = req.params;
-      
-      const validation = await storage.validateCrewUploadToken(parseInt(projectId), token);
-      
-      if (!validation.valid) {
-        return res.status(404).json({ 
-          valid: false, 
-          message: 'Ссылка недействительна или срок её действия истёк' 
-        });
-      }
-
-      const { project, crew } = validation;
-      const projectTitle = `#${project.id} - ${project.installationPersonFirstName} ${project.installationPersonLastName}`;
-      
-      res.json({
-        valid: true,
-        projectTitle,
-        crewName: crew?.name || 'Не назначена',
-        expiresAt: project.crewUploadTokenExpires,
-      });
-    } catch (error) {
-      console.error("Error validating crew upload token:", error);
-      res.status(500).json({ message: "Failed to validate token" });
-    }
+    res.status(410).json({
+      valid: false,
+      deprecated: true,
+      message: 'Эта ссылка больше не работает. Используйте Портал Работника с PIN-аутентификацией.',
+      replacement: "/worker/login"
+    });
   });
 
+  // DEPRECATED: validate-email endpoint
   app.post('/api/crew-upload/:projectId/:token/validate-email', async (req: any, res) => {
-    try {
-      const { projectId, token } = req.params;
-      const { email } = req.body;
-      
-      if (!email) {
-        return res.status(400).json({ message: 'Email обязателен' });
-      }
-
-      const validation = await storage.validateCrewUploadToken(parseInt(projectId), token);
-      
-      if (!validation.valid) {
-        return res.status(404).json({ message: 'Ссылка недействительна' });
-      }
-
-      const { project } = validation;
-      
-      if (!project.crewId) {
-        return res.status(400).json({ message: 'К проекту не назначена бригада' });
-      }
-
-      const isValidMember = await storage.validateCrewMemberEmail(project.crewId, email);
-      
-      if (!isValidMember) {
-        return res.status(403).json({ 
-          message: 'Email не найден среди участников назначенной бригады' 
-        });
-      }
-
-      res.json({ valid: true, message: 'Email подтверждён' });
-    } catch (error) {
-      console.error("Error validating crew member email:", error);
-      res.status(500).json({ message: "Failed to validate email" });
-    }
+    res.status(410).json({
+      valid: false,
+      deprecated: true,
+      message: 'Эта функция устарела. Используйте Портал Работника с PIN-аутентификацией.',
+      replacement: "/worker/login"
+    });
   });
 
+  // DEPRECATED: upload endpoint
   app.post('/api/crew-upload/:projectId/:token/upload', async (req: any, res) => {
-    try {
-      const { projectId, token } = req.params;
-      
-      const validation = await storage.validateCrewUploadToken(parseInt(projectId), token);
-      
-      if (!validation.valid) {
-        return res.status(404).json({ message: 'Ссылка недействительна' });
-      }
-
-      const { project } = validation;
-      const email = req.body.email;
-      
-      if (!email) {
-        return res.status(400).json({ message: 'Email обязателен' });
-      }
-
-      // Double-check email validation
-      if (!project.crewId) {
-        return res.status(400).json({ message: 'К проекту не назначена бригада' });
-      }
-
-      const isValidMember = await storage.validateCrewMemberEmail(project.crewId, email);
-      
-      if (!isValidMember) {
-        return res.status(403).json({ message: 'Доступ запрещён' });
-      }
-
-      // Handle file uploads
-      if (!req.files || !req.files.files) {
-        return res.status(400).json({ message: 'Файлы не получены' });
-      }
-
-      const files = Array.isArray(req.files.files) ? req.files.files : [req.files.files];
-      
-      if (files.length > 20) {
-        return res.status(400).json({ message: 'Превышен лимит файлов (максимум 20)' });
-      }
-
-      const uploadedFiles = [];
-      
-      for (const file of files) {
-        // Validate file type and size
-        if (!['image/jpeg', 'image/png'].includes(file.mimetype)) {
-          continue; // Skip invalid files
-        }
-        
-        if (file.size > 10 * 1024 * 1024) { // 10MB
-          continue; // Skip too large files
-        }
-
-        const fileId = crypto.randomUUID();
-        const fileName = `${fileId}_${file.name}`;
-        const filePath = path.join('uploads', fileName);
-        
-        // Save file
-        await file.mv(filePath);
-        
-        // Create file record - используем системный ID для загрузок бригады
-        const fileRecord = await storage.createFileRecord({
-          fileId,
-          projectId: parseInt(projectId),
-          originalName: file.name, // Оригинальное имя файла
-          fileName, // Имя файла на диске
-          mimeType: file.mimetype,
-          size: file.size,
-          category: 'image',
-          uploadedBy: 'crew_upload', // Специальный системный ID для загрузок бригады
-          isDeleted: false,
-        });
-
-        uploadedFiles.push(fileRecord);
-      }
-
-      if (uploadedFiles.length === 0) {
-        return res.status(400).json({ message: 'Не удалось загрузить ни одного файла' });
-      }
-
-      // Create history entry
-      await storage.createProjectHistoryEntry({
-        projectId: parseInt(projectId),
-        userId: 'crew_upload', // Using system ID for crew uploads
-        changeType: 'file_added',
-        fieldName: 'crew_photos',
-        oldValue: null,
-        newValue: `${uploadedFiles.length} файлов`,
-        description: `Фото-отчёт бригады: добавлено ${uploadedFiles.length} файла\nУчастник: ${email}`,
-      });
-
-      res.json({
-        success: true,
-        filesUploaded: uploadedFiles.length,
-        message: `Успешно загружено ${uploadedFiles.length} файлов`,
-      });
-    } catch (error) {
-      console.error("Error uploading crew files:", error);
-      res.status(500).json({ message: "Failed to upload files" });
-    }
+    res.status(410).json({
+      success: false,
+      deprecated: true,
+      message: 'Эта функция устарела. Используйте Портал Работника с PIN-аутентификацией.',
+      replacement: "/worker/login"
+    });
   });
 
   // Invoice Ninja catalog routes
@@ -2915,6 +2774,92 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Ошибка удаления доступа к проекту:", error);
       res.status(500).json({ error: "Ошибка сервера" });
+    }
+  });
+
+  // Project Reclamation routes (создание рекламации для проекта)
+  app.post('/api/projects/:projectId/reclamation', authenticateSupabase, async (req: any, res) => {
+    const { createReclamationSchema } = await import("@shared/schema");
+
+    console.log("POST /api/projects/:projectId/reclamation called with projectId:", req.params.projectId);
+    console.log("Request body:", req.body);
+
+    try {
+      const user = req.user!;
+      const projectId = parseInt(req.params.projectId);
+
+      // Проверка роли (только admin и leiter)
+      if (user.role !== 'admin' && user.role !== 'leiter') {
+        return res.status(403).json({ error: "Only admin and leiter can create reclamations" });
+      }
+
+      // Валидация данных
+      const validatedData = createReclamationSchema.parse(req.body);
+
+      // Получаем проект
+      const project = await storage.getProjectById(projectId);
+      if (!project) {
+        return res.status(404).json({ error: "Project not found" });
+      }
+
+      // Проверка что проект завершён
+      const allowedStatuses = ['work_completed', 'invoiced', 'send_invoice', 'invoice_sent', 'paid'];
+      if (!allowedStatuses.includes(project.status)) {
+        return res.status(400).json({
+          error: "Reclamation can only be created for completed projects",
+          currentStatus: project.status
+        });
+      }
+
+      // Проверка что бригада существует
+      const crew = await storage.getCrewById(validatedData.crewId);
+      if (!crew) {
+        return res.status(404).json({ error: "Crew not found" });
+      }
+
+      // Создаём рекламацию
+      const reclamation = await storage.createReclamation({
+        projectId,
+        firmId: project.firmId,
+        description: validatedData.description,
+        deadline: validatedData.deadline,
+        crewId: validatedData.crewId,
+        createdBy: user.id,
+      });
+
+      // Обновляем статус проекта
+      await storage.updateProjectStatus(projectId, 'reclamation');
+
+      // Добавляем запись в историю проекта
+      await storage.createProjectHistoryEntry({
+        projectId,
+        userId: user.id,
+        changeType: 'status_change',
+        fieldName: 'status',
+        oldValue: project.status,
+        newValue: 'reclamation',
+        description: `Создана рекламация: ${validatedData.description}`,
+      });
+
+      res.status(201).json(reclamation);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ error: "Validation error", details: error.errors });
+      }
+      console.error("Error creating reclamation:", error);
+      res.status(500).json({ error: "Failed to create reclamation" });
+    }
+  });
+
+  // GET /api/projects/:projectId/reclamations - Рекламации проекта
+  app.get('/api/projects/:projectId/reclamations', authenticateSupabase, async (req: any, res) => {
+    try {
+      const projectId = parseInt(req.params.projectId);
+      const reclamations = await storage.getReclamationsByProjectId(projectId);
+      res.json(reclamations);
+    } catch (error) {
+      console.error("Error getting project reclamations:", error);
+      res.status(500).json({ error: "Failed to get project reclamations" });
     }
   });
 

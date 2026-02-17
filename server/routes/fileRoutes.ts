@@ -65,17 +65,23 @@ const uploadFileSchema = z.object({
 // Загрузка файла (используем legacy формат для совместимости)
 router.post('/upload', authenticateSupabase, upload.single('file'), async (req, res) => {
   try {
+    console.log('[fileRoutes] Upload request received');
+    console.log('[fileRoutes] req.file:', req.file ? { originalname: req.file.originalname, mimetype: req.file.mimetype, size: req.file.size } : 'no file');
+    console.log('[fileRoutes] req.body:', req.body);
+    console.log('[fileRoutes] req.user:', req.user?.id);
+
     if (!req.file) {
+      console.error('[fileRoutes] No file provided in request');
       return res.status(400).json({ message: 'Файл не предоставлен' });
     }
 
     const validatedData = uploadFileSchema.parse(req.body);
     const userId = req.user.id;
-    
+
     // Сохраняем файл в папку uploads (legacy формат)
     const fs = await import('fs');
     const path = await import('path');
-    
+
     // Создаем уникальное имя файла с правильной кодировкой
     const timestamp = Date.now();
     const fileExtension = path.extname(req.file.originalname);
@@ -94,9 +100,30 @@ router.post('/upload', authenticateSupabase, upload.single('file'), async (req, 
     // Сохраняем файл
     fs.writeFileSync(filePath, req.file.buffer);
 
+    // Для файлов профиля (аватаров) не создаем запись в project_files
+    if (validatedData.category === 'profile') {
+      console.log('Profile image uploaded successfully:', {
+        fileName: fileName,
+        userId: userId
+      });
+
+      // Возвращаем путь к файлу для профиля (используем публичный роут avatar)
+      return res.json({
+        fileId: fileName,
+        fileName: fileName,
+        fileUrl: `/api/files/avatar/${fileName}`,
+        fileType: req.file.mimetype
+      });
+    }
+
+    // Для проектных файлов требуется projectId
+    if (!validatedData.projectId) {
+      return res.status(400).json({ message: 'projectId обязателен для файлов проекта' });
+    }
+
     // Создаем запись в legacy таблице project_files
     const fileRecord: InsertProjectFile = {
-      projectId: validatedData.projectId!,
+      projectId: validatedData.projectId,
       fileName: fileName,
       fileUrl: `/api/files/download/${fileName}`, // API URL для скачивания
       fileType: req.file.mimetype
@@ -105,17 +132,15 @@ router.post('/upload', authenticateSupabase, upload.single('file'), async (req, 
     const savedFile = await storage.createFile(fileRecord);
 
     // Добавляем запись в историю проекта
-    if (validatedData.projectId) {
-      await storage.addProjectHistory({
-        projectId: validatedData.projectId,
-        userId: userId,
-        changeType: 'file_added',
-        fieldName: 'file',
-        oldValue: null,
-        newValue: req.file.originalname,
-        description: `Добавлен файл: ${req.file.originalname}`
-      });
-    }
+    await storage.addProjectHistory({
+      projectId: validatedData.projectId,
+      userId: userId,
+      changeType: 'file_added',
+      fieldName: 'file',
+      oldValue: null,
+      newValue: req.file.originalname,
+      description: `Добавлен файл: ${req.file.originalname}`
+    });
 
     console.log('File uploaded successfully (legacy):', {
       id: savedFile.id,
@@ -134,9 +159,54 @@ router.post('/upload', authenticateSupabase, upload.single('file'), async (req, 
 
   } catch (error: any) {
     console.error('Error uploading file:', error);
-    res.status(500).json({ 
+    res.status(500).json({
       message: 'Ошибка при загрузке файла',
-      error: error.message 
+      error: error.message
+    });
+  }
+});
+
+// Публичный доступ к аватаркам профиля (без аутентификации)
+// ВАЖНО: Этот роут должен быть ПЕРЕД /:fileId, иначе он не будет работать
+router.get('/avatar/:fileName', async (req, res) => {
+  try {
+    const fileName = req.params.fileName;
+    console.log(`👤 GET /api/files/avatar/${fileName} - запрос аватарки`);
+
+    const fs = await import('fs');
+    const path = await import('path');
+
+    const filePath = path.join(process.cwd(), 'uploads', fileName);
+
+    // Проверяем существует ли файл
+    if (!fs.existsSync(filePath)) {
+      console.log(`❌ Аватарка не найдена: ${filePath}`);
+      return res.status(404).json({ message: 'Файл не найден' });
+    }
+
+    const fileBuffer = fs.readFileSync(filePath);
+    const mimeType = getMimeTypeFromExtension(fileName);
+
+    // Проверяем что это изображение
+    if (!mimeType.startsWith('image/')) {
+      return res.status(400).json({ message: 'Файл не является изображением' });
+    }
+
+    console.log(`📄 Отправляем аватарку: ${fileName}, MIME: ${mimeType}, размер: ${fileBuffer.length} байт`);
+
+    res.set({
+      'Content-Type': mimeType,
+      'Content-Length': fileBuffer.length.toString(),
+      'Cache-Control': 'public, max-age=3600' // Кэшируем на 1 час
+    });
+
+    res.send(fileBuffer);
+
+  } catch (error: any) {
+    console.error('Error serving avatar:', error);
+    res.status(500).json({
+      message: 'Ошибка при получении аватарки',
+      error: error.message
     });
   }
 });
@@ -144,11 +214,18 @@ router.post('/upload', authenticateSupabase, upload.single('file'), async (req, 
 // Получение файла
 router.get('/:fileId', authenticateSupabase, async (req, res) => {
   try {
-    const fileId = parseInt(req.params.fileId);
-    console.log(`🔍 GET /api/files/${fileId} - пользователь запрашивает файл`);
-    
-    // Сначала пытаемся найти в новой системе файлов
-    const fileRecord = await storage.getFileRecord(req.params.fileId);
+    const fileIdParam = req.params.fileId;
+    const fileId = parseInt(fileIdParam);
+    console.log(`🔍 GET /api/files/${fileIdParam} - пользователь запрашивает файл`);
+
+    // Проверяем, является ли fileId UUID (для новой системы) или числом (для legacy)
+    const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(fileIdParam);
+
+    // Сначала пытаемся найти в новой системе файлов (только если это UUID)
+    let fileRecord = null;
+    if (isUUID) {
+      fileRecord = await storage.getFileRecord(fileIdParam);
+    }
     
     if (fileRecord && !fileRecord.isDeleted) {
       // Обрабатываем файл из новой системы

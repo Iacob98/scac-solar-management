@@ -168,7 +168,7 @@ router.patch('/profile', authenticateSupabase, async (req, res) => {
     const profileData = z.object({
       firstName: z.string().optional(),
       lastName: z.string().optional(),
-      profileImageUrl: z.string().url().optional().or(z.literal('')),
+      profileImageUrl: z.string().optional(),
     }).parse(req.body);
 
     // Обновляем profile в БД

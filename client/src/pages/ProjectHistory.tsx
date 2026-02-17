@@ -23,8 +23,18 @@ interface ProjectHistoryEntry {
   userFirstName?: string;
   userLastName?: string;
   userEmail?: string;
+  userProfileImageUrl?: string;
   notePriority?: 'normal' | 'important' | 'urgent' | 'critical' | null;
 }
+
+// Преобразование URL аватара в публичный формат
+const getAvatarUrl = (url?: string | null) => {
+  if (!url) return null;
+  if (url.includes('/api/files/download/')) {
+    return url.replace('/api/files/download/', '/api/files/avatar/');
+  }
+  return url;
+};
 
 interface ProjectHistoryProps {
   projectId: number;
@@ -350,9 +360,17 @@ export default function ProjectHistory({ projectId, onBack, embedded = false, li
                     
                     {/* User info */}
                     {(entry.userFirstName || entry.userLastName) && (
-                      <div className="flex items-center space-x-1 text-xs text-gray-500 mt-2">
-                        <User className="h-3 w-3" />
-                        <span>
+                      <div className="flex items-center space-x-2 text-sm text-gray-600 mt-2">
+                        {getAvatarUrl(entry.userProfileImageUrl) ? (
+                          <img
+                            src={getAvatarUrl(entry.userProfileImageUrl)!}
+                            alt=""
+                            className="w-5 h-5 rounded-full object-cover"
+                          />
+                        ) : (
+                          <User className="h-4 w-4" />
+                        )}
+                        <span className="font-bold">
                           {entry.userFirstName} {entry.userLastName}
                         </span>
                       </div>
@@ -516,11 +534,21 @@ export default function ProjectHistory({ projectId, onBack, embedded = false, li
                                    priority === 'critical' ? 'Критическое' : ''}
                                 </Badge>
                               )}
-                              <div className="flex items-center text-sm text-gray-500">
-                                <User className="h-3 w-3 mr-1" />
-                                {entry.userFirstName && entry.userLastName 
-                                  ? `${entry.userFirstName} ${entry.userLastName}`
-                                  : entry.userEmail || 'Система'}
+                              <div className="flex items-center text-base text-gray-600">
+                                {getAvatarUrl(entry.userProfileImageUrl) ? (
+                                  <img
+                                    src={getAvatarUrl(entry.userProfileImageUrl)!}
+                                    alt=""
+                                    className="w-6 h-6 rounded-full object-cover mr-2"
+                                  />
+                                ) : (
+                                  <User className="h-4 w-4 mr-2" />
+                                )}
+                                <span className="font-bold">
+                                  {entry.userFirstName && entry.userLastName
+                                    ? `${entry.userFirstName} ${entry.userLastName}`
+                                    : entry.userEmail || 'Система'}
+                                </span>
                               </div>
                             </div>
                             <div className="flex items-center text-sm text-gray-500">

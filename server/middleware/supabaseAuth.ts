@@ -11,7 +11,8 @@ declare global {
         first_name?: string;
         last_name?: string;
         profile_image_url?: string;
-        role: 'admin' | 'leiter';
+        role: 'admin' | 'leiter' | 'worker';
+        crew_member_id?: number;
       };
       supabaseClient?: ReturnType<typeof createSupabaseClient>;
     }
@@ -82,7 +83,8 @@ export async function authenticateSupabase(
       first_name: profile.first_name,
       last_name: profile.last_name,
       profile_image_url: profile.profile_image_url,
-      role: profile.role
+      role: profile.role,
+      crew_member_id: profile.crew_member_id
     };
 
     // Создаем Supabase клиент с токеном пользователя (для RLS)

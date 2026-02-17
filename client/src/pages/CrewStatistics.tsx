@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, LineChart, Line } from "recharts";
-import { CalendarDays, Clock, CheckCircle, AlertTriangle, ArrowLeft, Users, TrendingUp, Info, ExternalLink } from "lucide-react";
+import { CalendarDays, Clock, CheckCircle, AlertTriangle, ArrowLeft, Users, TrendingUp, Info, ExternalLink, Hammer } from "lucide-react";
 import { useLocation } from "wouter";
 import { MainLayout } from "@/components/Layout/MainLayout";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
@@ -28,6 +28,7 @@ interface CrewSummary {
   completedProjects: number;
   overduePercentage: number;
   avgCompletionTime: number;
+  reclamationsCount?: number;
 }
 
 interface CrewsSummaryResponse {
@@ -50,6 +51,12 @@ interface CrewStatistics {
     inProgress: number;
     avgDurationDays: number;
     overdueShare: number;
+    reclamations?: {
+      total: number;
+      pending: number;
+      completed: number;
+      rejected: number;
+    };
   };
   charts: {
     completedByMonth: Array<{ month: string; count: number }>;
@@ -299,9 +306,32 @@ export default function CrewStatistics() {
                                 <p>Среднее время выполнения проекта от начала до завершения работ (в днях)</p>
                               </TooltipContent>
                             </Tooltip>
+
+                            {/* Reclamations count */}
+                            {crew.reclamationsCount !== undefined && crew.reclamationsCount > 0 && (
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <div className="flex items-center gap-2">
+                                    <div className="p-2 bg-orange-100 rounded-lg">
+                                      <Hammer className="h-4 w-4 text-orange-600" />
+                                    </div>
+                                    <div>
+                                      <p className="text-sm text-muted-foreground flex items-center gap-1">
+                                        Рекламации
+                                        <Info className="h-3 w-3" />
+                                      </p>
+                                      <p className="font-semibold text-orange-600">{crew.reclamationsCount}</p>
+                                    </div>
+                                  </div>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  <p>Количество рекламаций, назначенных бригаде за период</p>
+                                </TooltipContent>
+                              </Tooltip>
+                            )}
                           </div>
                         </div>
-                        
+
                         <div className="flex items-center gap-2">
                           <Button
                             variant="outline"
@@ -376,6 +406,38 @@ export default function CrewStatistics() {
                           </CardContent>
                         </Card>
                       </div>
+
+                      {/* Reclamations Section */}
+                      {statistics.metrics.reclamations && (
+                        <Card className="border-orange-200">
+                          <CardHeader className="pb-2">
+                            <CardTitle className="flex items-center gap-2 text-orange-700">
+                              <Hammer className="h-5 w-5" />
+                              Рекламации
+                            </CardTitle>
+                          </CardHeader>
+                          <CardContent>
+                            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                              <div className="text-center p-3 bg-orange-50 rounded-lg">
+                                <p className="text-2xl font-bold text-orange-600">{statistics.metrics.reclamations.total}</p>
+                                <p className="text-sm text-muted-foreground">Всего</p>
+                              </div>
+                              <div className="text-center p-3 bg-yellow-50 rounded-lg">
+                                <p className="text-2xl font-bold text-yellow-600">{statistics.metrics.reclamations.pending}</p>
+                                <p className="text-sm text-muted-foreground">В работе</p>
+                              </div>
+                              <div className="text-center p-3 bg-green-50 rounded-lg">
+                                <p className="text-2xl font-bold text-green-600">{statistics.metrics.reclamations.completed}</p>
+                                <p className="text-sm text-muted-foreground">Завершено</p>
+                              </div>
+                              <div className="text-center p-3 bg-red-50 rounded-lg">
+                                <p className="text-2xl font-bold text-red-600">{statistics.metrics.reclamations.rejected}</p>
+                                <p className="text-sm text-muted-foreground">Отклонено</p>
+                              </div>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      )}
 
                       {/* Charts */}
                       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

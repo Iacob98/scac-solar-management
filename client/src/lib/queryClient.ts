@@ -9,15 +9,33 @@ async function throwIfResNotOk(res: Response) {
 }
 
 export async function getAuthHeaders(): Promise<HeadersInit> {
-  const { data: { session } } = await supabase.auth.getSession();
+  const { data: { session }, error } = await supabase.auth.getSession();
   const headers: HeadersInit = {};
+
+  if (error) {
+    console.error('[queryClient] Error getting session:', error);
+  }
 
   if (session?.access_token) {
     headers['Authorization'] = `Bearer ${session.access_token}`;
     // Debug: log token info (first 50 chars only for security)
     console.log('[queryClient] Using access_token:', session.access_token.substring(0, 50) + '...');
   } else {
-    console.warn('[queryClient] No access_token in session');
+    console.warn('[queryClient] No access_token in session, session:', session);
+    // Try to get from localStorage as backup (Supabase stores tokens there)
+    const storageKey = `sb-${import.meta.env.VITE_SUPABASE_URL?.split('//')[1]?.split('.')[0]}-auth-token`;
+    const storedSession = localStorage.getItem(storageKey);
+    if (storedSession) {
+      try {
+        const parsed = JSON.parse(storedSession);
+        if (parsed?.access_token) {
+          headers['Authorization'] = `Bearer ${parsed.access_token}`;
+          console.log('[queryClient] Using backup access_token from localStorage');
+        }
+      } catch (e) {
+        console.error('[queryClient] Error parsing stored session:', e);
+      }
+    }
   }
 
   return headers;

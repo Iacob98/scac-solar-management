@@ -13,7 +13,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Plus, Edit, User as UserIcon, Shield, Mail, Calendar, Building, Users as UsersIcon } from 'lucide-react';
+import { Plus, Edit, User as UserIcon, Shield, Mail, Calendar, Building, Users as UsersIcon, Key } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -24,6 +24,14 @@ const userSchema = z.object({
   lastName: z.string().min(1, 'Фамилия обязательна'),
   role: z.enum(['admin', 'leiter']),
   firmIds: z.array(z.string()).optional(),
+  password: z.string().optional(),
+}).refine((data) => {
+  // For new leiter users, password is required (min 6 chars)
+  // This is handled dynamically in the form based on editingUser state
+  return true;
+}, {
+  message: 'Пароль обязателен для руководителя проекта (минимум 6 символов)',
+  path: ['password'],
 });
 
 export default function Users() {
@@ -33,6 +41,8 @@ export default function Users() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingUser, setEditingUser] = useState<any>(null);
   const [isMobile, setIsMobile] = useState(false);
+  const [resetPasswordUser, setResetPasswordUser] = useState<any>(null);
+  const [newPassword, setNewPassword] = useState('');
 
   // Определяем мобильное устройство
   useEffect(() => {
@@ -50,6 +60,7 @@ export default function Users() {
       lastName: '',
       role: 'leiter',
       firmIds: [],
+      password: '',
     },
   });
 
@@ -171,10 +182,44 @@ export default function Users() {
     },
   });
 
+  const resetPasswordMutation = useMutation({
+    mutationFn: async ({ userId, newPassword }: { userId: string; newPassword: string }) => {
+      const response = await apiRequest(`/api/users/${userId}/reset-password`, 'POST', { newPassword });
+      return await response.json();
+    },
+    onSuccess: () => {
+      toast({
+        title: 'Успешно',
+        description: 'Пароль успешно сброшен',
+      });
+      setResetPasswordUser(null);
+      setNewPassword('');
+    },
+    onError: (error: Error) => {
+      toast({
+        title: 'Ошибка',
+        description: error.message || 'Не удалось сбросить пароль',
+        variant: 'destructive',
+      });
+    },
+  });
+
   const onSubmit = (data: z.infer<typeof userSchema>) => {
     console.log('onSubmit called with data:', data);
     console.log('firmIds type:', typeof data.firmIds, data.firmIds);
     console.log('editingUser:', editingUser);
+
+    // Validate password for new leiter users
+    if (!editingUser && data.role === 'leiter') {
+      if (!data.password || data.password.length < 6) {
+        toast({
+          title: 'Ошибка',
+          description: 'Пароль обязателен для руководителя проекта (минимум 6 символов)',
+          variant: 'destructive',
+        });
+        return;
+      }
+    }
 
     if (editingUser) {
       updateUserMutation.mutate({ userId: editingUser.id, data });
@@ -310,6 +355,27 @@ export default function Users() {
                     </p>
                   )}
                 </div>
+
+                {/* Password field - only for new leiter users */}
+                {!editingUser && form.watch('role') === 'leiter' && (
+                  <div>
+                    <Label htmlFor="password">Пароль</Label>
+                    <Input
+                      id="password"
+                      type="password"
+                      {...form.register('password')}
+                      placeholder="Минимум 6 символов"
+                    />
+                    <p className="text-xs text-gray-500 mt-1">
+                      Пароль для входа в систему (минимум 6 символов)
+                    </p>
+                    {form.formState.errors.password && (
+                      <p className="text-red-500 text-sm mt-1">
+                        {form.formState.errors.password.message}
+                      </p>
+                    )}
+                  </div>
+                )}
 
                 {form.watch('role') === 'leiter' && (
                   <div>
@@ -465,15 +531,28 @@ export default function Users() {
                         <p className="text-sm text-gray-500">ID: {user.id}</p>
                       </div>
                     </div>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => openEditDialog(user)}
-                    >
-                      <Edit className="w-4 h-4" />
-                    </Button>
+                    <div className="flex items-center space-x-1">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => openEditDialog(user)}
+                        title="Редактировать"
+                      >
+                        <Edit className="w-4 h-4" />
+                      </Button>
+                      {user.role === 'leiter' && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setResetPasswordUser(user)}
+                          title="Сбросить пароль"
+                        >
+                          <Key className="w-4 h-4" />
+                        </Button>
+                      )}
+                    </div>
                   </div>
-                  
+
                   <div className="space-y-3">
                     <div className="flex items-center space-x-2">
                       <Mail className="w-4 h-4 text-gray-400" />
@@ -586,13 +665,26 @@ export default function Users() {
                       </div>
                     </TableCell>
                     <TableCell>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => openEditDialog(user)}
-                      >
-                        <Edit className="w-4 h-4" />
-                      </Button>
+                      <div className="flex items-center space-x-1">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => openEditDialog(user)}
+                          title="Редактировать"
+                        >
+                          <Edit className="w-4 h-4" />
+                        </Button>
+                        {user.role === 'leiter' && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setResetPasswordUser(user)}
+                            title="Сбросить пароль"
+                          >
+                            <Key className="w-4 h-4" />
+                          </Button>
+                        )}
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))}
@@ -600,6 +692,44 @@ export default function Users() {
             </Table>
           </div>
         )}
+
+        {/* Reset Password Dialog */}
+        <Dialog open={!!resetPasswordUser} onOpenChange={() => { setResetPasswordUser(null); setNewPassword(''); }}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Сброс пароля</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4">
+              <p>
+                Установить новый пароль для: <strong>{resetPasswordUser?.firstName} {resetPasswordUser?.lastName}</strong>
+              </p>
+              <div>
+                <Label htmlFor="newPassword">Новый пароль</Label>
+                <Input
+                  id="newPassword"
+                  type="password"
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  placeholder="Минимум 6 символов"
+                />
+              </div>
+              <div className="flex space-x-2">
+                <Button
+                  onClick={() => resetPasswordMutation.mutate({
+                    userId: resetPasswordUser.id,
+                    newPassword
+                  })}
+                  disabled={newPassword.length < 6 || resetPasswordMutation.isPending}
+                >
+                  {resetPasswordMutation.isPending ? 'Сохранение...' : 'Сохранить'}
+                </Button>
+                <Button variant="outline" onClick={() => { setResetPasswordUser(null); setNewPassword(''); }}>
+                  Отмена
+                </Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
       </div>
     </MainLayout>
   );

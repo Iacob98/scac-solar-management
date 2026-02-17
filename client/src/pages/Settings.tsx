@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useToast } from '@/hooks/use-toast';
@@ -50,13 +50,26 @@ export default function Settings() {
   const profileForm = useForm<z.infer<typeof profileSchema>>({
     resolver: zodResolver(profileSchema),
     defaultValues: {
-      firstName: user?.firstName || '',
-      lastName: user?.lastName || '',
-      email: user?.email || '',
+      firstName: profile?.first_name || '',
+      lastName: profile?.last_name || '',
+      email: profile?.email || user?.email || '',
       phone: '',
-      profileImageUrl: user?.profileImageUrl || '',
+      profileImageUrl: profile?.profile_image_url || '',
     },
   });
+
+  // Update form when profile loads
+  useEffect(() => {
+    if (profile) {
+      profileForm.reset({
+        firstName: profile.first_name || '',
+        lastName: profile.last_name || '',
+        email: profile.email || '',
+        phone: '',
+        profileImageUrl: profile.profile_image_url || '',
+      });
+    }
+  }, [profile]);
 
   const passwordForm = useForm<z.infer<typeof passwordSchema>>({
     resolver: zodResolver(passwordSchema),
@@ -73,22 +86,34 @@ export default function Settings() {
       formData.append('file', file);
       formData.append('category', 'profile');
 
-      const authHeaders = await getAuthHeaders();
+      const authHeaders = await getAuthHeaders() as Record<string, string>;
+      // Не устанавливаем Content-Type для FormData - браузер сам добавит правильный заголовок с boundary
+      const headers: Record<string, string> = {};
+      if (authHeaders['Authorization']) {
+        headers['Authorization'] = authHeaders['Authorization'];
+      }
+
+      console.log('[Settings] Uploading avatar, headers:', headers);
+
       const response = await fetch('/api/files/upload', {
         method: 'POST',
-        headers: authHeaders,
+        headers: headers,
         body: formData,
         credentials: 'include'
       });
+
+      console.log('[Settings] Upload response status:', response.status);
+
       if (!response.ok) {
         const error = await response.json();
+        console.error('[Settings] Upload error:', error);
         throw new Error(error.message || 'Ошибка загрузки');
       }
       return response.json();
     },
     onSuccess: (data) => {
       // Обновляем форму с новым URL аватара
-      profileForm.setValue('profileImageUrl', `/api/files/${data.fileId}`);
+      profileForm.setValue('profileImageUrl', data.fileUrl);
       toast({
         title: "Успешно",
         description: "Аватар загружен успешно",
@@ -107,7 +132,7 @@ export default function Settings() {
 
   const updateProfileMutation = useMutation({
     mutationFn: async (data: z.infer<typeof profileSchema>) => {
-      const response = await apiRequest('PATCH', '/api/auth/profile', data);
+      const response = await apiRequest('/api/auth/profile', 'PATCH', data);
       return response.json();
     },
     onSuccess: () => {
@@ -128,7 +153,7 @@ export default function Settings() {
 
   const changePasswordMutation = useMutation({
     mutationFn: async (data: z.infer<typeof passwordSchema>) => {
-      const response = await apiRequest('PATCH', '/api/auth/password', {
+      const response = await apiRequest('/api/auth/password', 'PATCH', {
         currentPassword: data.currentPassword,
         newPassword: data.newPassword,
       });
@@ -160,6 +185,16 @@ export default function Settings() {
 
   const getInitials = (firstName?: string, lastName?: string) => {
     return `${firstName?.charAt(0) || ''}${lastName?.charAt(0) || ''}`.toUpperCase();
+  };
+
+  // Преобразование URL аватара в публичный формат
+  const getAvatarUrl = (url?: string) => {
+    if (!url) return undefined;
+    // Преобразуем старый формат /api/files/download/xxx в новый /api/files/avatar/xxx
+    if (url.includes('/api/files/download/')) {
+      return url.replace('/api/files/download/', '/api/files/avatar/');
+    }
+    return url;
   };
 
   const handleAvatarUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -238,7 +273,7 @@ export default function Settings() {
                 {/* Avatar Section */}
                 <div className="flex items-center space-x-4">
                   <Avatar className="w-20 h-20">
-                    <AvatarImage src={profileForm.watch('profileImageUrl')} />
+                    <AvatarImage src={getAvatarUrl(profileForm.watch('profileImageUrl'))} />
                     <AvatarFallback className="text-lg">
                       {getInitials(profileForm.watch('firstName'), profileForm.watch('lastName'))}
                     </AvatarFallback>

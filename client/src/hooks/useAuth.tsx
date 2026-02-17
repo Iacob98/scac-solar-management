@@ -15,11 +15,13 @@ interface AuthContextType {
   user: (SupabaseUser & { role?: string }) | null;
   profile: UserProfile | null;
   session: Session | null;
+  accessToken: string | null;
   loading: boolean;
   signUp: (email: string, password: string, metadata?: any) => Promise<{ error: any }>;
   signIn: (email: string, password: string) => Promise<{ error: any }>;
   signOut: () => Promise<{ error: any }>;
   updateProfile: (data: ProfileUpdateData) => Promise<{ error: any }>;
+  setSession: (accessToken: string, refreshToken: string) => Promise<void>;
 }
 
 interface ProfileUpdateData {
@@ -257,15 +259,38 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  const setSessionFromToken = async (accessToken: string, refreshToken: string) => {
+    // Set session from tokens (used for worker login)
+    const { data, error } = await supabase.auth.setSession({
+      access_token: accessToken,
+      refresh_token: refreshToken,
+    });
+
+    if (error) {
+      console.error('[useAuth] Error setting session:', error);
+      throw error;
+    }
+
+    if (data.session) {
+      setSession(data.session);
+      setUser(data.session.user);
+      if (data.session.user) {
+        await loadProfile(data.session.user.id, accessToken);
+      }
+    }
+  };
+
   const value = {
     user,
     profile,
     session,
+    accessToken: session?.access_token || null,
     loading,
     signUp,
     signIn,
     signOut,
-    updateProfile
+    updateProfile,
+    setSession: setSessionFromToken
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
