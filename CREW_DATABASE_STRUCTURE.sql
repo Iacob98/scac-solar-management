@@ -15,7 +15,6 @@ CREATE TABLE crews (
     status VARCHAR CHECK (status IN ('active', 'vacation', 'equipment_issue', 'unavailable')) 
            NOT NULL DEFAULT 'active',         -- Статус бригады
     archived BOOLEAN DEFAULT false,           -- Архивирована ли бригада
-    gcal_id VARCHAR,                          -- ID календаря Google для бригады
     created_at TIMESTAMP DEFAULT NOW()
 );
 
@@ -31,8 +30,7 @@ CREATE TABLE crew_members (
     unique_number VARCHAR NOT NULL,           -- Уникальный номер участника (WRK-0001)
     phone VARCHAR,                            -- Телефон участника
     role VARCHAR DEFAULT 'worker',            -- Роль: leader, worker, specialist
-    member_email VARCHAR,                     -- Email для доступа к календарю
-    google_calendar_id VARCHAR,               -- ID календаря Google участника
+    member_email VARCHAR,                     -- Email участника
     archived BOOLEAN DEFAULT false,           -- Архивирован ли участник
     created_at TIMESTAMP DEFAULT NOW()
 );
@@ -48,7 +46,6 @@ CREATE TABLE crew_history (
     member_id INTEGER REFERENCES crew_members(id), -- NULL для crew_created
     member_name VARCHAR,                      -- Имя участника на момент изменения
     member_specialization VARCHAR,            -- Специализация участника
-    member_google_calendar_id VARCHAR,        -- Google Calendar ID
     start_date DATE,                          -- Дата начала работы участника
     end_date DATE,                            -- Дата окончания работы (для удаленных)
     change_description TEXT,                  -- Описание изменения
@@ -136,11 +133,6 @@ INSERT INTO project_crew_snapshots (project_id, crew_id, crew_data, members_data
    - Подсчет проектов через project_crew_snapshots
    - Анализ загрузки по датам проектов
    - История изменений через crew_history
-
-6. ИНТЕГРАЦИЯ С GOOGLE CALENDAR:
-   - Каждая бригада может иметь gcal_id
-   - Каждый участник может иметь google_calendar_id
-   - События создаются при назначении на проекты
 
 СТАТУСЫ БРИГАД:
 - active: Активная бригада

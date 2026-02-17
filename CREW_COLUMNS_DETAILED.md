@@ -13,7 +13,6 @@
 | `address` | TEXT | NULL | Адрес базирования/офиса бригады | "Мюнхен, Шиллерштрассе 15" |
 | `status` | VARCHAR | ENUM, DEFAULT 'active' | Текущий статус бригады | "active", "vacation", "equipment_issue", "unavailable" |
 | `archived` | BOOLEAN | DEFAULT false | Флаг архивирования бригады | true, false |
-| `gcal_id` | VARCHAR | NULL | ID календаря Google для бригады | "calendar_id_from_google" |
 | `created_at` | TIMESTAMP | DEFAULT NOW() | Дата и время создания записи | "2025-01-15 10:30:00" |
 
 ## 2. ТАБЛИЦА CREW_MEMBERS (Участники бригад)
@@ -28,8 +27,7 @@
 | `unique_number` | VARCHAR | NOT NULL | Уникальный номер работника | "WRK-0001", "WRK-0002" |
 | `phone` | VARCHAR | NULL | Личный телефон участника | "+49 171 2345678" |
 | `role` | VARCHAR | DEFAULT 'worker' | Роль в бригаде | "leader", "worker", "specialist" |
-| `member_email` | VARCHAR | NULL | Email для доступа к календарю | "worker@example.com" |
-| `google_calendar_id` | VARCHAR | NULL | ID персонального календаря Google | "primary", "calendar_id" |
+| `member_email` | VARCHAR | NULL | Email участника | "worker@example.com" |
 | `archived` | BOOLEAN | DEFAULT false | Флаг архивирования участника | true, false |
 | `created_at` | TIMESTAMP | DEFAULT NOW() | Дата добавления в систему | "2025-01-15 10:30:00" |
 
@@ -43,7 +41,6 @@
 | `member_id` | INTEGER | NULL, FOREIGN KEY | ID участника (NULL для crew_created) | 1, 2, 3, NULL |
 | `member_name` | VARCHAR | NULL | Имя участника на момент изменения | "Михаэль Шмидт" |
 | `member_specialization` | VARCHAR | NULL | Специализация участника | "Электрик", "Монтажник" |
-| `member_google_calendar_id` | VARCHAR | NULL | Google Calendar ID участника | "primary", "calendar_id" |
 | `start_date` | DATE | NULL | Дата начала работы участника | "2025-01-01" |
 | `end_date` | DATE | NULL | Дата окончания работы | "2025-07-25" |
 | `change_description` | TEXT | NULL | Подробное описание изменения | "Участник Михаэль Шмидт исключен из бригады" |
@@ -69,7 +66,6 @@
   "name": "Montage Team Beta",
   "phone": "+49 172 9876543",
   "firmId": "da75f029-abdb-4afa-bf90-ce591f06971b",
-  "gcalId": null,
   "status": "active",
   "address": "Мюнхен, Германия",
   "leaderName": "Klaus Weber",
@@ -88,8 +84,7 @@
     "lastName": "Шмидт",
     "firstName": "Михаэль",
     "memberEmail": null,
-    "uniqueNumber": "WRK-0004",
-    "googleCalendarId": null
+    "uniqueNumber": "WRK-0004"
   },
   {
     "id": 6,
@@ -99,8 +94,7 @@
     "lastName": "Bujac",
     "firstName": "Iacob",
     "memberEmail": "iasabujak@gmail.com",
-    "uniqueNumber": "TEST-001",
-    "googleCalendarId": "primary"
+    "uniqueNumber": "TEST-001"
   }
 ]
 ```
@@ -111,13 +105,6 @@
 | Столбец | Тип данных | Описание |
 |---------|------------|----------|
 | `crew_id` | INTEGER | FOREIGN KEY на crews.id - назначенная бригада |
-
-### ТАБЛИЦА FIRMS (Фирмы) - настройки интеграции:
-| Столбец | Тип данных | Описание |
-|---------|------------|----------|
-| `gcal_master_id` | VARCHAR | ID корпоративного календаря фирмы |
-| `calendar_event_title` | VARCHAR | Шаблон заголовка события |
-| `calendar_event_description` | TEXT | Шаблон описания события |
 
 ## 6. ИНДЕКСЫ ДЛЯ ОПТИМИЗАЦИИ
 

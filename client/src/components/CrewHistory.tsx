@@ -17,7 +17,6 @@ interface CrewHistoryEntry {
   memberId?: number;
   memberName?: string;
   memberSpecialization?: string;
-  memberGoogleCalendarId?: string;
   startDate?: string;
   endDate?: string;
   changeDescription: string;

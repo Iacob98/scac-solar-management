@@ -47,7 +47,8 @@ export const profiles = pgTable("profiles", {
   first_name: text("first_name"),
   last_name: text("last_name"),
   profile_image_url: text("profile_image_url"),
-  role: text("role", { enum: ["admin", "leiter"] }).notNull().default("leiter"),
+  role: text("role", { enum: ["admin", "leiter", "worker"] }).notNull().default("leiter"),
+  crew_member_id: integer("crew_member_id"), // Link to crew_member for workers
   created_at: timestamp("created_at").defaultNow(),
   updated_at: timestamp("updated_at").defaultNow(),
 });
@@ -61,7 +62,6 @@ export const firms = pgTable("firms", {
   address: text("address"),
   taxId: varchar("tax_id"),
   logoUrl: varchar("logo_url"),
-  // gcalMasterId: varchar("gcal_master_id"), // ID корпоративного календаря фирмы - REMOVED (не существует в БД)
   // Postmark integration fields
   postmarkServerToken: varchar("postmark_server_token"),
   postmarkFromEmail: varchar("postmark_from_email"),
@@ -69,29 +69,6 @@ export const firms = pgTable("firms", {
   // Email template fields
   emailSubjectTemplate: varchar("email_subject_template").default("Счет №{{invoiceNumber}} от {{firmName}}"),
   emailBodyTemplate: text("email_body_template").default("Уважаемый {{clientName}},\n\nВо вложении находится счет №{{invoiceNumber}} за установку солнечных панелей.\n\nС уважением,\n{{firmName}}"),
-  
-  // Google Calendar template fields
-  calendarEventTitle: varchar("calendar_event_title").default("Проект: {{projectId}} - Установка солнечных панелей"),
-  calendarEventDescription: text("calendar_event_description").default(`🏗️ Установка солнечных панелей
-
-📋 Детали проекта:
-• Проект №{{projectId}}
-• Статус: {{status}}
-• Клиент: {{clientName}}
-• Адрес: {{installationAddress}}
-• Телефон: {{clientPhone}}
-
-📦 Ожидание оборудования: {{equipmentExpectedDate}}
-✅ Оборудование поступило: {{equipmentArrivedDate}}
-🚀 Начало работ: {{workStartDate}}
-🏁 Окончание работ: {{workEndDate}}
-📝 Примечания: {{notes}}
-
-📸 Фото-отчёт бригады:
-{{uploadLink}}
-
----
-Система SCAC - Управление проектами`),
   createdAt: timestamp("created_at").defaultNow(),
 });
 
@@ -124,7 +101,6 @@ export const crews = pgTable("crews", {
   address: text("address"),
   status: varchar("status", { enum: ["active", "vacation", "equipment_issue", "unavailable"] }).notNull().default("active"),
   archived: boolean("archived").default(false),
-  gcalId: varchar("gcal_id"), // ID календаря бригады в Google Calendar
   createdAt: timestamp("created_at").defaultNow(),
 });
 
@@ -138,8 +114,11 @@ export const crewMembers = pgTable("crew_members", {
   uniqueNumber: varchar("unique_number").notNull(), // Уникальный номер участника
   phone: varchar("phone"),
   role: varchar("role").default("worker"), // "leader", "worker", "specialist"
-  memberEmail: varchar("member_email"), // Email для доступа к календарю
-  googleCalendarId: varchar("google_calendar_id"), // ID календаря Google участника
+  memberEmail: varchar("member_email"),
+  // Worker Portal authentication fields
+  pin: varchar("pin", { length: 6 }), // 6-digit PIN for worker authentication
+  pinCreatedAt: timestamp("pin_created_at"), // When the PIN was generated
+  authUserId: uuid("auth_user_id"), // Link to Supabase Auth user when worker logs in
   archived: boolean("archived").default(false),
   createdAt: timestamp("created_at").defaultNow(),
 });
@@ -153,7 +132,7 @@ export const projects = pgTable("projects", {
   crewId: integer("crew_id").references(() => crews.id),
   startDate: date("start_date"),
   endDate: date("end_date"),
-  status: varchar("status", { enum: ["planning", "equipment_waiting", "equipment_arrived", "work_scheduled", "work_in_progress", "work_completed", "invoiced", "send_invoice", "invoice_sent", "paid"] })
+  status: varchar("status", { enum: ["planning", "equipment_waiting", "equipment_arrived", "work_scheduled", "work_in_progress", "work_completed", "reclamation", "invoiced", "send_invoice", "invoice_sent", "paid"] })
     .notNull()
     .default("planning"),
   teamNumber: varchar("team_number"),
@@ -290,7 +269,6 @@ export const crewHistory = pgTable("crew_history", {
   memberId: integer("member_id").references(() => crewMembers.id), // null для crew_created
   memberName: varchar("member_name"), // Имя участника на момент изменения
   memberSpecialization: varchar("member_specialization"), // Специализация участника
-  memberGoogleCalendarId: varchar("member_google_calendar_id"), // Google Calendar ID
   startDate: date("start_date"), // Дата начала работы участника
   endDate: date("end_date"), // Дата окончания работы (для удаленных)
   changeDescription: text("change_description"), // Описание изменения
@@ -326,6 +304,59 @@ export const projectShares = pgTable("project_shares", {
   return {
     uniqueShare: unique().on(table.projectId, table.sharedWith),
   };
+});
+
+// Reclamations table - рекламации (претензии по качеству)
+export const reclamations = pgTable("reclamations", {
+  id: serial("id").primaryKey(),
+  projectId: integer("project_id").notNull().references(() => projects.id),
+  firmId: integer("firm_id").notNull().references(() => firms.id),
+
+  // Описание проблемы
+  description: text("description").notNull(),
+  deadline: date("deadline").notNull(),
+
+  // Статус рекламации
+  status: varchar("status", {
+    enum: ["pending", "accepted", "rejected", "in_progress", "completed", "cancelled"]
+  }).notNull().default("pending"),
+
+  // Бригады
+  originalCrewId: integer("original_crew_id").notNull().references(() => crews.id),
+  currentCrewId: integer("current_crew_id").notNull().references(() => crews.id),
+
+  // Кто создал
+  createdBy: uuid("created_by").notNull().references(() => profiles.id),
+  createdAt: timestamp("created_at").defaultNow(),
+
+  // Принятие
+  acceptedBy: integer("accepted_by").references(() => crewMembers.id),
+  acceptedAt: timestamp("accepted_at"),
+
+  // Завершение
+  completedAt: timestamp("completed_at"),
+  completedNotes: text("completed_notes"),
+});
+
+// Reclamation History table - история действий по рекламациям
+export const reclamationHistory = pgTable("reclamation_history", {
+  id: serial("id").primaryKey(),
+  reclamationId: integer("reclamation_id").notNull().references(() => reclamations.id),
+
+  action: varchar("action", {
+    enum: ["created", "assigned", "accepted", "rejected", "reassigned", "completed", "cancelled"]
+  }).notNull(),
+
+  // Кто выполнил действие
+  actionBy: uuid("action_by").references(() => profiles.id),
+  actionByMember: integer("action_by_member").references(() => crewMembers.id),
+
+  // Детали
+  crewId: integer("crew_id").references(() => crews.id),
+  reason: text("reason"),
+  notes: text("notes"),
+
+  createdAt: timestamp("created_at").defaultNow(),
 });
 
 // Relations
@@ -382,6 +413,7 @@ export const projectsRelations = relations(projects, ({ one, many }) => ({
   history: many(projectHistory),
   shares: many(projectShares),
   notes: many(projectNotes),
+  reclamations: many(reclamations),
 }));
 
 export const servicesRelations = relations(services, ({ one }) => ({
@@ -425,6 +457,23 @@ export const projectSharesRelations = relations(projectShares, ({ one }) => ({
 export const projectNotesRelations = relations(projectNotes, ({ one }) => ({
   project: one(projects, { fields: [projectNotes.projectId], references: [projects.id] }),
   user: one(users, { fields: [projectNotes.userId], references: [users.id] }),
+}));
+
+export const reclamationsRelations = relations(reclamations, ({ one, many }) => ({
+  project: one(projects, { fields: [reclamations.projectId], references: [projects.id] }),
+  firm: one(firms, { fields: [reclamations.firmId], references: [firms.id] }),
+  originalCrew: one(crews, { fields: [reclamations.originalCrewId], references: [crews.id] }),
+  currentCrew: one(crews, { fields: [reclamations.currentCrewId], references: [crews.id] }),
+  createdByUser: one(profiles, { fields: [reclamations.createdBy], references: [profiles.id] }),
+  acceptedByMember: one(crewMembers, { fields: [reclamations.acceptedBy], references: [crewMembers.id] }),
+  history: many(reclamationHistory),
+}));
+
+export const reclamationHistoryRelations = relations(reclamationHistory, ({ one }) => ({
+  reclamation: one(reclamations, { fields: [reclamationHistory.reclamationId], references: [reclamations.id] }),
+  actionByUser: one(profiles, { fields: [reclamationHistory.actionBy], references: [profiles.id] }),
+  actionByCrewMember: one(crewMembers, { fields: [reclamationHistory.actionByMember], references: [crewMembers.id] }),
+  crew: one(crews, { fields: [reclamationHistory.crewId], references: [crews.id] }),
 }));
 
 // Schema types
@@ -519,62 +568,67 @@ export const insertCrewHistorySchema = createInsertSchema(crewHistory).omit({
 export type InsertCrewHistory = z.infer<typeof insertCrewHistorySchema>;
 export type CrewHistory = typeof crewHistory.$inferSelect;
 
-// Google Tokens table - хранит OAuth токены фирмы
-export const googleTokens = pgTable("google_tokens", {
+// Notifications table - уведомления для пользователей
+export const notifications = pgTable("notifications", {
   id: serial("id").primaryKey(),
-  firmId: integer("firm_id").notNull().references(() => firms.id).unique(),
-  accessToken: text("access_token").notNull(),
-  refreshToken: text("refresh_token").notNull(),
-  expiry: timestamp("expiry").notNull(),
-  createdAt: timestamp("created_at").defaultNow(),
-  updatedAt: timestamp("updated_at").defaultNow(),
-});
-
-// Google Calendar Settings table - настройки API для каждой фирмы
-export const googleCalendarSettings = pgTable("google_calendar_settings", {
-  id: serial("id").primaryKey(),
-  firmId: integer("firm_id").notNull().references(() => firms.id).unique(),
-  clientId: varchar("client_id").notNull(),
-  clientSecret: varchar("client_secret").notNull(),
-  redirectUri: varchar("redirect_uri").notNull(),
-  masterCalendarId: varchar("master_calendar_id"),
-  createdAt: timestamp("created_at").defaultNow(),
-  updatedAt: timestamp("updated_at").defaultNow(),
-});
-
-// Calendar Logs table - аудит всех операций с Google API
-export const calendarLogs = pgTable("calendar_logs", {
-  id: serial("id").primaryKey(),
-  timestamp: timestamp("timestamp").defaultNow().notNull(),
-  userId: uuid("user_id").notNull().references(() => profiles.id),
-  action: varchar("action").notNull(), // create_event, update_event, delete_event, etc.
+  userId: uuid("user_id").notNull().references(() => profiles.id), // Кому уведомление
   projectId: integer("project_id").references(() => projects.id),
-  eventId: varchar("event_id"), // Google Calendar event ID
-  status: varchar("status", { enum: ["success", "error"] }).notNull(),
-  details: jsonb("details"), // Подробности операции
+  type: varchar("type", {
+    enum: ['file_added', 'note_added', 'status_change', 'report_added', 'reclamation_created']
+  }).notNull(),
+  title: text("title").notNull(),
+  message: text("message").notNull(),
+  link: text("link"), // URL для перехода при клике
+  isRead: boolean("is_read").default(false),
+  sourceUserId: uuid("source_user_id").references(() => profiles.id), // От кого уведомление
   createdAt: timestamp("created_at").defaultNow(),
 });
 
-export const insertGoogleTokenSchema = createInsertSchema(googleTokens).omit({ 
-  id: true, 
-  createdAt: true,
-  updatedAt: true
-});
-export type InsertGoogleToken = z.infer<typeof insertGoogleTokenSchema>;
-export type GoogleToken = typeof googleTokens.$inferSelect;
+export const notificationsRelations = relations(notifications, ({ one }) => ({
+  user: one(profiles, { fields: [notifications.userId], references: [profiles.id] }),
+  project: one(projects, { fields: [notifications.projectId], references: [projects.id] }),
+  sourceUser: one(profiles, { fields: [notifications.sourceUserId], references: [profiles.id] }),
+}));
 
-export const insertGoogleCalendarSettingsSchema = createInsertSchema(googleCalendarSettings).omit({ 
-  id: true, 
+export const insertNotificationSchema = createInsertSchema(notifications).omit({
+  id: true,
   createdAt: true,
-  updatedAt: true 
+  isRead: true
 });
-export type InsertGoogleCalendarSettings = z.infer<typeof insertGoogleCalendarSettingsSchema>;
-export type GoogleCalendarSettings = typeof googleCalendarSettings.$inferSelect;
+export type InsertNotification = z.infer<typeof insertNotificationSchema>;
+export type Notification = typeof notifications.$inferSelect;
 
-export const insertCalendarLogSchema = createInsertSchema(calendarLogs).omit({ 
-  id: true, 
-  timestamp: true,
-  createdAt: true 
+// Reclamation schemas and types
+export const insertReclamationSchema = createInsertSchema(reclamations).omit({
+  id: true,
+  createdAt: true,
+  acceptedAt: true,
+  completedAt: true
 });
-export type InsertCalendarLog = z.infer<typeof insertCalendarLogSchema>;
-export type CalendarLog = typeof calendarLogs.$inferSelect;
+export type InsertReclamation = z.infer<typeof insertReclamationSchema>;
+export type Reclamation = typeof reclamations.$inferSelect;
+
+export const insertReclamationHistorySchema = createInsertSchema(reclamationHistory).omit({
+  id: true,
+  createdAt: true
+});
+export type InsertReclamationHistory = z.infer<typeof insertReclamationHistorySchema>;
+export type ReclamationHistory = typeof reclamationHistory.$inferSelect;
+
+// Zod validation schemas for API
+export const createReclamationSchema = z.object({
+  description: z.string().min(10, "Описание должно быть минимум 10 символов"),
+  deadline: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Формат даты: YYYY-MM-DD"),
+  crewId: z.number().positive("Выберите бригаду"),
+});
+
+export const rejectReclamationSchema = z.object({
+  reason: z.string().min(5, "Укажите причину отклонения"),
+});
+
+export const completeReclamationSchema = z.object({
+  notes: z.string().optional(),
+});
+
+export type ReclamationStatus = "pending" | "accepted" | "rejected" | "in_progress" | "completed" | "cancelled";
+export type ReclamationAction = "created" | "assigned" | "accepted" | "rejected" | "reassigned" | "completed" | "cancelled";

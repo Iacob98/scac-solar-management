@@ -27,16 +27,15 @@
 
 ### Внешние сервисы
 1. **Invoice Ninja** - управление счетами
-2. **Google Calendar** - планирование работ
-3. **SendGrid** - email уведомления
-4. **Postmark** - доставка счетов по email
-5. **Replit OIDC** - авторизация
+2. **SendGrid** - email уведомления
+3. **Postmark** - доставка счетов по email
+4. **Replit OIDC** - авторизация
 
 ---
 
 ## Структура базы данных
 
-### 22 таблицы (PostgreSQL):
+### 19 таблицы (PostgreSQL):
 
 #### Основные таблицы
 1. **users** - пользователи системы
@@ -50,7 +49,6 @@
 3. **firms** - компании/организации
    - Поля: id, name, invoiceNinjaUrl, token, address, taxId, logoUrl
    - Email настройки: postmarkServerToken, postmarkFromEmail, emailSubjectTemplate, emailBodyTemplate
-   - Google Calendar: calendarEventTitle, calendarEventDescription
 
 4. **user_firms** - связь пользователей с фирмами (many-to-many)
 
@@ -58,11 +56,11 @@
    - Поля: id, firmId, ninjaClientId, name, email, address, phone
 
 6. **crews** - бригады рабочих
-   - Поля: id, firmId, name, uniqueNumber, leaderName, phone, address, status, gcalId
+   - Поля: id, firmId, name, uniqueNumber, leaderName, phone, address, status
    - Статусы: "active" | "vacation" | "equipment_issue" | "unavailable"
 
 7. **crew_members** - члены бригады
-   - Поля: id, crewId, firstName, lastName, uniqueNumber, phone, role, memberEmail, googleCalendarId
+   - Поля: id, crewId, firstName, lastName, uniqueNumber, phone, role, memberEmail
    - Роли: "leader" | "worker" | "specialist"
 
 8. **projects** - проекты установки
@@ -103,18 +101,9 @@
     - Поля: id, projectId, sharedBy, sharedWith, permission, createdAt
     - Права: "view" | "edit"
 
-18. **google_calendar_settings** - настройки Google Calendar
-    - Поля: id, firmId, clientId, clientSecret, redirectUri, masterCalendarId
-
-19. **google_tokens** - OAuth2 токены для Google Calendar
-    - Поля: id, firmId, accessToken, refreshToken, expiry, createdAt, updatedAt
-
-20. **calendar_logs** - логи операций с календарем
-    - Поля: id, timestamp, userId, action, projectId, eventId, status, details (jsonb)
-
 #### Legacy таблицы
-21. **project_files** - старая система хранения файлов (заменена на file_storage)
-22. **invoice_queue** - очередь обработки счетов
+18. **project_files** - старая система хранения файлов (заменена на file_storage)
+19. **invoice_queue** - очередь обработки счетов
 
 ---
 
@@ -198,8 +187,7 @@ user: {
 9. **Invoices** - счета и платежи (6 эндпоинтов)
 10. **Files** - загрузка и управление файлами (5 эндпоинтов)
 11. **Reports** - отчеты о выполнении (3 эндпоинта)
-12. **Google Calendar** - интеграция с календарем (8 эндпоинтов)
-13. **Notifications** - email уведомления (3 эндпоинта)
+12. **Notifications** - email уведомления (3 эндпоинта)
 
 ---
 
@@ -215,7 +203,6 @@ user: {
 | `/server/middleware/auth.ts` | Auth middleware | 92 |
 | `/shared/schema.ts` | Drizzle схема БД | 500+ |
 | `/server/services/invoiceNinja.ts` | Invoice Ninja API | 400+ |
-| `/server/services/googleCalendar.ts` | Google Calendar API | 500+ |
 | `/server/services/emailNotifications.ts` | SendGrid emails | 300+ |
 | `/server/services/postmark.ts` | Postmark emails | 123 |
 | `/client/src/App.tsx` | React entry point | 100+ |
@@ -263,8 +250,6 @@ user: {
 - `INVOICE_NINJA_URL` - URL Invoice Ninja (или в firms)
 - `INVOICE_NINJA_API_KEY` - API ключ (или в firms)
 - `SENDGRID_API_KEY` - SendGrid для уведомлений
-- `GOOGLE_CLIENT_ID` - Google OAuth (или в google_calendar_settings)
-- `GOOGLE_CLIENT_SECRET` - Google OAuth secret
 
 ---
 
@@ -307,7 +292,7 @@ user: {
 ## Что нужно мигрировать
 
 ### 1. База данных: Neon → Supabase
-- 22 таблицы
+- 19 таблицы
 - Все индексы
 - Foreign keys
 - Enum типы

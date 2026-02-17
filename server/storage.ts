@@ -16,6 +16,9 @@ import {
   projectNotes,
   projectCrewSnapshots,
   crewHistory,
+  reclamations,
+  reclamationHistory,
+  notifications,
   type User,
   type UpsertUser,
   type Firm,
@@ -46,9 +49,15 @@ import {
   type InsertProjectCrewSnapshot,
   type CrewHistory,
   type InsertCrewHistory,
+  type Reclamation,
+  type InsertReclamation,
+  type ReclamationHistory,
+  type InsertReclamationHistory,
+  type Notification,
+  type InsertNotification,
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, and, desc, sql, gte, lte } from "drizzle-orm";
+import { eq, and, or, desc, sql, gte, lte } from "drizzle-orm";
 import crypto from 'crypto';
 import path from 'path';
 
@@ -104,6 +113,12 @@ export interface IStorage {
       inProgress: number;
       avgDurationDays: number;
       overdueShare: number;
+      reclamations: {
+        total: number;
+        pending: number;
+        completed: number;
+        rejected: number;
+      };
     };
     charts: {
       completedByMonth: Array<{ month: string; count: number }>;
@@ -196,6 +211,38 @@ export interface IStorage {
   getCrewHistory(crewId: number): Promise<CrewHistory[]>;
   logCrewMemberAdded(crewId: number, member: CrewMember, startDate: string, createdBy: string): Promise<void>;
   logCrewMemberRemoved(crewId: number, memberName: string, specialization: string, startDate: string, endDate: string, createdBy: string): Promise<void>;
+
+  // Reclamation operations
+  createReclamation(data: {
+    projectId: number;
+    firmId: number;
+    description: string;
+    deadline: string;
+    crewId: number;
+    createdBy: string;
+  }): Promise<Reclamation>;
+  getReclamationById(id: number): Promise<Reclamation | undefined>;
+  getReclamationsByFirmId(firmId: number): Promise<Reclamation[]>;
+  getReclamationsByProjectId(projectId: number): Promise<Reclamation[]>;
+  getReclamationsForCrew(crewId: number): Promise<{
+    assigned: Reclamation[];
+    available: Reclamation[];
+  }>;
+  updateReclamation(id: number, updates: Partial<InsertReclamation>): Promise<Reclamation>;
+  acceptReclamation(id: number, memberId: number): Promise<Reclamation>;
+  rejectReclamation(id: number, memberId: number, reason: string): Promise<Reclamation>;
+  completeReclamation(id: number, notes?: string): Promise<Reclamation>;
+  cancelReclamation(id: number): Promise<Reclamation>;
+  addReclamationHistoryEntry(entry: InsertReclamationHistory): Promise<ReclamationHistory>;
+  getReclamationHistory(reclamationId: number): Promise<ReclamationHistory[]>;
+
+  // Notification operations
+  createNotification(notification: InsertNotification): Promise<Notification>;
+  getUserNotifications(userId: string, limit?: number): Promise<Notification[]>;
+  markNotificationRead(id: number): Promise<Notification>;
+  markAllNotificationsRead(userId: string): Promise<void>;
+  getUnreadNotificationCount(userId: string): Promise<number>;
+  deleteNotification(id: number): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -209,6 +256,7 @@ export class DatabaseStorage implements IStorage {
         lastName: profiles.last_name,
         profileImageUrl: profiles.profile_image_url,
         role: profiles.role,
+        crew_member_id: profiles.crew_member_id,
         createdAt: profiles.created_at,
         updatedAt: profiles.updated_at,
       })
@@ -290,8 +338,6 @@ export class DatabaseStorage implements IStorage {
         postmarkMessageStream: firms.postmarkMessageStream,
         emailSubjectTemplate: firms.emailSubjectTemplate,
         emailBodyTemplate: firms.emailBodyTemplate,
-        calendarEventTitle: firms.calendarEventTitle,
-        calendarEventDescription: firms.calendarEventDescription,
       })
       .from(firms)
       .orderBy(desc(firms.createdAt));
@@ -313,8 +359,6 @@ export class DatabaseStorage implements IStorage {
         postmarkMessageStream: firms.postmarkMessageStream,
         emailSubjectTemplate: firms.emailSubjectTemplate,
         emailBodyTemplate: firms.emailBodyTemplate,
-        calendarEventTitle: firms.calendarEventTitle,
-        calendarEventDescription: firms.calendarEventDescription,
       })
       .from(firms)
       .where(eq(firms.id, id));
@@ -337,8 +381,6 @@ export class DatabaseStorage implements IStorage {
         postmarkMessageStream: firms.postmarkMessageStream,
         emailSubjectTemplate: firms.emailSubjectTemplate,
         emailBodyTemplate: firms.emailBodyTemplate,
-        calendarEventTitle: firms.calendarEventTitle,
-        calendarEventDescription: firms.calendarEventDescription,
       })
       .from(firms)
       .innerJoin(userFirms, eq(firms.id, userFirms.firmId))
@@ -538,6 +580,12 @@ export class DatabaseStorage implements IStorage {
       inProgress: number;
       avgDurationDays: number;
       overdueShare: number;
+      reclamations: {
+        total: number;
+        pending: number;
+        completed: number;
+        rejected: number;
+      };
     };
     charts: {
       completedByMonth: Array<{ month: string; count: number }>;
@@ -546,6 +594,8 @@ export class DatabaseStorage implements IStorage {
   }> {
     const fromDate = new Date(from);
     const toDate = new Date(to);
+    // Set toDate to end of day for proper timestamp comparison
+    toDate.setHours(23, 59, 59, 999);
 
     // Get completed projects
     const completedProjects = await db
@@ -601,6 +651,28 @@ export class DatabaseStorage implements IStorage {
 
     const overdueShare = completedProjects.length > 0 ? overdueCount / completedProjects.length : 0;
 
+    // Get reclamations for this crew (as original or current crew)
+    const crewReclamations = await db
+      .select()
+      .from(reclamations)
+      .where(
+        and(
+          or(
+            eq(reclamations.originalCrewId, crewId),
+            eq(reclamations.currentCrewId, crewId)
+          ),
+          gte(reclamations.createdAt, fromDate),
+          lte(reclamations.createdAt, toDate)
+        )
+      );
+
+    const reclamationStats = {
+      total: crewReclamations.length,
+      pending: crewReclamations.filter(r => r.status === 'pending' || r.status === 'accepted' || r.status === 'in_progress').length,
+      completed: crewReclamations.filter(r => r.status === 'completed').length,
+      rejected: crewReclamations.filter(r => r.status === 'rejected').length,
+    };
+
     // Generate charts data
     const completedByMonth: Array<{ month: string; count: number }> = [];
     const avgDurationByMonth: Array<{ month: string; days: number }> = [];
@@ -645,7 +717,8 @@ export class DatabaseStorage implements IStorage {
         completedObjects: completedProjects.length,
         inProgress: activeProjects.length,
         avgDurationDays: Math.round(avgDurationDays * 10) / 10,
-        overdueShare: Math.round(overdueShare * 100) / 100
+        overdueShare: Math.round(overdueShare * 100) / 100,
+        reclamations: reclamationStats
       },
       charts: {
         completedByMonth,
@@ -993,6 +1066,7 @@ export class DatabaseStorage implements IStorage {
         userFirstName: profiles.first_name,
         userLastName: profiles.last_name,
         userEmail: profiles.email,
+        userProfileImageUrl: profiles.profile_image_url,
         // Добавляем приоритет примечания для записей типа note_added
         notePriority: projectNotes.priority,
       })
@@ -1096,7 +1170,6 @@ export class DatabaseStorage implements IStorage {
           phone: crew.phone,
           address: crew.address,
           status: crew.status,
-          gcalId: crew.gcalId,
         },
         membersData: members.map(member => ({
           id: member.id,
@@ -1107,7 +1180,6 @@ export class DatabaseStorage implements IStorage {
           phone: member.phone,
           role: member.role,
           memberEmail: member.memberEmail,
-          googleCalendarId: member.googleCalendarId,
         })),
         createdBy: userId,
       })
@@ -1188,9 +1260,25 @@ export class DatabaseStorage implements IStorage {
       .select()
       .from(projects)
       .where(eq(projects.id, projectId));
-    
-    if (project?.leiterId === userId) {
+
+    if (!project) {
+      return false;
+    }
+
+    if (project.leiterId === userId) {
       return true;
+    }
+
+    // Проверяем, является ли пользователь worker из бригады проекта
+    if (user?.role === 'worker' && user.crew_member_id && project.crewId) {
+      const [crewMember] = await db
+        .select({ crewId: crewMembers.crewId })
+        .from(crewMembers)
+        .where(eq(crewMembers.id, user.crew_member_id));
+
+      if (crewMember && crewMember.crewId === project.crewId) {
+        return true;
+      }
     }
 
     // Проверяем, есть ли общий доступ к проекту
@@ -1311,7 +1399,6 @@ export class DatabaseStorage implements IStorage {
       memberId: member.id,
       memberName: `${member.firstName} ${member.lastName}`,
       memberSpecialization: member.specialization,
-      memberGoogleCalendarId: member.googleCalendarId,
       startDate,
       changeDescription: `Участник ${member.firstName} ${member.lastName} добавлен в бригаду`,
       createdBy,
@@ -1329,6 +1416,276 @@ export class DatabaseStorage implements IStorage {
       changeDescription: `Участник ${memberName} исключен из бригады (работал с ${startDate} по ${endDate})`,
       createdBy,
     });
+  }
+
+  // Reclamation operations
+  async createReclamation(data: {
+    projectId: number;
+    firmId: number;
+    description: string;
+    deadline: string;
+    crewId: number;
+    createdBy: string;
+  }): Promise<Reclamation> {
+    const [reclamation] = await db
+      .insert(reclamations)
+      .values({
+        projectId: data.projectId,
+        firmId: data.firmId,
+        description: data.description,
+        deadline: data.deadline,
+        status: 'pending',
+        originalCrewId: data.crewId,
+        currentCrewId: data.crewId,
+        createdBy: data.createdBy,
+      })
+      .returning();
+
+    // Add history entry
+    await this.addReclamationHistoryEntry({
+      reclamationId: reclamation.id,
+      action: 'created',
+      actionBy: data.createdBy,
+      crewId: data.crewId,
+      notes: data.description,
+    });
+
+    return reclamation;
+  }
+
+  async getReclamationById(id: number): Promise<Reclamation | undefined> {
+    const [reclamation] = await db
+      .select()
+      .from(reclamations)
+      .where(eq(reclamations.id, id));
+    return reclamation;
+  }
+
+  async getReclamationsByFirmId(firmId: number): Promise<Reclamation[]> {
+    return await db
+      .select()
+      .from(reclamations)
+      .where(eq(reclamations.firmId, firmId))
+      .orderBy(desc(reclamations.createdAt));
+  }
+
+  async getReclamationsByProjectId(projectId: number): Promise<Reclamation[]> {
+    return await db
+      .select()
+      .from(reclamations)
+      .where(eq(reclamations.projectId, projectId))
+      .orderBy(desc(reclamations.createdAt));
+  }
+
+  async getReclamationsForCrew(crewId: number): Promise<{
+    assigned: Reclamation[];
+    available: Reclamation[];
+  }> {
+    // Рекламации, назначенные этой бригаде и ожидающие ответа
+    const assigned = await db
+      .select()
+      .from(reclamations)
+      .where(
+        and(
+          eq(reclamations.currentCrewId, crewId),
+          eq(reclamations.status, 'pending')
+        )
+      )
+      .orderBy(desc(reclamations.createdAt));
+
+    // Рекламации, отклонённые оригинальной бригадой - доступны для взятия
+    const available = await db
+      .select()
+      .from(reclamations)
+      .where(
+        and(
+          eq(reclamations.status, 'rejected'),
+          sql`${reclamations.originalCrewId} != ${crewId}` // не наша оригинальная
+        )
+      )
+      .orderBy(desc(reclamations.createdAt));
+
+    return { assigned, available };
+  }
+
+  async updateReclamation(id: number, updates: Partial<InsertReclamation>): Promise<Reclamation> {
+    const [updated] = await db
+      .update(reclamations)
+      .set(updates)
+      .where(eq(reclamations.id, id))
+      .returning();
+    return updated;
+  }
+
+  async acceptReclamation(id: number, memberId: number): Promise<Reclamation> {
+    const [updated] = await db
+      .update(reclamations)
+      .set({
+        status: 'accepted',
+        acceptedBy: memberId,
+        acceptedAt: new Date(),
+      })
+      .where(eq(reclamations.id, id))
+      .returning();
+
+    // Add history entry
+    await this.addReclamationHistoryEntry({
+      reclamationId: id,
+      action: 'accepted',
+      actionByMember: memberId,
+      crewId: updated.currentCrewId,
+    });
+
+    return updated;
+  }
+
+  async rejectReclamation(id: number, memberId: number, reason: string): Promise<Reclamation> {
+    const [updated] = await db
+      .update(reclamations)
+      .set({
+        status: 'rejected',
+      })
+      .where(eq(reclamations.id, id))
+      .returning();
+
+    // Add history entry
+    await this.addReclamationHistoryEntry({
+      reclamationId: id,
+      action: 'rejected',
+      actionByMember: memberId,
+      crewId: updated.currentCrewId,
+      reason: reason,
+    });
+
+    return updated;
+  }
+
+  async completeReclamation(id: number, notes?: string): Promise<Reclamation> {
+    const [updated] = await db
+      .update(reclamations)
+      .set({
+        status: 'completed',
+        completedAt: new Date(),
+        completedNotes: notes,
+      })
+      .where(eq(reclamations.id, id))
+      .returning();
+
+    // Add history entry
+    await this.addReclamationHistoryEntry({
+      reclamationId: id,
+      action: 'completed',
+      crewId: updated.currentCrewId,
+      notes: notes,
+    });
+
+    return updated;
+  }
+
+  async cancelReclamation(id: number): Promise<Reclamation> {
+    const [updated] = await db
+      .update(reclamations)
+      .set({
+        status: 'cancelled',
+      })
+      .where(eq(reclamations.id, id))
+      .returning();
+
+    // Add history entry
+    await this.addReclamationHistoryEntry({
+      reclamationId: id,
+      action: 'cancelled',
+    });
+
+    return updated;
+  }
+
+  async addReclamationHistoryEntry(entry: InsertReclamationHistory): Promise<ReclamationHistory> {
+    const [historyEntry] = await db
+      .insert(reclamationHistory)
+      .values(entry)
+      .returning();
+    return historyEntry;
+  }
+
+  async getReclamationHistory(reclamationId: number): Promise<ReclamationHistory[]> {
+    return await db
+      .select()
+      .from(reclamationHistory)
+      .where(eq(reclamationHistory.reclamationId, reclamationId))
+      .orderBy(desc(reclamationHistory.createdAt));
+  }
+
+  // Notification operations
+  async createNotification(notification: InsertNotification): Promise<Notification> {
+    const [created] = await db
+      .insert(notifications)
+      .values(notification)
+      .returning();
+    return created;
+  }
+
+  async getUserNotifications(userId: string, limit: number = 50): Promise<Notification[]> {
+    return await db
+      .select({
+        id: notifications.id,
+        userId: notifications.userId,
+        projectId: notifications.projectId,
+        type: notifications.type,
+        title: notifications.title,
+        message: notifications.message,
+        link: notifications.link,
+        isRead: notifications.isRead,
+        sourceUserId: notifications.sourceUserId,
+        createdAt: notifications.createdAt,
+        // Добавляем информацию об отправителе
+        sourceUserFirstName: profiles.first_name,
+        sourceUserLastName: profiles.last_name,
+        sourceUserProfileImage: profiles.profile_image_url,
+      })
+      .from(notifications)
+      .leftJoin(profiles, eq(notifications.sourceUserId, profiles.id))
+      .where(eq(notifications.userId, userId))
+      .orderBy(desc(notifications.createdAt))
+      .limit(limit);
+  }
+
+  async markNotificationRead(id: number): Promise<Notification> {
+    const [updated] = await db
+      .update(notifications)
+      .set({ isRead: true })
+      .where(eq(notifications.id, id))
+      .returning();
+    return updated;
+  }
+
+  async markAllNotificationsRead(userId: string): Promise<void> {
+    await db
+      .update(notifications)
+      .set({ isRead: true })
+      .where(
+        and(
+          eq(notifications.userId, userId),
+          eq(notifications.isRead, false)
+        )
+      );
+  }
+
+  async getUnreadNotificationCount(userId: string): Promise<number> {
+    const [result] = await db
+      .select({ count: sql<number>`count(*)::int` })
+      .from(notifications)
+      .where(
+        and(
+          eq(notifications.userId, userId),
+          eq(notifications.isRead, false)
+        )
+      );
+    return result?.count || 0;
+  }
+
+  async deleteNotification(id: number): Promise<void> {
+    await db.delete(notifications).where(eq(notifications.id, id));
   }
 }
 

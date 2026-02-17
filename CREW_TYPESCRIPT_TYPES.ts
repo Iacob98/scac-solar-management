@@ -33,7 +33,6 @@ export const CrewSchema = z.object({
   address: z.string().nullable(),
   status: CrewStatus,
   archived: z.boolean(),
-  gcalId: z.string().nullable(),
   createdAt: z.date(),
 });
 
@@ -50,7 +49,6 @@ export const CrewMemberSchema = z.object({
   phone: z.string().nullable(),
   role: MemberRole,
   memberEmail: z.string().email().nullable(),
-  googleCalendarId: z.string().nullable(),
   archived: z.boolean(),
   createdAt: z.date(),
 });
@@ -65,7 +63,6 @@ export const CrewHistorySchema = z.object({
   memberId: z.number().nullable(),
   memberName: z.string().nullable(),
   memberSpecialization: z.string().nullable(),
-  memberGoogleCalendarId: z.string().nullable(),
   startDate: z.date().nullable(),
   endDate: z.date().nullable(),
   changeDescription: z.string().nullable(),
@@ -143,7 +140,6 @@ export const CreateCrewMemberSchema = z.object({
   phone: z.string().optional(),
   address: z.string().optional(),
   memberEmail: z.string().email().optional(),
-  googleCalendarId: z.string().optional(),
 });
 
 export type CreateCrewMemberInput = z.infer<typeof CreateCrewMemberSchema>;
@@ -207,31 +203,6 @@ export const CrewWorkloadSchema = z.object({
 });
 
 export type CrewWorkload = z.infer<typeof CrewWorkloadSchema>;
-
-// -----------------------------------------------------------------------------
-// ТИПЫ ДЛЯ КАЛЕНДАРНОЙ ИНТЕГРАЦИИ
-// -----------------------------------------------------------------------------
-
-export const CalendarEventSchema = z.object({
-  title: z.string(),
-  description: z.string().optional(),
-  startDate: z.date(),
-  endDate: z.date(),
-  attendees: z.array(z.string().email()).optional(),
-});
-
-export type CalendarEvent = z.infer<typeof CalendarEventSchema>;
-
-export const CreateCalendarEventSchema = z.object({
-  crewId: z.number(),
-  projectId: z.number(),
-  title: z.string(),
-  description: z.string().optional(),
-  startDate: z.string().or(z.date()),
-  endDate: z.string().or(z.date()),
-});
-
-export type CreateCalendarEventInput = z.infer<typeof CreateCalendarEventSchema>;
 
 // -----------------------------------------------------------------------------
 // ТИПЫ ДЛЯ ОТВЕТОВ API
@@ -375,6 +346,4 @@ export const schemas = {
   AssignCrewToProject: AssignCrewToProjectSchema,
   CrewFilters: CrewFiltersSchema,
   CrewMemberFilters: CrewMemberFiltersSchema,
-  CalendarEvent: CalendarEventSchema,
-  CreateCalendarEvent: CreateCalendarEventSchema,
 } as const;

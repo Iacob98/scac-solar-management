@@ -140,8 +140,6 @@ CREATE TABLE public.firms (
   postmark_message_stream TEXT DEFAULT 'transactional',
   email_subject_template TEXT DEFAULT 'Счет №{{invoiceNumber}} от {{firmName}}',
   email_body_template TEXT,
-  calendar_event_title TEXT DEFAULT 'Проект: {{projectId}} - Установка солнечных панелей',
-  calendar_event_description TEXT,
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
@@ -175,7 +173,6 @@ CREATE TABLE public.crews (
   phone TEXT,
   address TEXT,
   status TEXT DEFAULT 'active' CHECK (status IN ('active', 'vacation', 'equipment_issue', 'unavailable')),
-  gcal_id TEXT,
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
@@ -190,7 +187,6 @@ CREATE TABLE public.crew_members (
   phone TEXT,
   role TEXT DEFAULT 'worker' CHECK (role IN ('leader', 'worker', 'specialist')),
   member_email TEXT,
-  google_calendar_id TEXT,
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
@@ -301,7 +297,6 @@ CREATE TABLE public.crew_history (
   member_id INTEGER,
   member_name TEXT,
   member_specialization TEXT,
-  member_google_calendar_id TEXT,
   start_date DATE,
   end_date DATE,
   change_description TEXT,
@@ -328,40 +323,6 @@ CREATE TABLE public.project_shares (
   permission TEXT DEFAULT 'view' CHECK (permission IN ('view', 'edit')),
   created_at TIMESTAMPTZ DEFAULT NOW(),
   UNIQUE(project_id, shared_with)
-);
-
--- 17. Таблица google_calendar_settings
-CREATE TABLE public.google_calendar_settings (
-  id SERIAL PRIMARY KEY,
-  firm_id INTEGER REFERENCES public.firms(id) ON DELETE CASCADE,
-  client_id TEXT,
-  client_secret TEXT,
-  redirect_uri TEXT,
-  master_calendar_id TEXT,
-  created_at TIMESTAMPTZ DEFAULT NOW()
-);
-
--- 18. Таблица google_tokens
-CREATE TABLE public.google_tokens (
-  id SERIAL PRIMARY KEY,
-  firm_id INTEGER REFERENCES public.firms(id) ON DELETE CASCADE,
-  access_token TEXT,
-  refresh_token TEXT,
-  expiry BIGINT,
-  created_at TIMESTAMPTZ DEFAULT NOW(),
-  updated_at TIMESTAMPTZ DEFAULT NOW()
-);
-
--- 19. Таблица calendar_logs
-CREATE TABLE public.calendar_logs (
-  id SERIAL PRIMARY KEY,
-  timestamp TIMESTAMPTZ DEFAULT NOW(),
-  user_id UUID REFERENCES public.profiles(id) ON DELETE SET NULL,
-  action TEXT,
-  project_id INTEGER REFERENCES public.projects(id) ON DELETE SET NULL,
-  event_id TEXT,
-  status TEXT,
-  details JSONB
 );
 
 -- Legacy tables (можно не мигрировать, если не используются)
@@ -523,9 +484,7 @@ async function migrateFirms() {
       postmark_from_email: f.postmarkFromEmail,
       postmark_message_stream: f.postmarkMessageStream,
       email_subject_template: f.emailSubjectTemplate,
-      email_body_template: f.emailBodyTemplate,
-      calendar_event_title: f.calendarEventTitle,
-      calendar_event_description: f.calendarEventDescription
+      email_body_template: f.emailBodyTemplate
     })));
 
   if (error) console.error('Error migrating firms:', error);
@@ -1133,8 +1092,6 @@ VITE_SUPABASE_ANON_KEY=eyJxxx...
 INVOICE_NINJA_URL=
 INVOICE_NINJA_API_KEY=
 SENDGRID_API_KEY=
-GOOGLE_CLIENT_ID=
-GOOGLE_CLIENT_SECRET=
 
 # App settings
 NODE_ENV=development

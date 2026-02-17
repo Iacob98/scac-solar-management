@@ -114,42 +114,6 @@ export interface Localization {
     };
   };
   
-  // Google Calendar
-  googleCalendar: {
-    title: string;
-    connect: string;
-    disconnect: string;
-    settings: string;
-    status: {
-      connected: string;
-      disconnected: string;
-      hasTokens: string;
-      hasMasterCalendar: string;
-    };
-    setup: {
-      title: string;
-      step1: string;
-      step2: string;
-      step3: string;
-      step4: string;
-      clientId: string;
-      clientSecret: string;
-      redirectUri: string;
-      copyUri: string;
-      errors: {
-        uriNotAdded: string;
-        incorrectUrl: string;
-        notInProduction: string;
-      };
-    };
-    calendar: {
-      corporate: string;
-      crew: string;
-      createCalendar: string;
-      syncProject: string;
-    };
-  };
-  
   // Настройки
   settings: {
     title: string;
@@ -321,42 +285,6 @@ export const locales: Record<Language, Localization> = {
       },
     },
     
-    // Google Calendar
-    googleCalendar: {
-      title: 'Google Calendar',
-      connect: 'Подключить Google Calendar',
-      disconnect: 'Отключить',
-      settings: 'Настройки API',
-      status: {
-        connected: 'Подключен',
-        disconnected: 'Отключен',
-        hasTokens: 'OAuth подключение',
-        hasMasterCalendar: 'Корпоративный календарь',
-      },
-      setup: {
-        title: 'Настройка Google Cloud Console',
-        step1: 'Создайте проект в Google Cloud Console',
-        step2: 'Включите Google Calendar API',
-        step3: 'Создайте OAuth 2.0 учетные данные',
-        step4: 'Настройте Redirect URI',
-        clientId: 'Client ID',
-        clientSecret: 'Client Secret',
-        redirectUri: 'Redirect URI',
-        copyUri: 'Копировать',
-        errors: {
-          uriNotAdded: 'Redirect URI не добавлен в Google Cloud Console',
-          incorrectUrl: 'Неточное соответствие URL (проверьте https и путь)',
-          notInProduction: 'Проект не находится в режиме "In production" для внешних пользователей',
-        },
-      },
-      calendar: {
-        corporate: 'Корпоративный календарь',
-        crew: 'Календарь бригады',
-        createCalendar: 'Создать календарь',
-        syncProject: 'Синхронизировать проект',
-      },
-    },
-    
     // Настройки
     settings: {
       title: 'Настройки',
@@ -524,42 +452,6 @@ export const locales: Record<Language, Localization> = {
         date: 'Date',
         dueDate: 'Due Date',
         status: 'Status',
-      },
-    },
-    
-    // Google Calendar
-    googleCalendar: {
-      title: 'Google Calendar',
-      connect: 'Connect Google Calendar',
-      disconnect: 'Disconnect',
-      settings: 'API Settings',
-      status: {
-        connected: 'Connected',
-        disconnected: 'Disconnected',
-        hasTokens: 'OAuth Connection',
-        hasMasterCalendar: 'Corporate Calendar',
-      },
-      setup: {
-        title: 'Google Cloud Console Setup',
-        step1: 'Create a project in Google Cloud Console',
-        step2: 'Enable Google Calendar API',
-        step3: 'Create OAuth 2.0 credentials',
-        step4: 'Configure Redirect URI',
-        clientId: 'Client ID',
-        clientSecret: 'Client Secret',
-        redirectUri: 'Redirect URI',
-        copyUri: 'Copy',
-        errors: {
-          uriNotAdded: 'Redirect URI not added to Google Cloud Console',
-          incorrectUrl: 'URL mismatch (check https and path)',
-          notInProduction: 'Project not in "In production" mode for external users',
-        },
-      },
-      calendar: {
-        corporate: 'Corporate Calendar',
-        crew: 'Crew Calendar',
-        createCalendar: 'Create Calendar',
-        syncProject: 'Sync Project',
       },
     },
     

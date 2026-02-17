@@ -17,7 +17,6 @@ CREATE TABLE crews (
     status CHARACTER VARYING DEFAULT 'active'::character varying
         CHECK (status IN ('active', 'vacation', 'equipment_issue', 'unavailable')),
     archived BOOLEAN DEFAULT false,
-    gcal_id CHARACTER VARYING,
     created_at TIMESTAMP WITHOUT TIME ZONE DEFAULT now()
 );
 
@@ -40,7 +39,6 @@ CREATE TABLE crew_members (
     role CHARACTER VARYING(50) DEFAULT 'worker'::character varying
         CHECK (role IN ('leader', 'worker', 'specialist')),
     member_email CHARACTER VARYING,
-    google_calendar_id CHARACTER VARYING,
     archived BOOLEAN DEFAULT false,
     created_at TIMESTAMP WITHOUT TIME ZONE DEFAULT now()
 );
@@ -65,7 +63,6 @@ CREATE TABLE crew_history (
     member_id INTEGER REFERENCES crew_members(id),
     member_name CHARACTER VARYING,
     member_specialization CHARACTER VARYING,
-    member_google_calendar_id CHARACTER VARYING,
     start_date DATE,
     end_date DATE,
     change_description TEXT,
@@ -112,7 +109,6 @@ CREATE INDEX idx_project_crew_snapshots_members_data ON project_crew_snapshots U
   "name": "Montage Team Beta",
   "phone": "+49 172 9876543",
   "firmId": "da75f029-abdb-4afa-bf90-ce591f06971b",
-  "gcalId": null,
   "status": "active",
   "address": "Мюнхен, Германия",
   "leaderName": "Klaus Weber",
@@ -134,7 +130,6 @@ CREATE INDEX idx_project_crew_snapshots_members_data ON project_crew_snapshots U
     "firstName": "Михаэль",
     "memberEmail": null,
     "uniqueNumber": "WRK-0004",
-    "googleCalendarId": null,
     "archived": false,
     "createdAt": "2025-01-10T09:15:00.000Z"
   },
@@ -147,7 +142,6 @@ CREATE INDEX idx_project_crew_snapshots_members_data ON project_crew_snapshots U
     "firstName": "Iacob",
     "memberEmail": "iasabujak@gmail.com",
     "uniqueNumber": "TEST-001",
-    "googleCalendarId": "primary",
     "archived": false,
     "createdAt": "2024-12-20T14:20:00.000Z"
   }
@@ -266,7 +260,6 @@ BEGIN
                     'role', cm.role,
                     'phone', cm.phone,
                     'memberEmail', cm.member_email,
-                    'googleCalendarId', cm.google_calendar_id,
                     'address', cm.address,
                     'archived', cm.archived,
                     'createdAt', cm.created_at
@@ -277,8 +270,8 @@ BEGIN
     FROM crews c
     LEFT JOIN crew_members cm ON c.id = cm.crew_id AND cm.archived = false
     WHERE c.id = crew_id_param AND c.archived = false
-    GROUP BY c.id, c.firm_id, c.name, c.unique_number, c.leader_name, 
-             c.phone, c.address, c.status, c.archived, c.gcal_id, c.created_at;
+    GROUP BY c.id, c.firm_id, c.name, c.unique_number, c.leader_name,
+             c.phone, c.address, c.status, c.archived, c.created_at;
 END;
 $$ LANGUAGE plpgsql;
 
@@ -335,8 +328,8 @@ LEFT JOIN crew_members cm ON c.id = cm.crew_id
 LEFT JOIN projects p ON c.id = p.crew_id
 LEFT JOIN project_crew_snapshots pcs ON c.id = pcs.crew_id
 WHERE c.archived = false
-GROUP BY c.id, c.firm_id, c.name, c.unique_number, c.leader_name, c.phone, 
-         c.address, c.status, c.archived, c.gcal_id, c.created_at, f.name;
+GROUP BY c.id, c.firm_id, c.name, c.unique_number, c.leader_name, c.phone,
+         c.address, c.status, c.archived, c.created_at, f.name;
 
 -- Представление для истории бригад с именами пользователей
 CREATE OR REPLACE VIEW crew_history_detailed AS

@@ -45,7 +45,6 @@
   - invoices, file_storage, project_reports
   - project_notes, project_history, crew_history
   - project_crew_snapshots, project_shares
-  - google_calendar_settings, google_tokens, calendar_logs
 - [x] Проверены триггеры и RLS политики
 
 ### Фаза 3: Миграция авторизации (✅ ЗАВЕРШЕНА)
