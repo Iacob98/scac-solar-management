@@ -362,7 +362,7 @@ export class DatabaseStorage implements IStorage {
         emailBodyTemplate: firms.emailBodyTemplate,
       })
       .from(firms)
-      .where(eq(firms.id, id));
+      .where(eq(firms.id, Number(id)));
     return firm;
   }
 
@@ -397,7 +397,7 @@ export class DatabaseStorage implements IStorage {
     const [updated] = await db
       .update(firms)
       .set(firmData)
-      .where(eq(firms.id, firmId))
+      .where(eq(firms.id, Number(firmId)))
       .returning();
     
     if (!updated) {
@@ -408,13 +408,13 @@ export class DatabaseStorage implements IStorage {
   }
 
   async assignUserToFirm(userId: string, firmId: string): Promise<void> {
-    await db.insert(userFirms).values({ userId, firmId }).onConflictDoNothing();
+    await db.insert(userFirms).values({ userId, firmId: Number(firmId) }).onConflictDoNothing();
   }
 
   async removeUserFromFirm(userId: string, firmId: string): Promise<void> {
     await db.delete(userFirms).where(and(
       eq(userFirms.userId, userId),
-      eq(userFirms.firmId, firmId)
+      eq(userFirms.firmId, Number(firmId))
     ));
   }
 
@@ -433,14 +433,14 @@ export class DatabaseStorage implements IStorage {
       })
       .from(profiles)
       .innerJoin(userFirms, eq(profiles.id, userFirms.userId))
-      .where(eq(userFirms.firmId, firmId));
+      .where(eq(userFirms.firmId, Number(firmId)));
   }
 
   async hasUserFirmAccess(userId: string, firmId: string): Promise<boolean> {
     const [access] = await db
       .select({ userId: userFirms.userId })
       .from(userFirms)
-      .where(and(eq(userFirms.userId, userId), eq(userFirms.firmId, firmId)))
+      .where(and(eq(userFirms.userId, userId), eq(userFirms.firmId, Number(firmId))))
       .limit(1);
     return !!access;
   }
@@ -450,7 +450,7 @@ export class DatabaseStorage implements IStorage {
     return await db
       .select()
       .from(clients)
-      .where(eq(clients.firmId, firmId))
+      .where(eq(clients.firmId, Number(firmId)))
       .orderBy(desc(clients.createdAt));
   }
 
@@ -471,7 +471,7 @@ export class DatabaseStorage implements IStorage {
     const [client] = await db
       .select()
       .from(clients)
-      .where(and(eq(clients.firmId, firmId), eq(clients.ninjaClientId, ninjaClientId)));
+      .where(and(eq(clients.firmId, Number(firmId)), eq(clients.ninjaClientId, ninjaClientId)));
     return client;
   }
 
@@ -493,7 +493,7 @@ export class DatabaseStorage implements IStorage {
     return await db
       .select()
       .from(crews)
-      .where(eq(crews.firmId, firmId))
+      .where(eq(crews.firmId, Number(firmId)))
       .orderBy(desc(crews.createdAt));
   }
 
@@ -792,7 +792,7 @@ export class DatabaseStorage implements IStorage {
     return await db
       .select()
       .from(projects)
-      .where(eq(projects.firmId, firmId))
+      .where(eq(projects.firmId, Number(firmId)))
       .orderBy(desc(projects.createdAt));
   }
 
@@ -885,7 +885,7 @@ export class DatabaseStorage implements IStorage {
       })
       .from(invoices)
       .innerJoin(projects, eq(invoices.projectId, projects.id))
-      .where(eq(projects.firmId, firmId))
+      .where(eq(projects.firmId, Number(firmId)))
       .orderBy(desc(invoices.createdAt));
   }
 
@@ -997,7 +997,7 @@ export class DatabaseStorage implements IStorage {
       .from(projects)
       .where(
         and(
-          eq(projects.firmId, firmId),
+          eq(projects.firmId, Number(firmId)),
           eq(projects.status, "work_in_progress" as any)
         )
       );
@@ -1008,7 +1008,7 @@ export class DatabaseStorage implements IStorage {
       .innerJoin(projects, eq(invoices.projectId, projects.id))
       .where(
         and(
-          eq(projects.firmId, firmId),
+          eq(projects.firmId, Number(firmId)),
           eq(invoices.isPaid, false)
         )
       );
@@ -1019,7 +1019,7 @@ export class DatabaseStorage implements IStorage {
       .innerJoin(projects, eq(invoices.projectId, projects.id))
       .where(
         and(
-          eq(projects.firmId, firmId),
+          eq(projects.firmId, Number(firmId)),
           eq(invoices.isPaid, true),
           sql`${invoices.createdAt} >= date_trunc('month', current_date)`
         )
@@ -1030,7 +1030,7 @@ export class DatabaseStorage implements IStorage {
       .from(crews)
       .where(
         and(
-          eq(crews.firmId, firmId),
+          eq(crews.firmId, Number(firmId)),
           eq(crews.archived, false)
         )
       );
@@ -1144,7 +1144,7 @@ export class DatabaseStorage implements IStorage {
       })
       .from(profiles)
       .innerJoin(userFirms, eq(profiles.id, userFirms.userId))
-      .where(eq(userFirms.firmId, firmId));
+      .where(eq(userFirms.firmId, Number(firmId)));
   }
 
   // Project Crew Snapshot operations

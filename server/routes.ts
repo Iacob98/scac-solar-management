@@ -163,7 +163,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const userFirms = await storage.getFirmsByUserId(userId);
       
       for (const userFirm of userFirms) {
-        const firmInvoices = await storage.getInvoicesByFirmId(userFirm.id);
+        const firmInvoices = await storage.getInvoicesByFirmId(String(userFirm.id));
         const foundInvoice = firmInvoices.find(inv => inv.invoiceNumber === invoiceNumber);
         if (foundInvoice) {
           invoice = foundInvoice;
@@ -218,7 +218,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { firmId } = req.params;
       
       const firms = await storage.getFirms();
-      const firm = firms.find(f => f.id === firmId);
+      const firm = firms.find(f => f.id === Number(firmId));
       
       if (!firm) {
         return res.status(404).json({ message: "Firm not found" });
@@ -448,7 +448,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           if (!existingClient) {
             // Create new client in local database
             await storage.createClient({
-              firmId,
+              firmId: Number(firmId),
               ninjaClientId: ninjaClient.id,
               name: ninjaClient.name,
               email: ninjaClient.email || null,
@@ -571,7 +571,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Get firm info to access Invoice Ninja
-      const firm = await storage.getFirmById(client.firmId);
+      const firm = await storage.getFirmById(String(client.firmId));
       if (!firm) {
         return res.status(404).json({ message: 'Firm not found' });
       }
@@ -670,7 +670,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         hasAccess = true;
       } else {
         // Check if crew is used in any projects user has access to
-        const firmProjects = await storage.getProjectsByFirmId(crew.firmId);
+        const firmProjects = await storage.getProjectsByFirmId(String(crew.firmId));
         
         for (const project of firmProjects) {
           if (project.crewId === crew.id) {
@@ -1966,7 +1966,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log(`Processing PDF download for project ${projectId}, invoice ${project.invoiceNumber}`);
       
       // Get firm for Invoice Ninja credentials  
-      const firm = await storage.getFirmById(project.firmId);
+      const firm = await storage.getFirmById(String(project.firmId));
       
       if (!firm || !firm.token || !firm.invoiceNinjaUrl) {
         return res.status(400).json({ message: 'Настройки Invoice Ninja не найдены' });
@@ -2102,7 +2102,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Firm not found" });
       }
 
-      const client = await storage.getClientsByFirmId(firm.id);
+      const client = await storage.getClientsByFirmId(String(firm.id));
       const projectClient = client.find(c => c.id === project.clientId);
       
       if (!projectClient) {
@@ -2284,7 +2284,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Get firm details
-      const firm = await storage.getFirmById(project.firmId);
+      const firm = await storage.getFirmById(String(project.firmId));
       if (!firm) {
         return res.status(404).json({ message: "Firm not found" });
       }
@@ -2475,7 +2475,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const userId = req.user.id;
       const firms = await storage.getFirmsByUserId(userId);
-      const firm = firms.find(f => f.id === firmId);
+      const firm = firms.find(f => f.id === Number(firmId));
       
       if (!firm) {
         return res.status(404).json({ message: "Firm not found" });
@@ -3003,7 +3003,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const userFirms = await storage.getFirmsByUserId(userId);
       
       for (const userFirm of userFirms) {
-        const firmInvoices = await storage.getInvoicesByFirmId(userFirm.id);
+        const firmInvoices = await storage.getInvoicesByFirmId(String(userFirm.id));
         const foundInvoice = firmInvoices.find(inv => inv.invoiceNumber === invoiceNumber);
         if (foundInvoice) {
           invoice = foundInvoice;
