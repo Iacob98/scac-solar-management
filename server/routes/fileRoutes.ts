@@ -155,8 +155,9 @@ router.post('/upload', authenticateSupabase, upload.single('file'), async (req, 
 });
 
 // Публичный доступ к аватаркам профиля (без аутентификации)
+// Имена файлов — UUID, не угадываемые. img-теги не могут передать Authorization header.
 // ВАЖНО: Этот роут должен быть ПЕРЕД /:fileId, иначе он не будет работать
-router.get('/avatar/:fileName', authenticateSupabase, async (req, res) => {
+router.get('/avatar/:fileName', async (req, res) => {
   try {
     // Sanitize fileName to prevent path traversal
     const fileName = path.basename(req.params.fileName);
