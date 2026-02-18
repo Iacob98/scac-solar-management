@@ -61,7 +61,6 @@ export async function authenticateSupabase(
 
     // Получаем полный профиль пользователя через Supabase REST API
     // Используем service role client который обходит RLS
-    console.log('Looking for user profile with ID:', user.id);
 
     const { data: profile, error: profileError } = await supabase
       .from('profiles')
@@ -69,7 +68,6 @@ export async function authenticateSupabase(
       .eq('id', user.id)
       .single();
 
-    console.log('Profile found for user:', user.id);
 
     if (profileError || !profile) {
       console.error('Profile not found or error:', profileError);

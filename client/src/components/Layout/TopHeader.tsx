@@ -137,28 +137,20 @@ export function TopHeader() {
     // Initialize firm selection once firms are loaded
     if (firms.length > 0 && !hasInitialized) {
       const savedFirmId = localStorage.getItem('selectedFirmId');
-      console.log('Initializing firm selection:', { savedFirmId, firms: firms.map(f => f.id) });
-      
+
       if (savedFirmId && firms.some(firm => String(firm.id) === savedFirmId)) {
-        // Restore saved valid firm
-        console.log('Restoring saved firm:', savedFirmId);
         setSelectedFirmId(savedFirmId);
       } else if (savedFirmId && !firms.some(firm => String(firm.id) === savedFirmId)) {
-        // Clear invalid saved firm ID and auto-select
-        console.log('Clearing invalid saved firm ID:', savedFirmId);
         localStorage.removeItem('selectedFirmId');
         if (profile?.role === 'admin' || firms.length === 1) {
           const firstFirmId = String(firms[0].id);
-          console.log('Auto-selecting first firm after clearing invalid:', firstFirmId);
           setSelectedFirmId(firstFirmId);
           localStorage.setItem('selectedFirmId', firstFirmId);
         } else {
           setSelectedFirmId('');
         }
       } else if (!savedFirmId && (profile?.role === 'admin' || firms.length === 1)) {
-        // Auto-select for new users
         const firstFirmId = String(firms[0].id);
-        console.log('Auto-selecting first firm for new user:', firstFirmId);
         setSelectedFirmId(firstFirmId);
         localStorage.setItem('selectedFirmId', firstFirmId);
       }
@@ -168,16 +160,10 @@ export function TopHeader() {
   }, [firms, hasInitialized, user]);
 
   const handleFirmChange = (firmId: string) => {
-    console.log('Firm change requested:', { from: selectedFirmId, to: firmId });
-    // Only change if it's actually different
     if (firmId !== selectedFirmId) {
-      console.log('Changing firm from', selectedFirmId, 'to', firmId);
       setSelectedFirmId(firmId);
       localStorage.setItem('selectedFirmId', firmId);
-      // Trigger page refresh to update data
       window.location.reload();
-    } else {
-      console.log('Firm change ignored - same as current');
     }
   };
 
@@ -293,10 +279,8 @@ export function TopHeader() {
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={async () => {
-              console.log('[TopHeader] Logout clicked');
               try {
                 const { error } = await signOut();
-                console.log('[TopHeader] signOut completed', { error });
                 localStorage.removeItem('selectedFirmId');
                 window.location.href = '/login';
               } catch (err) {

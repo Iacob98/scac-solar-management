@@ -7,6 +7,7 @@ interface UserProfile {
   email: string;
   first_name: string | null;
   last_name: string | null;
+  phone: string | null;
   role: string;
   profile_image_url: string | null;
 }
@@ -39,10 +40,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   const loadProfile = async (userId: string, accessToken?: string) => {
-    console.log('[useAuth] loadProfile called for userId:', userId);
-
     try {
-      // Используем fetch напрямую к Supabase REST API с таймаутом
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 5000);
 
@@ -73,17 +71,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
 
       const data = await response.json();
-      console.log('[useAuth] loadProfile result:', { data });
 
       if (data && data.length > 0) {
         const profileData = data[0];
-        console.log('[useAuth] Setting profile with role:', profileData.role);
         setProfile(profileData);
-        setUser(prev => {
-          const updated = prev ? { ...prev, role: profileData.role } : null;
-          console.log('[useAuth] Updated user with role:', updated?.role);
-          return updated;
-        });
+        setUser(prev => prev ? { ...prev, role: profileData.role } : null);
       }
     } catch (error: any) {
       if (error.name === 'AbortError') {
@@ -97,39 +89,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     let mounted = true;
 
-    // Таймаут на случай зависания - гарантируем что loading станет false
     const loadingTimeout = setTimeout(() => {
       if (mounted) {
-        console.warn('Auth loading timeout - forcing loading to false');
+        console.warn('[useAuth] Auth loading timeout - forcing loading to false');
         setLoading(false);
       }
-    }, 5000); // 5 секунд максимум на загрузку
+    }, 5000);
 
-    // Получить текущую сессию
-    console.log('[useAuth] Starting getSession...');
     supabase.auth.getSession()
-      .then(async ({ data: { session }, error }) => {
+      .then(async ({ data: { session } }) => {
         if (!mounted) return;
-
-        console.log('[useAuth] getSession completed', {
-          hasSession: !!session,
-          hasUser: !!session?.user,
-          error
-        });
 
         setSession(session);
         setUser(session?.user ?? null);
 
         if (session?.user) {
-          console.log('[useAuth] Loading profile for user:', session.user.id);
           try {
             await loadProfile(session.user.id, session.access_token);
-            console.log('[useAuth] Profile loaded successfully');
           } catch (error) {
             console.error('[useAuth] Error loading profile:', error);
           }
-        } else {
-          console.log('[useAuth] No session found - user not logged in');
         }
       })
       .catch((error) => {
@@ -137,13 +116,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       })
       .finally(() => {
         if (mounted) {
-          console.log('[useAuth] Setting loading to false');
           clearTimeout(loadingTimeout);
           setLoading(false);
         }
       });
 
-    // Подписаться на изменения auth состояния
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(async (_event, session) => {
@@ -156,7 +133,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         try {
           await loadProfile(session.user.id, session.access_token);
         } catch (error) {
-          console.error('Error loading profile:', error);
+          console.error('[useAuth] Error loading profile:', error);
         }
       } else {
         setProfile(null);
@@ -199,14 +176,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signOut = async () => {
     try {
-      console.log('[useAuth] signOut called');
-
-      // Очищаем состояние сразу
       setUser(null);
       setProfile(null);
       setSession(null);
 
-      // Пробуем выйти через Supabase с таймаутом
       const timeoutPromise = new Promise((_, reject) =>
         setTimeout(() => reject(new Error('Timeout')), 3000)
       );
@@ -216,15 +189,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           supabase.auth.signOut(),
           timeoutPromise
         ]);
-        console.log('[useAuth] signOut completed');
-      } catch (e) {
-        console.warn('[useAuth] signOut timed out or failed, but state cleared');
+      } catch {
+        // signOut timed out or failed, but state already cleared
       }
 
       return { error: null };
     } catch (error) {
       console.error('[useAuth] signOut error:', error);
-      // Даже при ошибке очищаем состояние
       setUser(null);
       setProfile(null);
       setSession(null);
@@ -238,7 +209,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return { error: new Error('No user logged in') };
       }
 
-      // Обновляем profile через API
       const response = await fetch('/api/auth/profile', {
         method: 'PATCH',
         headers: {
@@ -260,7 +230,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const setSessionFromToken = async (accessToken: string, refreshToken: string) => {
-    // Set session from tokens (used for worker login)
     const { data, error } = await supabase.auth.setSession({
       access_token: accessToken,
       refresh_token: refreshToken,
@@ -304,13 +273,11 @@ export function useAuth() {
   return context;
 }
 
-// Helper hook для получения access token
 export function useAccessToken() {
   const { session } = useAuth();
   return session?.access_token || null;
 }
 
-// Helper hook для проверки авторизации
 export function useIsAuthenticated() {
   const { user, loading } = useAuth();
   return { isAuthenticated: !!user, loading };

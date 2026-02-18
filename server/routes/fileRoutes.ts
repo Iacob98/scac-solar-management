@@ -66,11 +66,6 @@ const uploadFileSchema = z.object({
 // Загрузка файла (используем legacy формат для совместимости)
 router.post('/upload', authenticateSupabase, upload.single('file'), async (req, res) => {
   try {
-    console.log('[fileRoutes] Upload request received');
-    console.log('[fileRoutes] req.file:', req.file ? { originalname: req.file.originalname, mimetype: req.file.mimetype, size: req.file.size } : 'no file');
-    console.log('[fileRoutes] req.body:', req.body);
-    console.log('[fileRoutes] req.user:', req.user?.id);
-
     if (!req.file) {
       console.error('[fileRoutes] No file provided in request');
       return res.status(400).json({ message: 'Файл не предоставлен' });
@@ -90,11 +85,6 @@ router.post('/upload', authenticateSupabase, upload.single('file'), async (req, 
 
     // Для файлов профиля (аватаров) не создаем запись в project_files
     if (validatedData.category === 'profile') {
-      console.log('Profile image uploaded successfully:', {
-        fileName: metadata.fileName,
-        userId: userId
-      });
-
       // Возвращаем путь к файлу для профиля (используем публичный роут avatar)
       return res.json({
         fileId: metadata.fileName,
@@ -128,12 +118,6 @@ router.post('/upload', authenticateSupabase, upload.single('file'), async (req, 
       oldValue: null,
       newValue: req.file.originalname,
       description: `Добавлен файл: ${req.file.originalname}`
-    });
-
-    console.log('File uploaded successfully:', {
-      id: savedFile.id,
-      fileName: savedFile.fileName,
-      projectId: savedFile.projectId
     });
 
     res.json({
@@ -172,8 +156,6 @@ router.get('/avatar/:fileName', async (req, res) => {
     const storagePath = `avatars/${fileName}`;
     const fileBuffer = await fileStorageService.getFile(fileName, storagePath);
 
-    console.log(`[fileRoutes] Serving avatar: ${fileName}, MIME: ${mimeType}, size: ${fileBuffer.length} bytes`);
-
     res.set({
       'Content-Type': mimeType,
       'Content-Length': fileBuffer.length.toString(),
@@ -196,8 +178,6 @@ router.get('/:fileId', authenticateSupabase, async (req, res) => {
   try {
     const fileIdParam = req.params.fileId;
     const fileId = parseInt(fileIdParam);
-    console.log(`🔍 GET /api/files/${fileIdParam} - пользователь запрашивает файл`);
-
     // Проверяем, является ли fileId UUID (для новой системы) или числом (для legacy)
     const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(fileIdParam);
 
@@ -247,8 +227,6 @@ router.get('/:fileId', authenticateSupabase, async (req, res) => {
     try {
       const fileBuffer = await fileStorageService.getFile(legacyFile.fileName || '');
       const mimeType = getMimeTypeFromExtension(legacyFile.fileName || '');
-
-      console.log(`[fileRoutes] Serving legacy file: ${legacyFile.fileName}, MIME: ${mimeType}, size: ${fileBuffer.length} bytes`);
 
       res.set({
         'Content-Type': mimeType,
@@ -326,8 +304,6 @@ router.get('/download/:fileName', authenticateSupabase, async (req, res) => {
     // Get file from Supabase Storage (with local fallback)
     const fileBuffer = await fileStorageService.getFile(fileName);
     const mimeType = getMimeTypeFromExtension(fileName);
-
-    console.log(`[fileRoutes] Download file: ${fileName}, MIME: ${mimeType}, size: ${fileBuffer.length} bytes`);
 
     res.set({
       'Content-Type': mimeType,
