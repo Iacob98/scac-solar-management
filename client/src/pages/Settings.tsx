@@ -53,7 +53,7 @@ export default function Settings() {
       firstName: profile?.first_name || '',
       lastName: profile?.last_name || '',
       email: profile?.email || user?.email || '',
-      phone: '',
+      phone: profile?.phone || '',
       profileImageUrl: profile?.profile_image_url || '',
     },
   });
@@ -65,7 +65,7 @@ export default function Settings() {
         firstName: profile.first_name || '',
         lastName: profile.last_name || '',
         email: profile.email || '',
-        phone: '',
+        phone: profile.phone || '',
         profileImageUrl: profile.profile_image_url || '',
       });
     }

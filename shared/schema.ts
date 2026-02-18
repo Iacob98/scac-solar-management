@@ -46,6 +46,7 @@ export const profiles = pgTable("profiles", {
   email: text("email").notNull().unique(),
   firstName: text("first_name"),
   lastName: text("last_name"),
+  phone: text("phone"),
   profileImageUrl: text("profile_image_url"),
   role: text("role", { enum: ["admin", "leiter", "worker"] }).notNull().default("leiter"),
   crewMemberId: integer("crew_member_id"), // Link to crew_member for workers

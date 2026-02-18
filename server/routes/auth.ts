@@ -168,6 +168,7 @@ router.patch('/profile', authenticateSupabase, async (req, res) => {
     const profileData = z.object({
       firstName: z.string().optional(),
       lastName: z.string().optional(),
+      phone: z.string().optional(),
       profileImageUrl: z.string().optional(),
     }).parse(req.body);
 
@@ -177,6 +178,7 @@ router.patch('/profile', authenticateSupabase, async (req, res) => {
       .update({
         first_name: profileData.firstName,
         last_name: profileData.lastName,
+        phone: profileData.phone || null,
         profile_image_url: profileData.profileImageUrl
       })
       .eq('id', req.user.id)
