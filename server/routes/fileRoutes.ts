@@ -1,7 +1,8 @@
 import express from 'express';
 import multer from 'multer';
+import path from 'path';
 import { storage } from '../storage';
-import { fileStorage as fileStorageService } from '../storage/fileStorage';
+import { fileStorageService } from '../storage/fileStorage';
 import { authenticateSupabase } from '../middleware/supabaseAuth.js';
 import type { InsertFileStorage, InsertProjectFile } from '@shared/schema';
 import { z } from 'zod';
@@ -78,40 +79,27 @@ router.post('/upload', authenticateSupabase, upload.single('file'), async (req, 
     const validatedData = uploadFileSchema.parse(req.body);
     const userId = req.user.id;
 
-    // Сохраняем файл в папку uploads (legacy формат)
-    const fs = await import('fs');
-    const path = await import('path');
-
-    // Создаем уникальное имя файла с правильной кодировкой
-    const timestamp = Date.now();
-    const fileExtension = path.extname(req.file.originalname);
-    // Убираем кириллицу из имени файла для избежания проблем с кодировкой
-    const baseName = path.basename(req.file.originalname, fileExtension)
-      .replace(/[^\w\-\.]/g, '_'); // Заменяем все не-ASCII символы на подчеркивания
-    const fileName = `${baseName}_${timestamp}${fileExtension}`;
-    const uploadsDir = path.join(process.cwd(), 'uploads');
-    const filePath = path.join(uploadsDir, fileName);
-
-    // Создаем папку uploads если не существует
-    if (!fs.existsSync(uploadsDir)) {
-      fs.mkdirSync(uploadsDir, { recursive: true });
-    }
-
-    // Сохраняем файл
-    fs.writeFileSync(filePath, req.file.buffer);
+    // Save file to Supabase Storage via fileStorageService
+    const metadata = await fileStorageService.saveFile(
+      req.file.buffer,
+      req.file.originalname,
+      req.file.mimetype,
+      validatedData.category,
+      validatedData.projectId
+    );
 
     // Для файлов профиля (аватаров) не создаем запись в project_files
     if (validatedData.category === 'profile') {
       console.log('Profile image uploaded successfully:', {
-        fileName: fileName,
+        fileName: metadata.fileName,
         userId: userId
       });
 
       // Возвращаем путь к файлу для профиля (используем публичный роут avatar)
       return res.json({
-        fileId: fileName,
-        fileName: fileName,
-        fileUrl: `/api/files/avatar/${fileName}`,
+        fileId: metadata.fileName,
+        fileName: metadata.fileName,
+        fileUrl: `/api/files/avatar/${metadata.fileName}`,
         fileType: req.file.mimetype
       });
     }
@@ -124,8 +112,8 @@ router.post('/upload', authenticateSupabase, upload.single('file'), async (req, 
     // Создаем запись в legacy таблице project_files
     const fileRecord: InsertProjectFile = {
       projectId: validatedData.projectId,
-      fileName: fileName,
-      fileUrl: `/api/files/download/${fileName}`, // API URL для скачивания
+      fileName: metadata.fileName,
+      fileUrl: `/api/files/download/${metadata.fileName}`, // API URL для скачивания
       fileType: req.file.mimetype
     };
 
@@ -142,7 +130,7 @@ router.post('/upload', authenticateSupabase, upload.single('file'), async (req, 
       description: `Добавлен файл: ${req.file.originalname}`
     });
 
-    console.log('File uploaded successfully (legacy):', {
+    console.log('File uploaded successfully:', {
       id: savedFile.id,
       fileName: savedFile.fileName,
       projectId: savedFile.projectId
@@ -170,21 +158,8 @@ router.post('/upload', authenticateSupabase, upload.single('file'), async (req, 
 // ВАЖНО: Этот роут должен быть ПЕРЕД /:fileId, иначе он не будет работать
 router.get('/avatar/:fileName', authenticateSupabase, async (req, res) => {
   try {
-    const fs = await import('fs');
-    const path = await import('path');
-
     // Sanitize fileName to prevent path traversal
     const fileName = path.basename(req.params.fileName);
-
-    const filePath = path.join(process.cwd(), 'uploads', fileName);
-
-    // Проверяем существует ли файл
-    if (!fs.existsSync(filePath)) {
-      console.log(`❌ Аватарка не найдена: ${filePath}`);
-      return res.status(404).json({ message: 'Файл не найден' });
-    }
-
-    const fileBuffer = fs.readFileSync(filePath);
     const mimeType = getMimeTypeFromExtension(fileName);
 
     // Проверяем что это изображение
@@ -192,20 +167,24 @@ router.get('/avatar/:fileName', authenticateSupabase, async (req, res) => {
       return res.status(400).json({ message: 'Файл не является изображением' });
     }
 
-    console.log(`📄 Отправляем аватарку: ${fileName}, MIME: ${mimeType}, размер: ${fileBuffer.length} байт`);
+    // Get from Supabase Storage (with local fallback)
+    const storagePath = `avatars/${fileName}`;
+    const fileBuffer = await fileStorageService.getFile(fileName, storagePath);
+
+    console.log(`[fileRoutes] Serving avatar: ${fileName}, MIME: ${mimeType}, size: ${fileBuffer.length} bytes`);
 
     res.set({
       'Content-Type': mimeType,
       'Content-Length': fileBuffer.length.toString(),
-      'Cache-Control': 'public, max-age=3600' // Кэшируем на 1 час
+      'Cache-Control': 'public, max-age=3600'
     });
 
     res.send(fileBuffer);
 
   } catch (error: any) {
     console.error('Error serving avatar:', error);
-    res.status(500).json({
-      message: 'Ошибка при получении аватарки',
+    res.status(404).json({
+      message: 'Файл не найден',
       error: error.message
     });
   }
@@ -237,8 +216,9 @@ router.get('/:fileId', authenticateSupabase, async (req, res) => {
         }
       }
 
-      const fileBuffer = await fileStorageService.getFile(fileRecord.fileName);
-      
+      // Get file from Supabase Storage (with local fallback)
+      const fileBuffer = await fileStorageService.getFile(fileRecord.fileName, fileRecord.storagePath || undefined);
+
       res.set({
         'Content-Type': fileRecord.mimeType,
         'Content-Length': fileRecord.size.toString(),
@@ -250,7 +230,7 @@ router.get('/:fileId', authenticateSupabase, async (req, res) => {
 
     // Если не найден в новой системе, пытаемся найти в legacy таблице
     const legacyFile = await storage.getFileById(fileId);
-    
+
     if (!legacyFile) {
       return res.status(404).json({ message: 'Файл не найден' });
     }
@@ -262,26 +242,13 @@ router.get('/:fileId', authenticateSupabase, async (req, res) => {
       return res.status(403).json({ message: 'Нет доступа к файлу' });
     }
 
-    // Для legacy файлов используем файлы из папки uploads
-    const fs = await import('fs');
-    const path = await import('path');
-    
+    // Get legacy file via fileStorageService (Supabase first, local fallback)
     try {
-      // Путь к файлу в папке uploads
-      const filePath = path.join(process.cwd(), 'uploads', legacyFile.fileName || '');
-      
-      // Проверяем существует ли файл
-      if (!fs.existsSync(filePath)) {
-        return res.status(404).json({ message: 'Физический файл не найден' });
-      }
-
-      const fileBuffer = fs.readFileSync(filePath);
-      
-      // Определяем правильный MIME-тип по расширению файла
+      const fileBuffer = await fileStorageService.getFile(legacyFile.fileName || '');
       const mimeType = getMimeTypeFromExtension(legacyFile.fileName || '');
-      
-      console.log(`📄 Отправляем файл: ${legacyFile.fileName}, MIME: ${mimeType}, размер: ${fileBuffer.length} байт`);
-      
+
+      console.log(`[fileRoutes] Serving legacy file: ${legacyFile.fileName}, MIME: ${mimeType}, size: ${fileBuffer.length} bytes`);
+
       res.set({
         'Content-Type': mimeType,
         'Content-Length': fileBuffer.length.toString(),
@@ -292,7 +259,7 @@ router.get('/:fileId', authenticateSupabase, async (req, res) => {
       });
 
       res.send(fileBuffer);
-      
+
     } catch (fileError) {
       console.error('Error reading legacy file:', fileError);
       return res.status(404).json({ message: 'Не удалось прочитать файл' });
@@ -352,24 +319,14 @@ router.get('/project/:projectId', authenticateSupabase, async (req, res) => {
 // Скачивание файла по имени (для API URL /api/files/download/:fileName)
 router.get('/download/:fileName', authenticateSupabase, async (req, res) => {
   try {
-    const fs = await import('fs');
-    const path = await import('path');
-
     // Sanitize fileName to prevent path traversal
     const fileName = path.basename(req.params.fileName);
 
-    const filePath = path.join(process.cwd(), 'uploads', fileName);
-
-    // Проверяем существует ли файл
-    if (!fs.existsSync(filePath)) {
-      console.log(`❌ Файл не найден: ${filePath}`);
-      return res.status(404).json({ message: 'Файл не найден' });
-    }
-
-    const fileBuffer = fs.readFileSync(filePath);
+    // Get file from Supabase Storage (with local fallback)
+    const fileBuffer = await fileStorageService.getFile(fileName);
     const mimeType = getMimeTypeFromExtension(fileName);
 
-    console.log(`📄 Отправляем файл: ${fileName}, MIME: ${mimeType}, размер: ${fileBuffer.length} байт`);
+    console.log(`[fileRoutes] Download file: ${fileName}, MIME: ${mimeType}, size: ${fileBuffer.length} bytes`);
 
     res.set({
       'Content-Type': mimeType,
@@ -384,8 +341,8 @@ router.get('/download/:fileName', authenticateSupabase, async (req, res) => {
 
   } catch (error: any) {
     console.error('Error downloading file by name:', error);
-    res.status(500).json({
-      message: 'Ошибка при скачивании файла',
+    res.status(404).json({
+      message: 'Файл не найден',
       error: error.message
     });
   }
@@ -427,8 +384,8 @@ router.delete('/:fileId', authenticateSupabase, async (req, res) => {
 
       // Мягкое удаление в базе данных
       await storage.deleteFileRecord(fileIdParam);
-      // Удаляем физический файл
-      await fileStorageService.deleteFile(fileRecord.fileName);
+      // Удаляем файл из Supabase Storage
+      await fileStorageService.deleteFile(fileRecord.fileName, fileRecord.storagePath || undefined);
 
       // Добавляем запись в историю проекта
       if (fileRecord.projectId) {

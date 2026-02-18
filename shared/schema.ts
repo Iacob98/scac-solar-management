@@ -213,6 +213,7 @@ export const fileStorage = pgTable("file_storage", {
   projectId: integer("project_id").references(() => projects.id), // Опциональная связь с проектом
   uploadedBy: uuid("uploaded_by").notNull().references(() => profiles.id), // Кто загрузил файл
   uploadedAt: timestamp("uploaded_at").defaultNow(),
+  storagePath: varchar("storage_path"), // Path in Supabase Storage (e.g. "invoices/invoice_0061_123.pdf")
   isDeleted: boolean("is_deleted").default(false), // Мягкое удаление
   deletedAt: timestamp("deleted_at"),
 });

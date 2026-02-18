@@ -6,8 +6,6 @@ import { storage } from '../storage';
 import { db } from '../db';
 import { crewMembers, projects, crews, clients, projectNotes, projectFiles, reclamations, services } from '@shared/schema';
 import { eq, and, desc, gte, lte, inArray } from 'drizzle-orm';
-import path from 'path';
-import fs from 'fs';
 
 const router = express.Router();
 
@@ -366,28 +364,21 @@ router.post('/projects/:id/photos', authenticateSupabase, requireWorker, upload.
     const uploadedFiles = [];
 
     for (const file of files) {
-      // Create unique filename
-      const timestamp = Date.now();
-      const ext = path.extname(file.originalname);
-      const baseName = path.basename(file.originalname, ext).replace(/[^\w\-\.]/g, '_');
-      const fileName = `worker_${workerInfo.crewMemberId}_${baseName}_${timestamp}${ext}`;
-
-      const uploadsDir = path.join(process.cwd(), 'uploads');
-      const filePath = path.join(uploadsDir, fileName);
-
-      // Ensure uploads directory exists
-      if (!fs.existsSync(uploadsDir)) {
-        fs.mkdirSync(uploadsDir, { recursive: true });
-      }
-
-      // Save file
-      fs.writeFileSync(filePath, file.buffer);
+      // Save file to Supabase Storage via fileStorageService
+      const { fileStorageService } = await import('../storage/fileStorage');
+      const metadata = await fileStorageService.saveFile(
+        file.buffer,
+        file.originalname,
+        file.mimetype,
+        'project_file',
+        projectId
+      );
 
       // Create database record
       const savedFile = await storage.createFile({
         projectId,
-        fileName,
-        fileUrl: `/api/files/download/${fileName}`,
+        fileName: metadata.fileName,
+        fileUrl: `/api/files/download/${metadata.fileName}`,
         fileType: file.mimetype,
       });
 

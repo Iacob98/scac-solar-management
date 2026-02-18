@@ -27,8 +27,6 @@ import workerPortalRoutes from "./routes/workerPortal";
 import reclamationRoutes from "./routes/reclamations";
 import notificationRoutes from "./routes/notifications";
 import { fileStorageService } from "./storage/fileStorage";
-import fs from 'fs';
-import path from 'path';
 
 // Admin role check middleware (legacy - use requireAdminMiddleware from supabaseAuth instead)
 const isAdmin = async (req: any, res: any, next: any) => {
@@ -1976,23 +1974,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       const invoiceNinja = new InvoiceNinjaService(firm.token, firm.invoiceNinjaUrl);
       
-      // Create a test PDF file for demonstration
-      
-      // Ensure uploads directory exists
-      const uploadsDir = path.join(process.cwd(), 'uploads');
-      if (!fs.existsSync(uploadsDir)) {
-        fs.mkdirSync(uploadsDir, { recursive: true });
-      }
-      
       // Скачиваем реальный PDF из Invoice Ninja
-      const fileName = `invoice_${project.invoiceNumber}_${Date.now()}.pdf`;
-      const filePath = path.join(uploadsDir, fileName);
-      
       console.log(`Attempting to download PDF for invoice: ${project.invoiceNumber}`);
-      
+
+      let pdfBuffer: Buffer;
       try {
         let invoice = null;
-        
+
         // Если у нас есть ID из URL, используем его напрямую
         if (invoiceId) {
           console.log(`Using invoice ID from URL: ${invoiceId}`);
@@ -2001,7 +1989,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           // Получаем ID счета из Invoice Ninja
           const invoices = await invoiceNinja.getInvoices();
           console.log(`Looking for invoice number: ${project.invoiceNumber}`);
-          
+
           // Пробуем найти счет по разным полям
           invoice = invoices.find((inv: any) => inv.number === project.invoiceNumber);
           if (!invoice) {
@@ -2009,12 +1997,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
           }
           if (!invoice) {
             // Пробуем найти по частичному совпадению номера
-            invoice = invoices.find((inv: any) => 
+            invoice = invoices.find((inv: any) =>
               (inv.number && inv.number.includes(project.invoiceNumber)) ||
               (inv.invoice_number && inv.invoice_number.includes(project.invoiceNumber))
             );
           }
-          
+
           if (!invoice) {
             console.log('Available invoice numbers:', invoices.map((inv: any) => inv.number || inv.invoice_number).slice(0, 10));
             throw new Error(`Invoice ${project.invoiceNumber} not found in Invoice Ninja. Available invoices: ${invoices.slice(0, 5).map((inv: any) => inv.number || inv.invoice_number).join(', ')}`);
@@ -2022,29 +2010,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
 
         console.log(`Found invoice in Invoice Ninja: ${invoice.id}, number: ${invoice.number || project.invoiceNumber}`);
-        
+
         // Скачиваем PDF счета
-        const pdfBuffer = await invoiceNinja.downloadInvoicePDF(invoice.id);
-        
+        pdfBuffer = await invoiceNinja.downloadInvoicePDF(invoice.id);
+
         if (!pdfBuffer || pdfBuffer.length === 0) {
           throw new Error('PDF download returned empty buffer');
         }
-        
+
         console.log(`Downloaded PDF buffer, size: ${pdfBuffer.length} bytes`);
-        
-        fs.writeFileSync(filePath, pdfBuffer);
-        const fileSize = fs.statSync(filePath).size;
-        console.log(`PDF file saved: ${filePath}, size: ${fileSize} bytes`);
       } catch (downloadError: any) {
         console.error('Failed to download PDF from Invoice Ninja:', downloadError.message);
         throw new Error(`PDF download failed: ${downloadError.message}`);
       }
-      
+
+      // Save PDF to Supabase Storage
+      const pdfMetadata = await fileStorageService.saveFile(
+        pdfBuffer,
+        `invoice_${project.invoiceNumber}.pdf`,
+        'application/pdf',
+        'invoice',
+        parseInt(projectId)
+      );
+
+      console.log(`PDF saved to Supabase Storage: ${pdfMetadata.storagePath}, size: ${pdfBuffer.length} bytes`);
+
       // Add to project files in database (legacy table with required fileUrl)
       const fileRecord = await storage.createFile({
         projectId: parseInt(projectId),
-        fileUrl: `/api/files/${fileName}`, // Используем API URL для совместимости
-        fileName: fileName,
+        fileUrl: `/api/files/download/${pdfMetadata.fileName}`, // Используем API URL для совместимости
+        fileName: pdfMetadata.fileName,
         fileType: 'application/pdf'
       });
       
@@ -2055,7 +2050,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         changeType: 'file_added',
         description: `Скачан PDF счета ${project.invoiceNumber}`,
         oldValue: null,
-        newValue: fileName
+        newValue: pdfMetadata.fileName
       });
       
 
@@ -2310,48 +2305,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Invoice not found in database" });
       }
 
-      // Try to get PDF file
+      // Try to get PDF file from Supabase Storage (with local fallback)
       let pdfBase64: string | undefined;
       const files = await storage.getFilesByProjectId(parseInt(projectId));
       console.log(`Files in database for project ${projectId}:`, files);
-      
-      // First try to find in database
-      let pdfFile = files.find(f => f.fileName?.includes('invoice') && f.fileName?.endsWith('.pdf'));
-      
-      // If not found in database, try to find in uploads folder directly
-      if (!pdfFile && project.invoiceNumber) {
-        const uploadsDir = path.join(process.cwd(), 'uploads');
-        const possibleFileNames = [
-          `invoice_${project.invoiceNumber}_*.pdf`,
-          `invoice_${project.invoiceNumber}.pdf`
-        ];
-        
-        try {
-          const uploadFiles = fs.readdirSync(uploadsDir);
-          const invoiceFile = uploadFiles.find(file => 
-            file.includes(`invoice_${project.invoiceNumber}`) && file.endsWith('.pdf')
-          );
-          
-          if (invoiceFile) {
-            console.log(`Found invoice file in uploads folder: ${invoiceFile}`);
-            pdfFile = { fileName: invoiceFile };
-          }
-        } catch (error) {
-          console.error('Error searching for invoice file:', error);
-        }
-      }
-      
+
+      // Find invoice PDF in database
+      const pdfFile = files.find(f => f.fileName?.includes('invoice') && f.fileName?.endsWith('.pdf'));
+
       if (pdfFile && pdfFile.fileName) {
         try {
-          const filePath = path.join(process.cwd(), 'uploads', pdfFile.fileName);
-          console.log(`Trying to read PDF from: ${filePath}`);
-          if (fs.existsSync(filePath)) {
-            const pdfBuffer = fs.readFileSync(filePath);
-            pdfBase64 = pdfBuffer.toString('base64');
-            console.log(`Successfully read PDF file, size: ${pdfBuffer.length} bytes`);
-          } else {
-            console.error(`PDF file not found at: ${filePath}`);
-          }
+          console.log(`Trying to read PDF: ${pdfFile.fileName}`);
+          const pdfBuffer = await fileStorageService.getFile(pdfFile.fileName);
+          pdfBase64 = pdfBuffer.toString('base64');
+          console.log(`Successfully read PDF file, size: ${pdfBuffer.length} bytes`);
         } catch (error) {
           console.error('Error reading PDF file:', error);
         }
