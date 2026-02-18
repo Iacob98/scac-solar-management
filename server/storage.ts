@@ -1273,11 +1273,11 @@ export class DatabaseStorage implements IStorage {
     }
 
     // Проверяем, является ли пользователь worker из бригады проекта
-    if (user?.role === 'worker' && user.crew_member_id && project.crewId) {
+    if (user?.role === 'worker' && user.crewMemberId && project.crewId) {
       const [crewMember] = await db
         .select({ crewId: crewMembers.crewId })
         .from(crewMembers)
-        .where(eq(crewMembers.id, user.crew_member_id));
+        .where(eq(crewMembers.id, user.crewMemberId));
 
       if (crewMember && crewMember.crewId === project.crewId) {
         return true;
