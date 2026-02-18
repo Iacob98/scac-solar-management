@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { apiRequest } from '@/lib/queryClient';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
@@ -99,11 +100,7 @@ export function TopHeader() {
   // Mark notification as read mutation
   const markReadMutation = useMutation({
     mutationFn: async (notificationId: number) => {
-      const response = await fetch(`/api/notifications/${notificationId}/read`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-      });
-      if (!response.ok) throw new Error('Failed to mark as read');
+      const response = await apiRequest(`/api/notifications/${notificationId}/read`, 'PATCH');
       return response.json();
     },
     onSuccess: () => {
@@ -115,11 +112,7 @@ export function TopHeader() {
   // Mark all as read mutation
   const markAllReadMutation = useMutation({
     mutationFn: async () => {
-      const response = await fetch('/api/notifications/read-all', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-      });
-      if (!response.ok) throw new Error('Failed to mark all as read');
+      const response = await apiRequest('/api/notifications/read-all', 'POST');
       return response.json();
     },
     onSuccess: () => {
