@@ -12,6 +12,7 @@ import {
   integer,
   date,
   unique,
+  primaryKey,
 } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
 import { createInsertSchema } from "drizzle-zod";
@@ -46,23 +47,31 @@ export const profiles = pgTable("profiles", {
   email: text("email").notNull().unique(),
   firstName: text("first_name"),
   lastName: text("last_name"),
-  phone: text("phone"),
   profileImageUrl: text("profile_image_url"),
   role: text("role", { enum: ["admin", "leiter", "worker"] }).notNull().default("leiter"),
-  crewMemberId: integer("crew_member_id"), // Link to crew_member for workers
-  createdAt: timestamp("created_at").defaultNow(),
-  updatedAt: timestamp("updated_at").defaultNow(),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow(),
+  crewMemberId: integer("crew_member_id"),
+  phone: text("phone"),
 });
 
 // Firms table
 export const firms = pgTable("firms", {
   id: serial("id").primaryKey(),
-  name: varchar("name").notNull(),
-  invoiceNinjaUrl: varchar("invoice_ninja_url").notNull(),
-  token: varchar("token").notNull(),
+  name: text("name").notNull(),
+  invoiceNinjaUrl: text("invoice_ninja_url"),
+  token: text("token"),
   address: text("address"),
-  taxId: varchar("tax_id"),
-  logoUrl: varchar("logo_url"),
+  taxId: text("tax_id"),
+  logoUrl: text("logo_url"),
+  // Email template fields
+  emailSubjectTemplate: text("email_subject_template").default("Счет №{{invoiceNumber}} от {{firmName}}"),
+  emailBodyTemplate: text("email_body_template").default("Уважаемый {{clientName}},\n\nВо вложении находится счет №{{invoiceNumber}} за установку солнечных панелей.\n\nС уважением,\n{{firmName}}"),
+  // Calendar template fields (legacy, exist in DB)
+  calendarEventTitle: text("calendar_event_title"),
+  calendarEventDescription: text("calendar_event_description"),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow(),
   // SMTP integration fields
   smtpHost: varchar("smtp_host"),
   smtpPort: varchar("smtp_port").default("587"),
@@ -70,61 +79,63 @@ export const firms = pgTable("firms", {
   smtpPassword: varchar("smtp_password"),
   smtpSecure: boolean("smtp_secure").default(false),
   smtpFrom: varchar("smtp_from"),
-  // Email template fields
-  emailSubjectTemplate: varchar("email_subject_template").default("Счет №{{invoiceNumber}} от {{firmName}}"),
-  emailBodyTemplate: text("email_body_template").default("Уважаемый {{clientName}},\n\nВо вложении находится счет №{{invoiceNumber}} за установку солнечных панелей.\n\nС уважением,\n{{firmName}}"),
-  createdAt: timestamp("created_at").defaultNow(),
 });
 
 // User-Firm junction table (many-to-many)
 export const userFirms = pgTable("user_firms", {
   userId: uuid("user_id").notNull().references(() => profiles.id),
   firmId: integer("firm_id").notNull().references(() => firms.id),
-});
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
+}, (table) => [
+  primaryKey({ columns: [table.userId, table.firmId] }),
+]);
 
 // Clients table
 export const clients = pgTable("clients", {
   id: serial("id").primaryKey(),
   firmId: integer("firm_id").notNull().references(() => firms.id),
-  ninjaClientId: varchar("ninja_client_id"),
-  name: varchar("name").notNull(),
-  email: varchar("email"),
+  ninjaClientId: text("ninja_client_id"),
+  name: text("name").notNull(),
+  email: text("email"),
   address: text("address"),
-  phone: varchar("phone"),
-  createdAt: timestamp("created_at").defaultNow(),
+  phone: text("phone"),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
 });
 
 // Crews table
 export const crews = pgTable("crews", {
   id: serial("id").primaryKey(),
   firmId: integer("firm_id").notNull().references(() => firms.id),
-  name: varchar("name").notNull(),
-  uniqueNumber: varchar("unique_number").notNull(), // Уникальный номер бригады
-  leaderName: varchar("leader_name").notNull(),
-  phone: varchar("phone"),
+  name: text("name").notNull(),
+  uniqueNumber: text("unique_number"),
+  leaderName: text("leader_name"),
+  phone: text("phone"),
   address: text("address"),
-  status: varchar("status", { enum: ["active", "vacation", "equipment_issue", "unavailable"] }).notNull().default("active"),
+  status: text("status", { enum: ["active", "vacation", "equipment_issue", "unavailable"] }).notNull().default("active"),
+  gcalId: text("gcal_id"), // Google Calendar ID (legacy)
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow(),
   archived: boolean("archived").default(false),
-  createdAt: timestamp("created_at").defaultNow(),
 });
 
 // Crew Members table - участники бригады
 export const crewMembers = pgTable("crew_members", {
   id: serial("id").primaryKey(),
   crewId: integer("crew_id").notNull().references(() => crews.id),
-  firstName: varchar("first_name").notNull(),
-  lastName: varchar("last_name").notNull(),
+  firstName: text("first_name").notNull(),
+  lastName: text("last_name").notNull(),
+  uniqueNumber: text("unique_number"),
+  phone: text("phone"),
+  role: text("role").default("worker"), // "leader", "worker", "specialist"
+  memberEmail: text("member_email"),
+  googleCalendarId: text("google_calendar_id"), // Legacy Google Calendar ID
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
+  archived: boolean("archived").default(false),
   address: text("address"),
-  uniqueNumber: varchar("unique_number").notNull(), // Уникальный номер участника
-  phone: varchar("phone"),
-  role: varchar("role").default("worker"), // "leader", "worker", "specialist"
-  memberEmail: varchar("member_email"),
   // Worker Portal authentication fields
   pin: varchar("pin", { length: 6 }), // 6-digit PIN for worker authentication
-  pinCreatedAt: timestamp("pin_created_at"), // When the PIN was generated
-  authUserId: uuid("auth_user_id"), // Link to Supabase Auth user when worker logs in
-  archived: boolean("archived").default(false),
-  createdAt: timestamp("created_at").defaultNow(),
+  pinCreatedAt: timestamp("pin_created_at", { withTimezone: true }),
+  authUserId: uuid("auth_user_id"),
 });
 
 // Projects table
@@ -134,103 +145,104 @@ export const projects = pgTable("projects", {
   clientId: integer("client_id").notNull().references(() => clients.id),
   leiterId: uuid("leiter_id").notNull().references(() => profiles.id),
   crewId: integer("crew_id").references(() => crews.id),
-  startDate: date("start_date"),
-  endDate: date("end_date"),
-  status: varchar("status", { enum: ["planning", "equipment_waiting", "equipment_arrived", "work_scheduled", "work_in_progress", "work_completed", "reclamation", "invoiced", "send_invoice", "invoice_sent", "paid"] })
+  status: text("status", { enum: ["planning", "equipment_waiting", "equipment_arrived", "work_scheduled", "work_in_progress", "work_completed", "reclamation", "invoiced", "send_invoice", "invoice_sent", "paid"] })
     .notNull()
     .default("planning"),
-  teamNumber: varchar("team_number"),
-  notes: text("notes"),
-  invoiceNumber: varchar("invoice_number"),
-  invoiceUrl: varchar("invoice_url"),
   // Управление датами и оборудованием
   equipmentExpectedDate: date("equipment_expected_date"),
   equipmentArrivedDate: date("equipment_arrived_date"),
   workStartDate: date("work_start_date"),
   workEndDate: date("work_end_date"),
+  // Токен для загрузки фотографий бригадой
+  crewUploadToken: text("crew_upload_token"),
+  crewUploadTokenExpires: timestamp("crew_upload_token_expires", { withTimezone: true }),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow(),
+  // Additional fields that exist in DB
+  startDate: date("start_date"),
+  endDate: date("end_date"),
+  teamNumber: text("team_number"),
+  notes: text("notes"),
+  invoiceNumber: text("invoice_number"),
+  invoiceUrl: text("invoice_url"),
   // Флаги для уведомлений
   needsCallForEquipmentDelay: boolean("needs_call_equipment_delay").default(false),
   needsCallForCrewDelay: boolean("needs_call_crew_delay").default(false),
   needsCallForDateChange: boolean("needs_call_date_change").default(false),
   // Информация о человеке, у которого делается установка
-  installationPersonFirstName: varchar("installation_person_first_name"),
-  installationPersonLastName: varchar("installation_person_last_name"),
+  installationPersonFirstName: text("installation_person_first_name"),
+  installationPersonLastName: text("installation_person_last_name"),
   installationPersonAddress: text("installation_person_address"),
-  installationPersonPhone: varchar("installation_person_phone"),
-  installationPersonUniqueId: varchar("installation_person_unique_id"),
-  // Токен для загрузки фотографий бригадой
-  crewUploadToken: varchar("crew_upload_token"),
-  crewUploadTokenExpires: timestamp("crew_upload_token_expires"),
-  createdAt: timestamp("created_at").defaultNow(),
-  updatedAt: timestamp("updated_at").defaultNow(),
+  installationPersonPhone: text("installation_person_phone"),
+  installationPersonUniqueId: text("installation_person_unique_id"),
 });
 
 // Services table
 export const services = pgTable("services", {
   id: serial("id").primaryKey(),
   projectId: integer("project_id").notNull().references(() => projects.id),
-  productKey: varchar("product_key"),
-  description: text("description").notNull(),
-  price: decimal("price", { precision: 10, scale: 2 }).notNull(),
-  quantity: decimal("quantity", { precision: 10, scale: 2 }).notNull().default("1"),
+  productKey: text("product_key"),
+  description: text("description"),
+  price: decimal("price", { precision: 10, scale: 2 }),
+  quantity: integer("quantity").default(1),
   isCustom: boolean("is_custom").default(false),
-  createdAt: timestamp("created_at").defaultNow(),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
 });
 
 // Invoices table
 export const invoices = pgTable("invoices", {
   id: serial("id").primaryKey(),
   projectId: integer("project_id").notNull().references(() => projects.id),
-  invoiceId: varchar("invoice_id").notNull(), // String ID from Invoice Ninja
-  invoiceNumber: varchar("invoice_number").notNull(),
-  invoiceDate: date("invoice_date").notNull(),
-  dueDate: date("due_date").notNull(),
-  totalAmount: decimal("total_amount", { precision: 10, scale: 2 }).notNull(),
+  invoiceId: text("invoice_id"),
+  invoiceNumber: text("invoice_number"),
+  invoiceDate: date("invoice_date"),
+  dueDate: date("due_date"),
+  totalAmount: decimal("total_amount", { precision: 10, scale: 2 }),
   isPaid: boolean("is_paid").default(false),
-  status: varchar("status", { 
-    enum: ["draft", "sent", "viewed", "partial", "paid", "overdue"] 
-  }).default("draft"), // Статус из Invoice Ninja API
-  createdAt: timestamp("created_at").defaultNow(),
+  status: text("status", {
+    enum: ["draft", "sent", "viewed", "partial", "paid", "overdue"]
+  }).default("draft"),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
 });
 
-// Project Files table (legacy - будет удалена в будущем)
+// Project Files table (legacy)
 export const projectFiles = pgTable("project_files", {
   id: serial("id").primaryKey(),
   projectId: integer("project_id").notNull().references(() => projects.id),
   fileUrl: varchar("file_url").notNull(),
   fileName: varchar("file_name"),
-  fileType: varchar("file_type").notNull(), // Убрал enum ограничения для совместимости с PDF файлами
-  uploadedAt: timestamp("uploaded_at").defaultNow(),
+  fileType: varchar("file_type").notNull(),
+  uploadedAt: timestamp("uploaded_at", { withTimezone: true }).defaultNow(),
 });
 
-// File Storage table - новая улучшенная система хранения файлов
+// File Storage table
 export const fileStorage = pgTable("file_storage", {
   id: serial("id").primaryKey(),
-  fileId: varchar("file_id").notNull().unique(), // UUID для идентификации файла
-  originalName: varchar("original_name").notNull(), // Оригинальное имя файла
-  fileName: varchar("file_name").notNull(), // Имя файла на диске
-  mimeType: varchar("mime_type").notNull(), // MIME тип файла
-  size: integer("size").notNull(), // Размер файла в байтах
-  category: varchar("category", { 
-    enum: ["project_file", "report", "invoice", "document", "image", "profile"] 
-  }).notNull(),
-  projectId: integer("project_id").references(() => projects.id), // Опциональная связь с проектом
-  uploadedBy: uuid("uploaded_by").notNull().references(() => profiles.id), // Кто загрузил файл
-  uploadedAt: timestamp("uploaded_at").defaultNow(),
-  storagePath: varchar("storage_path"), // Path in Supabase Storage (e.g. "invoices/invoice_0061_123.pdf")
-  isDeleted: boolean("is_deleted").default(false), // Мягкое удаление
-  deletedAt: timestamp("deleted_at"),
+  fileId: uuid("file_id").notNull().unique(),
+  originalName: text("original_name").notNull(),
+  fileName: text("file_name").notNull(),
+  mimeType: text("mime_type"),
+  size: integer("size"),
+  category: text("category", {
+    enum: ["project_file", "report", "invoice", "document", "image", "profile"]
+  }),
+  projectId: integer("project_id").references(() => projects.id),
+  uploadedBy: uuid("uploaded_by").references(() => profiles.id),
+  uploadedAt: timestamp("uploaded_at", { withTimezone: true }).defaultNow(),
+  isDeleted: boolean("is_deleted").default(false),
+  deletedAt: timestamp("deleted_at", { withTimezone: true }),
+  storagePath: text("storage_path"),
 });
 
-// Project Reports table - для фото отчетов выполненных работ
+// Project Reports table
 export const projectReports = pgTable("project_reports", {
   id: serial("id").primaryKey(),
   projectId: integer("project_id").notNull().references(() => projects.id),
-  rating: integer("rating").notNull(), // Оценка от 1 до 5
-  reviewText: text("review_text"), // Письменный отзыв
-  reviewDocumentUrl: varchar("review_document_url"), // URL PDF или фото отзыва
-  completedAt: timestamp("completed_at").defaultNow(),
-  createdAt: timestamp("created_at").defaultNow(),
+  rating: integer("rating"),
+  reviewText: text("review_text"),
+  reviewDocumentUrl: text("review_document_url"),
+  completedAt: timestamp("completed_at", { withTimezone: true }).defaultNow(),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
 });
 
 // Invoice Queue table
@@ -241,126 +253,109 @@ export const invoiceQueue = pgTable("invoice_queue", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
-// Project Notes table - примечания к проекту
+// Project Notes table
 export const projectNotes = pgTable("project_notes", {
   id: serial("id").primaryKey(),
   projectId: integer("project_id").notNull().references(() => projects.id),
   userId: uuid("user_id").notNull().references(() => profiles.id),
   content: text("content").notNull(),
-  priority: varchar("priority", { 
-    enum: ['normal', 'important', 'urgent', 'critical'] 
+  priority: text("priority", {
+    enum: ['normal', 'important', 'urgent', 'critical']
   }).default('normal'),
-  createdAt: timestamp("created_at").defaultNow(),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
 });
 
-// Project Crew Snapshots table - снимки состава бригады на момент назначения
+// Project Crew Snapshots table
 export const projectCrewSnapshots = pgTable("project_crew_snapshots", {
   id: serial("id").primaryKey(),
   projectId: integer("project_id").notNull().references(() => projects.id),
   crewId: integer("crew_id").notNull(),
-  snapshotDate: timestamp("snapshot_date").defaultNow().notNull(),
-  crewData: jsonb("crew_data").notNull(), // Данные о бригаде на момент снимка
-  membersData: jsonb("members_data").notNull(), // Массив участников на момент снимка
-  createdBy: uuid("created_by").notNull().references(() => profiles.id),
+  snapshotDate: timestamp("snapshot_date", { withTimezone: true }).defaultNow().notNull(),
+  crewData: jsonb("crew_data"),
+  membersData: jsonb("members_data"),
+  createdBy: uuid("created_by").references(() => profiles.id),
 });
 
-// Crew History table - история изменений состава бригад  
+// Crew History table
 export const crewHistory = pgTable("crew_history", {
   id: serial("id").primaryKey(),
   crewId: integer("crew_id").notNull().references(() => crews.id),
-  changeType: varchar("change_type", { 
-    enum: ["crew_created", "member_added", "member_removed"] 
+  changeType: text("change_type", {
+    enum: ["crew_created", "member_added", "member_removed"]
   }).notNull(),
-  memberId: integer("member_id").references(() => crewMembers.id), // null для crew_created
-  memberName: varchar("member_name"), // Имя участника на момент изменения
-  memberSpecialization: varchar("member_specialization"), // Специализация участника
-  startDate: date("start_date"), // Дата начала работы участника
-  endDate: date("end_date"), // Дата окончания работы (для удаленных)
-  changeDescription: text("change_description"), // Описание изменения
-  createdAt: timestamp("created_at").defaultNow(),
-  createdBy: uuid("created_by").references(() => profiles.id), // Кто внес изменение
+  memberId: integer("member_id"),
+  memberName: text("member_name"),
+  memberSpecialization: text("member_specialization"),
+  memberGoogleCalendarId: text("member_google_calendar_id"), // Legacy
+  startDate: date("start_date"),
+  endDate: date("end_date"),
+  changeDescription: text("change_description"),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
+  createdBy: uuid("created_by").references(() => profiles.id),
 });
 
-// Project History table - для отслеживания всех изменений в проекте
+// Project History table
 export const projectHistory = pgTable("project_history", {
   id: serial("id").primaryKey(),
   projectId: integer("project_id").notNull().references(() => projects.id),
   userId: uuid("user_id").notNull().references(() => profiles.id),
-  changeType: varchar("change_type", { 
-    enum: ['status_change', 'date_update', 'info_update', 'created', 'equipment_update', 'call_update', 'assignment_change', 'shared', 'file_added', 'file_deleted', 'report_added', 'report_updated', 'report_deleted', 'note_added', 'crew_assigned', 'crew_snapshot_created'] 
+  changeType: text("change_type", {
+    enum: ['status_change', 'date_update', 'info_update', 'created', 'equipment_update', 'call_update', 'assignment_change', 'shared', 'file_added', 'file_deleted', 'report_added', 'report_updated', 'report_deleted', 'note_added', 'crew_assigned', 'crew_snapshot_created']
   }).notNull(),
-  fieldName: varchar("field_name"), // название поля которое изменилось
+  fieldName: text("field_name"),
   oldValue: text("old_value"),
   newValue: text("new_value"),
-  description: text("description").notNull(),
-  crewSnapshotId: integer("crew_snapshot_id").references(() => projectCrewSnapshots.id),
-  createdAt: timestamp("created_at").defaultNow(),
+  description: text("description"),
+  crewSnapshotId: integer("crew_snapshot_id"),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
 });
 
-// Project Shares table - для совместного доступа к проектам
+// Project Shares table
 export const projectShares = pgTable("project_shares", {
   id: serial("id").primaryKey(),
   projectId: integer("project_id").notNull().references(() => projects.id),
   sharedBy: uuid("shared_by").notNull().references(() => profiles.id),
   sharedWith: uuid("shared_with").notNull().references(() => profiles.id),
-  permission: varchar("permission", { enum: ['view', 'edit'] }).default('view'),
-  createdAt: timestamp("created_at").defaultNow(),
+  permission: text("permission", { enum: ['view', 'edit'] }).default('view'),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
 }, (table) => {
   return {
     uniqueShare: unique().on(table.projectId, table.sharedWith),
   };
 });
 
-// Reclamations table - рекламации (претензии по качеству)
+// Reclamations table
 export const reclamations = pgTable("reclamations", {
   id: serial("id").primaryKey(),
   projectId: integer("project_id").notNull().references(() => projects.id),
   firmId: integer("firm_id").notNull().references(() => firms.id),
-
-  // Описание проблемы
   description: text("description").notNull(),
   deadline: date("deadline").notNull(),
-
-  // Статус рекламации
   status: varchar("status", {
     enum: ["pending", "accepted", "rejected", "in_progress", "completed", "cancelled"]
   }).notNull().default("pending"),
-
-  // Бригады
   originalCrewId: integer("original_crew_id").notNull().references(() => crews.id),
   currentCrewId: integer("current_crew_id").notNull().references(() => crews.id),
-
-  // Кто создал
   createdBy: uuid("created_by").notNull().references(() => profiles.id),
   createdAt: timestamp("created_at").defaultNow(),
-
-  // Принятие
   acceptedBy: integer("accepted_by").references(() => crewMembers.id),
   acceptedAt: timestamp("accepted_at"),
-
-  // Завершение
   completedAt: timestamp("completed_at"),
   completedNotes: text("completed_notes"),
 });
 
-// Reclamation History table - история действий по рекламациям
+// Reclamation History table
 export const reclamationHistory = pgTable("reclamation_history", {
   id: serial("id").primaryKey(),
   reclamationId: integer("reclamation_id").notNull().references(() => reclamations.id),
-
   action: varchar("action", {
     enum: ["created", "assigned", "accepted", "rejected", "reassigned", "completed", "cancelled"]
   }).notNull(),
-
-  // Кто выполнил действие
   actionBy: uuid("action_by").references(() => profiles.id),
   actionByMember: integer("action_by_member").references(() => crewMembers.id),
-
-  // Детали
   crewId: integer("crew_id").references(() => crews.id),
   reason: text("reason"),
   notes: text("notes"),
-
   createdAt: timestamp("created_at").defaultNow(),
 });
 

@@ -62,14 +62,43 @@ export async function authenticateSupabase(
     // Получаем полный профиль пользователя через Supabase REST API
     // Используем service role client который обходит RLS
 
-    const { data: profile, error: profileError } = await supabase
+    let { data: profile, error: profileError } = await supabase
       .from('profiles')
       .select('*')
       .eq('id', user.id)
       .single();
 
+    // Если профиль не найден — автоматически создаём из данных auth.users
+    // Это покрывает случаи когда trigger handle_new_user не сработал
+    // или таблица profiles была пересоздана (например через drizzle-kit push)
+    if (profileError && profileError.code === 'PGRST116') {
+      console.log(`Profile not found for user ${user.id} (${user.email}), auto-creating...`);
 
-    if (profileError || !profile) {
+      const metadata = user.user_metadata || {};
+      const { data: newProfile, error: createError } = await supabase
+        .from('profiles')
+        .insert({
+          id: user.id,
+          email: user.email || '',
+          first_name: metadata.first_name || metadata.firstName || '',
+          last_name: metadata.last_name || metadata.lastName || '',
+          profile_image_url: metadata.profile_image_url || metadata.avatar_url || null,
+          role: 'leiter', // По умолчанию — руководитель проектов
+        })
+        .select()
+        .single();
+
+      if (createError || !newProfile) {
+        console.error('Failed to auto-create profile:', createError);
+        return res.status(500).json({
+          error: 'Failed to create user profile'
+        });
+      }
+
+      console.log(`Profile auto-created for user ${user.id} (${user.email}), role: leiter`);
+      profile = newProfile;
+      profileError = null;
+    } else if (profileError || !profile) {
       console.error('Profile not found or error:', profileError);
       return res.status(404).json({
         error: 'User profile not found'
