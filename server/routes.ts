@@ -2301,42 +2301,68 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Invoice not found in database" });
       }
 
-      // Try to get PDF file from Supabase Storage (with local fallback)
+      // Try to get PDF file from storage
       let pdfBase64: string | undefined;
-      const files = await storage.getFilesByProjectId(parseInt(projectId));
-      console.log(`Files in database for project ${projectId}:`, files);
 
-      // Find invoice PDF in database
-      const pdfFile = files.find(f => f.fileName?.includes('invoice') && f.fileName?.endsWith('.pdf'));
+      // First check new file_storage table
+      const storageFiles = await storage.getProjectFiles(parseInt(projectId));
+      console.log(`Storage files for project ${projectId}:`, storageFiles.map(f => f.originalName));
+      const storagePdf = storageFiles.find(f =>
+        (f.originalName?.toLowerCase().includes('invoice') || f.category === 'invoice') &&
+        f.mimeType === 'application/pdf'
+      );
 
-      if (pdfFile && pdfFile.fileName) {
+      if (storagePdf) {
         try {
-          console.log(`Trying to read PDF: ${pdfFile.fileName}`);
-          const pdfBuffer = await fileStorageService.getFile(pdfFile.fileName);
+          console.log(`Trying to read PDF from storage: ${storagePdf.fileName}`);
+          const pdfBuffer = await fileStorageService.getFile(storagePdf.fileName);
           pdfBase64 = pdfBuffer.toString('base64');
           console.log(`Successfully read PDF file, size: ${pdfBuffer.length} bytes`);
         } catch (error) {
-          console.error('Error reading PDF file:', error);
+          console.error('Error reading PDF from storage:', error);
         }
-      } else {
-        console.log('No PDF file found for invoice');
+      }
+
+      // Fallback to legacy project_files table
+      if (!pdfBase64) {
+        const legacyFiles = await storage.getFilesByProjectId(parseInt(projectId));
+        console.log(`Legacy files for project ${projectId}:`, legacyFiles.map(f => f.fileName));
+        const legacyPdf = legacyFiles.find(f => f.fileName?.includes('invoice') && f.fileName?.endsWith('.pdf'));
+
+        if (legacyPdf && legacyPdf.fileName) {
+          try {
+            console.log(`Trying to read legacy PDF: ${legacyPdf.fileName}`);
+            const pdfBuffer = await fileStorageService.getFile(legacyPdf.fileName);
+            pdfBase64 = pdfBuffer.toString('base64');
+            console.log(`Successfully read legacy PDF, size: ${pdfBuffer.length} bytes`);
+          } catch (error) {
+            console.error('Error reading legacy PDF:', error);
+          }
+        } else {
+          console.log('No PDF file found for invoice in any table');
+        }
       }
 
       // Prepare template variables
-      const templateVars = {
-        invoiceNumber: project.invoiceNumber,
+      const formattedAmount = new Intl.NumberFormat('de-DE', {
+        style: 'currency',
+        currency: 'EUR'
+      }).format(Number(invoice.totalAmount));
+
+      const templateVars: Record<string, string> = {
+        invoiceNumber: project.invoiceNumber || '',
         firmName: firm.name,
         clientName: client.name,
-        amount: new Intl.NumberFormat('de-DE', { 
-          style: 'currency', 
-          currency: 'EUR' 
-        }).format(Number(invoice.totalAmount)),
+        amount: formattedAmount,
+        totalAmount: formattedAmount,
+        dueDate: invoice.dueDate || '',
+        invoiceDate: invoice.invoiceDate || '',
       };
 
       // Replace template variables
       const processTemplate = (template: string) => {
-        return template.replace(/{{(\w+)}}/g, (match, key) => {
-          return templateVars[key as keyof typeof templateVars] || match;
+        return template.replace(/\{\{(\w+)\}\}/g, (match, key) => {
+          return templateVars[key] || match;
         });
       };
 
