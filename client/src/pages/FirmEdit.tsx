@@ -10,6 +10,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
+import { Checkbox } from '@/components/ui/checkbox';
 import { ArrowLeft, Save, TestTube } from 'lucide-react';
 import { apiRequest } from '@/lib/queryClient';
 import { useToast } from '@/hooks/use-toast';
@@ -22,10 +23,13 @@ const firmEditSchema = z.object({
   token: z.string().min(1, 'API токен обязателен'),
   address: z.string().optional(),
   taxId: z.string().optional(),
-  // Postmark fields
-  postmarkServerToken: z.string().optional(),
-  postmarkFromEmail: z.string().email('Неверный формат email').optional().or(z.literal('')),
-  postmarkMessageStream: z.string().optional(),
+  // SMTP fields
+  smtpHost: z.string().optional(),
+  smtpPort: z.string().optional(),
+  smtpUser: z.string().optional(),
+  smtpPassword: z.string().optional(),
+  smtpSecure: z.boolean().optional(),
+  smtpFrom: z.string().email('Неверный формат email').optional().or(z.literal('')),
   // Email template fields
   emailSubjectTemplate: z.string().optional(),
   emailBodyTemplate: z.string().optional(),
@@ -34,7 +38,7 @@ const firmEditSchema = z.object({
 export default function FirmEdit() {
   const { id } = useParams<{ id: string }>();
   const [, setLocation] = useLocation();
-  const [isTestingPostmark, setIsTestingPostmark] = useState(false);
+  const [isTestingSmtp, setIsTestingSmtp] = useState(false);
   const { toast } = useToast();
   const { user } = useAuth();
   const queryClient = useQueryClient();
@@ -56,9 +60,12 @@ export default function FirmEdit() {
       token: '',
       address: '',
       taxId: '',
-      postmarkServerToken: '',
-      postmarkFromEmail: '',
-      postmarkMessageStream: 'outbound',
+      smtpHost: '',
+      smtpPort: '587',
+      smtpUser: '',
+      smtpPassword: '',
+      smtpSecure: false,
+      smtpFrom: '',
       emailSubjectTemplate: 'Счет №{{invoiceNumber}} от {{firmName}}',
       emailBodyTemplate: 'Уважаемый {{clientName}},\n\nВо вложении находится счет №{{invoiceNumber}} за установку солнечных панелей.\n\nС уважением,\n{{firmName}}',
     },
@@ -72,9 +79,12 @@ export default function FirmEdit() {
         token: firm.token || '',
         address: firm.address || '',
         taxId: firm.taxId || '',
-        postmarkServerToken: firm.postmarkServerToken || '',
-        postmarkFromEmail: firm.postmarkFromEmail || '',
-        postmarkMessageStream: firm.postmarkMessageStream || 'outbound',
+        smtpHost: firm.smtpHost || '',
+        smtpPort: firm.smtpPort || '587',
+        smtpUser: firm.smtpUser || '',
+        smtpPassword: firm.smtpPassword || '',
+        smtpSecure: firm.smtpSecure || false,
+        smtpFrom: firm.smtpFrom || '',
         emailSubjectTemplate: firm.emailSubjectTemplate || 'Счет №{{invoiceNumber}} от {{firmName}}',
         emailBodyTemplate: firm.emailBodyTemplate || 'Уважаемый {{clientName}},\n\nВо вложении находится счет №{{invoiceNumber}} за установку солнечных панелей.\n\nС уважением,\n{{firmName}}',
       });
@@ -102,9 +112,9 @@ export default function FirmEdit() {
     },
   });
 
-  const testPostmarkMutation = useMutation({
-    mutationFn: async (data: { token: string; fromEmail: string; messageStream: string; testEmail?: string }) => {
-      const response = await apiRequest('/api/postmark/test', 'POST', data);
+  const testSmtpMutation = useMutation({
+    mutationFn: async (data: { host: string; port: string; smtpUser: string; password: string; secure: boolean; fromEmail: string; testEmail?: string }) => {
+      const response = await apiRequest('/api/smtp/test', 'POST', data);
       if (!response.ok) {
         const error = await response.json();
         throw error;
@@ -118,20 +128,11 @@ export default function FirmEdit() {
       });
     },
     onError: (error: any) => {
-      // Handle sandbox mode errors specially
-      if (error.sandboxMode) {
-        toast({
-          title: 'Postmark в режиме песочницы',
-          description: error.message,
-          variant: 'destructive',
-        });
-      } else {
-        toast({
-          title: 'Ошибка теста',
-          description: error.message || 'Не удалось отправить тестовое письмо',
-          variant: 'destructive',
-        });
-      }
+      toast({
+        title: 'Ошибка теста',
+        description: error.message || 'Не удалось отправить тестовое письмо',
+        variant: 'destructive',
+      });
     },
   });
 
@@ -142,35 +143,37 @@ export default function FirmEdit() {
   const [testEmailAddress, setTestEmailAddress] = useState('');
   const [showTestEmailDialog, setShowTestEmailDialog] = useState(false);
 
-  const handleTestPostmark = async () => {
+  const handleTestSmtp = async () => {
     const values = form.getValues();
-    if (!values.postmarkServerToken || !values.postmarkFromEmail) {
+    if (!values.smtpHost || !values.smtpFrom) {
       toast({
         title: 'Ошибка',
-        description: 'Заполните токен и email отправителя для теста',
+        description: 'Заполните SMTP сервер и email отправителя для теста',
         variant: 'destructive',
       });
       return;
     }
 
-    // Show dialog to ask for test email address
     setShowTestEmailDialog(true);
   };
 
   const sendTestEmail = async () => {
     const values = form.getValues();
-    setIsTestingPostmark(true);
+    setIsTestingSmtp(true);
     try {
-      await testPostmarkMutation.mutateAsync({
-        token: values.postmarkServerToken,
-        fromEmail: values.postmarkFromEmail,
-        messageStream: values.postmarkMessageStream || 'outbound',
+      await testSmtpMutation.mutateAsync({
+        host: values.smtpHost || '',
+        port: values.smtpPort || '587',
+        smtpUser: values.smtpUser || '',
+        password: values.smtpPassword || '',
+        secure: values.smtpSecure || false,
+        fromEmail: values.smtpFrom || '',
         testEmail: testEmailAddress || undefined,
       });
       setShowTestEmailDialog(false);
       setTestEmailAddress('');
     } finally {
-      setIsTestingPostmark(false);
+      setIsTestingSmtp(false);
     }
   };
 
@@ -200,19 +203,8 @@ export default function FirmEdit() {
           <DialogHeader>
             <DialogTitle>Тестовая отправка Email</DialogTitle>
             <DialogDescription>
-              {form.getValues('postmarkFromEmail') && (
-                <div className="mt-2 p-3 bg-yellow-50 border border-yellow-200 rounded-md">
-                  <p className="text-sm text-yellow-800">
-                    <strong>Внимание:</strong> Ваш Postmark аккаунт может находиться в режиме песочницы. 
-                    В этом случае вы можете отправлять письма только на адреса с доменом 
-                    <code className="bg-yellow-100 px-1 mx-1">@{form.getValues('postmarkFromEmail')?.split('@')[1]}</code>
-                  </p>
-                </div>
-              )}
-              <p className="mt-3">
-                Укажите email адрес для тестовой отправки. Если оставить поле пустым, 
-                письмо будет отправлено на ваш email ({user?.email || 'текущий пользователь'}).
-              </p>
+              Укажите email адрес для тестовой отправки. Если оставить поле пустым,
+              письмо будет отправлено на ваш email ({user?.email || 'текущий пользователь'}).
             </DialogDescription>
           </DialogHeader>
           <div className="py-4">
@@ -227,8 +219,8 @@ export default function FirmEdit() {
             <Button variant="outline" onClick={() => setShowTestEmailDialog(false)}>
               Отмена
             </Button>
-            <Button onClick={sendTestEmail} disabled={isTestingPostmark}>
-              {isTestingPostmark ? 'Отправка...' : 'Отправить тест'}
+            <Button onClick={sendTestEmail} disabled={isTestingSmtp}>
+              {isTestingSmtp ? 'Отправка...' : 'Отправить тест'}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -329,30 +321,76 @@ export default function FirmEdit() {
                   )}
                 />
 
-                {/* Postmark Integration */}
+                {/* SMTP Integration */}
                 <div className="space-y-4 pt-6 border-t">
-                  <h3 className="text-lg font-semibold">Интеграция с Postmark</h3>
+                  <h3 className="text-lg font-semibold">Настройки SMTP</h3>
                   <p className="text-sm text-gray-600">
-                    Настройте Postmark для автоматической отправки счетов клиентам по email
+                    Настройте SMTP для автоматической отправки счетов клиентам по email
                   </p>
 
-                  <FormField
-                    control={form.control}
-                    name="postmarkServerToken"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Server Token Postmark</FormLabel>
-                        <FormControl>
-                          <Input {...field} type="password" placeholder="Вставьте токен из Postmark" />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+                  <div className="grid grid-cols-2 gap-4">
+                    <FormField
+                      control={form.control}
+                      name="smtpHost"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>SMTP сервер</FormLabel>
+                          <FormControl>
+                            <Input {...field} placeholder="smtp.example.com" />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="smtpPort"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Порт</FormLabel>
+                          <FormControl>
+                            <Input {...field} placeholder="587" />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <FormField
+                      control={form.control}
+                      name="smtpUser"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Логин</FormLabel>
+                          <FormControl>
+                            <Input {...field} placeholder="user@example.com" />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="smtpPassword"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Пароль</FormLabel>
+                          <FormControl>
+                            <Input {...field} type="password" placeholder="••••••••" />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
 
                   <FormField
                     control={form.control}
-                    name="postmarkFromEmail"
+                    name="smtpFrom"
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>Email отправителя</FormLabel>
@@ -366,14 +404,18 @@ export default function FirmEdit() {
 
                   <FormField
                     control={form.control}
-                    name="postmarkMessageStream"
+                    name="smtpSecure"
                     render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Message Stream</FormLabel>
+                      <FormItem className="flex flex-row items-center space-x-3 space-y-0">
                         <FormControl>
-                          <Input {...field} placeholder="outbound" />
+                          <Checkbox
+                            checked={field.value}
+                            onCheckedChange={field.onChange}
+                          />
                         </FormControl>
-                        <FormMessage />
+                        <FormLabel className="font-normal">
+                          SSL/TLS (порт 465)
+                        </FormLabel>
                       </FormItem>
                     )}
                   />
@@ -381,11 +423,11 @@ export default function FirmEdit() {
                   <Button
                     type="button"
                     variant="outline"
-                    onClick={handleTestPostmark}
-                    disabled={isTestingPostmark || testPostmarkMutation.isPending}
+                    onClick={handleTestSmtp}
+                    disabled={isTestingSmtp || testSmtpMutation.isPending}
                   >
                     <TestTube className="h-4 w-4 mr-2" />
-                    {isTestingPostmark ? 'Тестирование...' : 'Тестировать отправку'}
+                    {isTestingSmtp ? 'Тестирование...' : 'Тестировать отправку'}
                   </Button>
                 </div>
 

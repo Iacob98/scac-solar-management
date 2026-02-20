@@ -63,10 +63,13 @@ export const firms = pgTable("firms", {
   address: text("address"),
   taxId: varchar("tax_id"),
   logoUrl: varchar("logo_url"),
-  // Postmark integration fields
-  postmarkServerToken: varchar("postmark_server_token"),
-  postmarkFromEmail: varchar("postmark_from_email"),
-  postmarkMessageStream: varchar("postmark_message_stream").default("transactional"),
+  // SMTP integration fields
+  smtpHost: varchar("smtp_host"),
+  smtpPort: varchar("smtp_port").default("587"),
+  smtpUser: varchar("smtp_user"),
+  smtpPassword: varchar("smtp_password"),
+  smtpSecure: boolean("smtp_secure").default(false),
+  smtpFrom: varchar("smtp_from"),
   // Email template fields
   emailSubjectTemplate: varchar("email_subject_template").default("Счет №{{invoiceNumber}} от {{firmName}}"),
   emailBodyTemplate: text("email_body_template").default("Уважаемый {{clientName}},\n\nВо вложении находится счет №{{invoiceNumber}} за установку солнечных панелей.\n\nС уважением,\n{{firmName}}"),

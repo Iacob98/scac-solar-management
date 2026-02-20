@@ -5,7 +5,7 @@ import { supabase } from "./supabaseClient";
 import { authenticateSupabase, requireAdmin as requireAdminMiddleware } from "./middleware/supabaseAuth.js";
 import authRouter from "./routes/auth.js";
 import { InvoiceNinjaService } from "./services/invoiceNinja";
-import { PostmarkService } from "./services/postmark";
+import { SmtpService } from "./services/smtp";
 import { db } from "./db";
 import { firms, projects, projectHistory, projectNotes, fileStorage } from "@shared/schema";
 import { eq } from "drizzle-orm";
@@ -406,9 +406,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         token: req.body.token,
         address: req.body.address,
         taxId: req.body.taxId,
-        postmarkServerToken: req.body.postmarkServerToken,
-        postmarkFromEmail: req.body.postmarkFromEmail,
-        postmarkMessageStream: req.body.postmarkMessageStream,
+        smtpHost: req.body.smtpHost,
+        smtpPort: req.body.smtpPort,
+        smtpUser: req.body.smtpUser,
+        smtpPassword: req.body.smtpPassword,
+        smtpSecure: req.body.smtpSecure,
+        smtpFrom: req.body.smtpFrom,
         emailSubjectTemplate: req.body.emailSubjectTemplate,
         emailBodyTemplate: req.body.emailBodyTemplate,
       };
@@ -2217,50 +2220,43 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Test Postmark connection
-  app.post('/api/postmark/test', authenticateSupabase, async (req: any, res) => {
+  // Test SMTP connection
+  app.post('/api/smtp/test', authenticateSupabase, async (req: any, res) => {
     try {
       const userId = req.user.id;
       const user = await storage.getUser(userId);
-      
+
       if (!user || user.role !== 'admin') {
         return res.status(403).json({ message: "Access denied" });
       }
 
-      const { token, fromEmail, messageStream, testEmail } = req.body;
-      
-      if (!token || !fromEmail) {
-        return res.status(400).json({ message: "Token and from email are required" });
+      const { host, port, smtpUser, password, secure, fromEmail, testEmail } = req.body;
+
+      if (!host || !fromEmail) {
+        return res.status(400).json({ message: "SMTP host and from email are required" });
       }
 
-      // Use testEmail if provided, otherwise use user's email or sender's email
       const recipientEmail = testEmail || user.email || fromEmail;
-      
-      const postmark = new PostmarkService(token);
-      await postmark.sendTestEmail(fromEmail, recipientEmail);
-      
-      res.json({ 
-        success: true, 
+
+      const smtp = new SmtpService({
+        host,
+        port: parseInt(port) || 587,
+        user: smtpUser || '',
+        password: password || '',
+        secure: secure || false,
+      });
+      await smtp.sendTestEmail(fromEmail, recipientEmail);
+
+      res.json({
+        success: true,
         email: recipientEmail,
-        message: `Тестовое письмо отправлено на ${recipientEmail}` 
+        message: `Тестовое письмо отправлено на ${recipientEmail}`
       });
     } catch (error: any) {
-      console.error("Error testing Postmark:", error);
-      
-      // Check if it's a sandbox domain restriction error
-      if (error.message && error.message.includes('pending approval')) {
-        const { fromEmail } = req.body;
-        const fromDomain = fromEmail ? fromEmail.split('@')[1] : 'your-domain.com';
-        res.status(400).json({ 
-          message: `Ваш Postmark аккаунт находится в режиме песочницы. Вы можете отправлять письма только на адреса с доменом @${fromDomain}. Для снятия ограничений необходимо подать заявку на активацию аккаунта в Postmark.`,
-          sandboxMode: true,
-          allowedDomain: fromDomain
-        });
-      } else {
-        res.status(400).json({ 
-          message: error.message || "Failed to send test email" 
-        });
-      }
+      console.error("Error testing SMTP:", error);
+      res.status(400).json({
+        message: error.message || "Failed to send test email"
+      });
     }
   });
 
@@ -2285,8 +2281,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Firm not found" });
       }
 
-      if (!firm.postmarkServerToken || !firm.postmarkFromEmail) {
-        return res.status(400).json({ message: "Postmark не настроен для этой фирмы" });
+      if (!firm.smtpHost || !firm.smtpFrom) {
+        return res.status(400).json({ message: "SMTP не настроен для этой фирмы" });
       }
 
       // Get client details
@@ -2347,22 +2343,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const subject = processTemplate(firm.emailSubjectTemplate || 'Счет №{{invoiceNumber}} от {{firmName}}');
       const htmlBody = processTemplate(firm.emailBodyTemplate || 'Уважаемый {{clientName}},\n\nВо вложении находится счет №{{invoiceNumber}} за установку солнечных панелей.\n\nС уважением,\n{{firmName}}').replace(/\n/g, '<br>');
 
-      // Send email with Postmark
-      const postmark = new PostmarkService(firm.postmarkServerToken);
+      // Send email with SMTP
+      const smtp = new SmtpService({
+        host: firm.smtpHost,
+        port: parseInt(firm.smtpPort || '587'),
+        user: firm.smtpUser || '',
+        password: firm.smtpPassword || '',
+        secure: firm.smtpSecure || false,
+      });
       const attachments = pdfBase64 ? [{
         name: `invoice_${project.invoiceNumber}.pdf`,
         content: pdfBase64,
         contentType: 'application/pdf',
       }] : undefined;
 
-      await postmark.sendEmail({
-        from: firm.postmarkFromEmail,
+      await smtp.sendEmail({
+        from: firm.smtpFrom,
         to: client.email,
         subject,
         htmlBody: `<div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">${htmlBody}</div>`,
         textBody: processTemplate(firm.emailBodyTemplate || 'Уважаемый {{clientName}},\n\nВо вложении находится счет №{{invoiceNumber}} за установку солнечных панелей.\n\nС уважением,\n{{firmName}}'),
         attachments,
-        messageStream: firm.postmarkMessageStream || 'outbound',
       });
 
       // Update project status
