@@ -110,10 +110,8 @@ export default function ProjectDetail({ projectId, selectedFirm, onBack }: Proje
   const { data: project, isLoading: projectLoading, error: projectError } = useQuery({
     queryKey: ['/api/projects', projectId],
     queryFn: async () => {
-      console.log('Making API request for project:', projectId);
       const response = await apiRequest(`/api/projects/${projectId}`, 'GET');
       const data = await response.json();
-      console.log('Project API response:', data);
       return data;
     },
     retry: 1,
@@ -121,8 +119,6 @@ export default function ProjectDetail({ projectId, selectedFirm, onBack }: Proje
     gcTime: 0,
   });
 
-  console.log('Project state:', { project, projectLoading, projectError, projectId });
-  console.log('Project data keys:', project ? Object.keys(project) : 'no project');
 
   const { data: services } = useQuery({
     queryKey: ['/api/services', projectId],
@@ -161,7 +157,6 @@ export default function ProjectDetail({ projectId, selectedFirm, onBack }: Proje
     enabled: !!selectedFirm,
   });
 
-  console.log('Related data:', { client, clientError, crew, crewError });
 
   // Reports and Files queries
   const { data: reports = [], isLoading: reportsLoading } = useQuery({
@@ -422,12 +417,9 @@ export default function ProjectDetail({ projectId, selectedFirm, onBack }: Proje
 
   const createNoteMutation = useMutation({
     mutationFn: (data: any) => {
-      console.log('createNoteMutation mutationFn вызвана:', data);
-      console.log('URL запроса:', `/api/projects/${projectId}/notes`);
       return apiRequest(`/api/projects/${projectId}/notes`, 'POST', data);
     },
-    onSuccess: (result) => {
-      console.log('createNoteMutation onSuccess:', result);
+    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/projects', projectId, 'notes'] });
       queryClient.invalidateQueries({ queryKey: ['/api/projects', projectId, 'history'] });
       toast({ title: 'Примечание добавлено успешно' });
@@ -435,12 +427,6 @@ export default function ProjectDetail({ projectId, selectedFirm, onBack }: Proje
       noteForm.reset();
     },
     onError: (error: any) => {
-      console.log('createNoteMutation onError:', error);
-      console.log('Детали ошибки:', {
-        message: error.message,
-        status: error.status,
-        response: error.response
-      });
       toast({
         title: 'Ошибка',
         description: error.message || 'Не удалось добавить примечание',
@@ -516,7 +502,6 @@ export default function ProjectDetail({ projectId, selectedFirm, onBack }: Proje
   }
 
   if (!project) {
-    console.log('Project not found, loading state:', projectLoading);
     return (
       <div className="flex items-center justify-center h-96">
         <div className="text-center">

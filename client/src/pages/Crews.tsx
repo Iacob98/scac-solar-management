@@ -140,23 +140,17 @@ export default function Crews() {
   };
 
   const openEditDialog = (crew: any) => {
-    console.log('🚀 Opening edit dialog for crew:', crew);
-    console.log('📊 Current dialog state:', isDialogOpen);
-    console.log('📋 Current editing crew:', editingCrew);
-    
     setEditingCrew(crew);
-    
+
     const formData = {
       name: crew.name,
       leaderName: crew.leaderName,
       phone: crew.phone || '',
       status: crew.status || 'active',
     };
-    
-    console.log('📝 Setting form data:', formData);
+
     form.reset(formData);
     setIsDialogOpen(true);
-    console.log('✅ Dialog should be opened now');
   };
 
   const closeDialog = () => {
@@ -391,8 +385,6 @@ export default function Crews() {
                           onClick={(e) => {
                             e.preventDefault();
                             e.stopPropagation();
-                            alert(`Edit button clicked for crew: ${crew.name}`);
-                            console.log('🔥 Edit button clicked for crew:', crew);
                             openEditDialog(crew);
                           }}
                         >

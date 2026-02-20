@@ -93,16 +93,12 @@ export default function Settings() {
         headers['Authorization'] = authHeaders['Authorization'];
       }
 
-      console.log('[Settings] Uploading avatar, headers:', headers);
-
       const response = await fetch('/api/files/upload', {
         method: 'POST',
         headers: headers,
         body: formData,
         credentials: 'include'
       });
-
-      console.log('[Settings] Upload response status:', response.status);
 
       if (!response.ok) {
         const error = await response.json();

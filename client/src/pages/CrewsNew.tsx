@@ -882,36 +882,21 @@ export default function CrewsNew() {
 
   const createCrewMutation = useMutation({
     mutationFn: async (data: ExtendedCrewForm) => {
-      console.log('🔥 Frontend: Starting API request with data:', data);
-      console.log('🏢 Frontend: Using firmId:', selectedFirmId);
-      
       const requestData = {
         ...data,
         firmId: selectedFirmId,
       };
-      
-      console.log('📡 Frontend: Final request data:', requestData);
-      
-      try {
-        const response = await apiRequest('/api/crews', 'POST', requestData);
-        console.log('📋 Frontend: Response status:', response.status);
-        
-        if (!response.ok) {
-          const errorText = await response.text();
-          console.error('❌ Frontend: Response error:', errorText);
-          throw new Error(`Server error: ${response.status} ${errorText}`);
-        }
-        
-        const result = await response.json();
-        console.log('✅ Frontend: Response success:', result);
-        return result;
-      } catch (error) {
-        console.error('💥 Frontend: API request failed:', error);
-        throw error;
+
+      const response = await apiRequest('/api/crews', 'POST', requestData);
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Server error: ${response.status} ${errorText}`);
       }
+
+      return await response.json();
     },
-    onSuccess: (data) => {
-      console.log('🎉 Frontend: Mutation successful:', data);
+    onSuccess: () => {
       // Инвалидируем запрос с правильным ключом
       queryClient.invalidateQueries({ queryKey: ['/api/crews', selectedFirmId] });
       queryClient.refetchQueries({ queryKey: ['/api/crews', selectedFirmId] });
@@ -923,7 +908,6 @@ export default function CrewsNew() {
       });
     },
     onError: (error: any) => {
-      console.error('❌ Frontend: Mutation failed:', error);
       toast({
         title: 'Ошибка создания бригады',
         description: error.message || 'Не удалось создать бригаду',
@@ -986,9 +970,6 @@ export default function CrewsNew() {
   };
 
   const onSubmit = (data: ExtendedCrewForm) => {
-    console.log('🚀 Creating crew with data:', data);
-    console.log('📋 Selected firm ID:', selectedFirmId);
-    
     if (!selectedFirmId) {
       toast({
         title: 'Ошибка',
@@ -1056,15 +1037,7 @@ export default function CrewsNew() {
                 </DialogDescription>
               </DialogHeader>
               <Form {...form}>
-                <form onSubmit={form.handleSubmit(
-                  (data) => {
-                    console.log('🔥 Form submit event triggered!', data);
-                    onSubmit(data);
-                  },
-                  (errors) => {
-                    console.error('❌ Form validation errors:', errors);
-                  }
-                )} className="space-y-6">
+                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
                   {/* Основная информация о бригаде */}
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <FormField
@@ -1275,12 +1248,7 @@ export default function CrewsNew() {
                     <Button type="button" variant="outline" onClick={() => setIsCreateDialogOpen(false)}>
                       Отмена
                     </Button>
-                    <Button type="submit" disabled={createCrewMutation.isPending} onClick={() => {
-                      console.log('🔥 Button clicked!');
-                      console.log('📋 Form errors:', form.formState.errors);
-                      console.log('📊 Form values:', form.getValues());
-                      console.log('✅ Form valid:', form.formState.isValid);
-                    }}>
+                    <Button type="submit" disabled={createCrewMutation.isPending}>
                       {createCrewMutation.isPending ? 'Создание...' : 'Создать бригаду'}
                     </Button>
                   </div>

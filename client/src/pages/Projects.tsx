@@ -62,9 +62,6 @@ interface ProjectsProps {
 }
 
 function ProjectsList({ selectedFirm, onViewProject, onManageServices }: ProjectsProps) {
-  console.log('PROJECTS COMPONENT LOADED!');
-  console.log('SELECTED FIRM:', selectedFirm);
-  
   const { toast } = useToast();
   const { user } = useAuth();
   const queryClient = useQueryClient();
@@ -77,11 +74,6 @@ function ProjectsList({ selectedFirm, onViewProject, onManageServices }: Project
     enabled: !!selectedFirm,
     refetchInterval: 30000, // Автообновление каждые 30 секунд
   });
-
-  // Простое логирование для отладки
-  console.log('PROJECTS COUNT:', projects?.length || 0);
-  console.log('PROJECTS DATA:', projects);
-  console.log('PROJECTS LOADING:', projectsLoading);
 
   const { data: clients = [] } = useQuery({
     queryKey: ['/api/clients', selectedFirm],
@@ -206,9 +198,6 @@ function ProjectsList({ selectedFirm, onViewProject, onManageServices }: Project
     updateProjectStatusMutation.mutate({ projectId, status });
   };
 
-  console.log('FILTER VALUE:', filter);
-  console.log('STATUS FILTER:', statusFilter);
-  
   const filteredProjects = projects.filter((project: any) => {
     const clientName = getClientName(project.clientId);
     const installationName = [

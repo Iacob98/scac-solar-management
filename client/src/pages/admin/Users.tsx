@@ -208,10 +208,6 @@ export default function Users() {
   });
 
   const onSubmit = (data: z.infer<typeof userSchema>) => {
-    console.log('onSubmit called with data:', data);
-    console.log('firmIds type:', typeof data.firmIds, data.firmIds);
-    console.log('editingUser:', editingUser);
-
     // Validate password for new leiter users
     if (!editingUser && data.role === 'leiter') {
       if (!data.password || data.password.length < 6) {
@@ -290,9 +286,7 @@ export default function Users() {
                   {editingUser ? 'Редактировать пользователя' : 'Добавить нового пользователя'}
                 </DialogTitle>
               </DialogHeader>
-              <form onSubmit={form.handleSubmit(onSubmit, (errors) => {
-                console.log('Form validation errors:', errors);
-              })} className="space-y-6">
+              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
                     <Label htmlFor="firstName">Имя</Label>

@@ -147,18 +147,7 @@ export function ProjectShareButton({ projectId, firmId, projectOwnerId, currentU
     const isShared = shares.some((share: ProjectShare) => share.sharedWith === user.id);
     const isOwner = user.id === projectOwnerId;
     const isCurrent = user.id === currentUserId;
-    
-    console.log('Filtering user:', {
-      user: user.email,
-      userId: user.id,
-      projectOwnerId,
-      currentUserId,
-      isShared,
-      isOwner,
-      isCurrent,
-      willInclude: !isShared && !isOwner && !isCurrent
-    });
-    
+
     return !isShared && !isOwner && !isCurrent;
   });
 

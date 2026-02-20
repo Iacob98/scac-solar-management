@@ -214,9 +214,7 @@ export default function ProjectHistory({ projectId, onBack, embedded = false, li
                   className="text-blue-600 hover:text-blue-800 font-semibold underline"
                   onClick={(e) => {
                     e.stopPropagation();
-                    console.log('Crew click:', { crewSnapshotId: entry.crewSnapshotId, entry });
                     if (entry.crewSnapshotId) {
-                      console.log('Setting selectedSnapshot to:', entry.crewSnapshotId);
                       setSelectedSnapshot(entry.crewSnapshotId);
                     }
                   }}
@@ -252,9 +250,7 @@ export default function ProjectHistory({ projectId, onBack, embedded = false, li
                 className="text-blue-600 hover:text-blue-800 font-semibold underline"
                 onClick={(e) => {
                   e.stopPropagation();
-                  console.log('Crew click:', { crewSnapshotId: entry.crewSnapshotId, entry });
                   if (entry.crewSnapshotId) {
-                    console.log('Setting selectedSnapshot to:', entry.crewSnapshotId);
                     setSelectedSnapshot(entry.crewSnapshotId);
                   }
                 }}

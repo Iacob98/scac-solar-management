@@ -128,11 +128,9 @@ function ProjectsList({ selectedFirm, onViewProject, onManageServices }: { selec
 
   const createProjectMutation = useMutation({
     mutationFn: (data: z.infer<typeof projectFormSchema> & { firmId: string; leiterId: string }) => {
-      console.log('Sending data to API:', data);
       return apiRequest('/api/projects', 'POST', data);
     },
     onSuccess: () => {
-      console.log('Project created successfully');
       queryClient.invalidateQueries({ queryKey: ['/api/projects', selectedFirm] });
       setIsCreateDialogOpen(false);
       form.reset();
@@ -221,22 +219,13 @@ function ProjectsList({ selectedFirm, onViewProject, onManageServices }: { selec
   });
 
   const onSubmit = async (data: z.infer<typeof projectFormSchema>) => {
-    console.log('Form submission started');
-    console.log('Form data:', data);
-    console.log('Form errors:', form.formState.errors);
-    console.log('Form is valid:', form.formState.isValid);
-    
     // Принудительная валидация
     const isValid = await form.trigger();
-    console.log('Manual validation result:', isValid);
-    
+
     if (!isValid) {
-      console.log('Form validation failed');
-      console.log('All errors:', form.formState.errors);
       return;
     }
-    
-    console.log('Submitting project data...');
+
     createProjectMutation.mutate({
       ...data,
       leiterId: user?.id || '',
@@ -553,26 +542,20 @@ function ProjectsList({ selectedFirm, onViewProject, onManageServices }: { selec
                     type="button" 
                     disabled={createProjectMutation.isPending}
                     onClick={async () => {
-                      console.log('Submit button clicked');
-                      
                       // Получаем данные формы напрямую
                       const formData = {
                         ...form.getValues(),
                         firmId: selectedFirm,
                         leiterId: user?.id || '',
                       };
-                      console.log('Form data:', formData);
-                      
+
                       // Проверяем валидность
                       const isValid = await form.trigger();
-                      console.log('Form is valid:', isValid);
-                      console.log('Form errors:', form.formState.errors);
-                      
+
                       if (!isValid) {
-                        console.log('Form validation failed');
                         return;
                       }
-                      
+
                       // Вызываем функцию отправки
                       await onSubmit(formData);
                     }}
