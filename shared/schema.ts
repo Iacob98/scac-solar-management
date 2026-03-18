@@ -574,7 +574,7 @@ export const notifications = pgTable("notifications", {
   userId: uuid("user_id").notNull().references(() => profiles.id), // Кому уведомление
   projectId: integer("project_id").references(() => projects.id),
   type: varchar("type", {
-    enum: ['file_added', 'note_added', 'status_change', 'report_added', 'reclamation_created']
+    enum: ['file_added', 'note_added', 'status_change', 'report_added', 'reclamation_created', 'craftos_date_change', 'craftos_status_change', 'craftos_new_appointment']
   }).notNull(),
   title: text("title").notNull(),
   message: text("message").notNull(),
@@ -597,6 +597,80 @@ export const insertNotificationSchema = createInsertSchema(notifications).omit({
 });
 export type InsertNotification = z.infer<typeof insertNotificationSchema>;
 export type Notification = typeof notifications.$inferSelect;
+
+// CraftOS Appointments sync table - отслеживание назначений из CraftOS
+export const craftosAppointments = pgTable("craftos_appointments", {
+  id: serial("id").primaryKey(),
+  firmId: integer("firm_id").notNull().references(() => firms.id),
+  projectId: integer("project_id").references(() => projects.id), // связь с созданным проектом
+  externalId: text("external_id"), // CraftOS appointment externalId
+  externalCaseId: text("external_case_id").notNull(), // e.g. DEHP5001164795
+  appointmentDate: timestamp("appointment_date", { withTimezone: true }),
+  appointmentEndDate: timestamp("appointment_end_date", { withTimezone: true }),
+  workOrderType: text("work_order_type"), // e.g. "WP Montage"
+  appointmentType: text("appointment_type"), // e.g. "SHK"
+  status: text("status"), // CraftOS status: NotStarted, Scheduled, etc.
+  customerName: text("customer_name"), // "Lastname, Firstname" raw
+  firstName: text("first_name"),
+  lastName: text("last_name"),
+  address: text("address"),
+  zipCode: text("zip_code"),
+  city: text("city"),
+  phone: text("phone"),
+  teamName: text("team_name"), // e.g. "HP CEP MT 10"
+  teamId: text("team_id"), // CraftOS team id
+  coordinates: text("coordinates"), // lat,lon
+  rawData: jsonb("raw_data"), // полный JSON из CraftOS для справки
+  // Tracking changes
+  lastSyncedAt: timestamp("last_synced_at", { withTimezone: true }).defaultNow(),
+  previousAppointmentDate: timestamp("previous_appointment_date", { withTimezone: true }),
+  previousStatus: text("previous_status"),
+  dateChangedAt: timestamp("date_changed_at", { withTimezone: true }),
+  statusChangedAt: timestamp("status_changed_at", { withTimezone: true }),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
+}, (table) => [
+  unique("craftos_case_id_unique").on(table.externalCaseId, table.firmId),
+]);
+
+export const insertCraftosAppointmentSchema = createInsertSchema(craftosAppointments).omit({
+  id: true,
+  createdAt: true,
+  lastSyncedAt: true,
+});
+export type InsertCraftosAppointment = z.infer<typeof insertCraftosAppointmentSchema>;
+export type CraftosAppointment = typeof craftosAppointments.$inferSelect;
+
+// CraftOS sync config per firm
+export const craftosSyncConfig = pgTable("craftos_sync_config", {
+  id: serial("id").primaryKey(),
+  firmId: integer("firm_id").notNull().references(() => firms.id).unique(),
+  email: text("email").notNull(),
+  password: text("password").notNull(),
+  enabled: boolean("enabled").default(true),
+  syncIntervalMinutes: integer("sync_interval_minutes").default(60),
+  lastSyncAt: timestamp("last_sync_at", { withTimezone: true }),
+  lastSyncStatus: text("last_sync_status"), // "success", "error"
+  lastSyncError: text("last_sync_error"),
+  accessToken: text("access_token"),
+  refreshToken: text("refresh_token"),
+  tokenExpiresAt: timestamp("token_expires_at", { withTimezone: true }),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow(),
+});
+
+export const insertCraftosSyncConfigSchema = createInsertSchema(craftosSyncConfig).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+  lastSyncAt: true,
+  lastSyncStatus: true,
+  lastSyncError: true,
+  accessToken: true,
+  refreshToken: true,
+  tokenExpiresAt: true,
+});
+export type InsertCraftosSyncConfig = z.infer<typeof insertCraftosSyncConfigSchema>;
+export type CraftosSyncConfig = typeof craftosSyncConfig.$inferSelect;
 
 // Reclamation schemas and types
 export const insertReclamationSchema = createInsertSchema(reclamations).omit({

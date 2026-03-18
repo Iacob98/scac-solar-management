@@ -22,6 +22,7 @@ import FirmEdit from "@/pages/FirmEdit";
 import Settings from "@/pages/Settings";
 import Calendar from "@/pages/Calendar";
 import { FileStorage } from "@/pages/FileStorage";
+import CraftosSync from "@/pages/CraftosSync";
 import NotFound from "@/pages/not-found";
 // CrewUpload is deprecated - replaced by Worker Portal with PIN authentication
 // import CrewUpload from "@/pages/CrewUpload";
@@ -158,6 +159,7 @@ function Router() {
       <Route path="/admin/firms" component={() => <ProtectedRoute component={FirmsManagement} adminOnly />} />
       <Route path="/admin/firms/:id/edit" component={() => <ProtectedRoute component={FirmEdit} adminOnly />} />
       <Route path="/admin/users" component={() => <ProtectedRoute component={Users} adminOnly />} />
+      <Route path="/craftos" component={() => <ProtectedRoute component={CraftosSync} />} />
 
       {/* 404 */}
       <Route component={NotFound} />

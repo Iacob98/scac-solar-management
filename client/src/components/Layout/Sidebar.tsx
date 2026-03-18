@@ -11,6 +11,7 @@ export function Sidebar() {
     { path: '/crews', label: 'Бригады', icon: 'groups' },
     { path: '/crews/statistics', label: 'Статистика', icon: 'analytics' },
     { path: '/calendar', label: 'Календарь', icon: 'event' },
+    { path: '/craftos', label: 'CraftOS', icon: 'sync' },
     ...(profile?.role === 'admin' ? [{ path: '/invoices', label: 'Счета', icon: 'receipt' }] : []),
   ];
 

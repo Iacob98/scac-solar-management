@@ -26,7 +26,9 @@ import workerAuthRoutes from "./routes/workerAuth";
 import workerPortalRoutes from "./routes/workerPortal";
 import reclamationRoutes from "./routes/reclamations";
 import notificationRoutes from "./routes/notifications";
+import craftosRoutes from "./routes/craftos";
 import { fileStorageService } from "./storage/fileStorage";
+import { craftosSyncService } from "./services/craftosSync";
 
 // Admin role check middleware (legacy - use requireAdminMiddleware from supabaseAuth instead)
 const isAdmin = async (req: any, res: any, next: any) => {
@@ -117,6 +119,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Notification routes
   app.use('/api/notifications', authenticateSupabase, notificationRoutes);
+
+  // CraftOS sync routes
+  app.use('/api/craftos', authenticateSupabase, craftosRoutes);
+
+  // Start CraftOS periodic sync
+  craftosSyncService.startPeriodicSync().catch((err) => {
+    console.error("[CraftOS] Failed to start periodic sync:", err.message);
+  });
 
   // Test endpoint for history entries
   app.get('/api/test-history', authenticateSupabase, async (req: any, res) => {
