@@ -7,8 +7,8 @@ import authRouter from "./routes/auth.js";
 import { InvoiceNinjaService } from "./services/invoiceNinja";
 import { SmtpService } from "./services/smtp";
 import { db } from "./db";
-import { firms, projects, projectHistory, projectNotes, fileStorage } from "@shared/schema";
-import { eq } from "drizzle-orm";
+import { firms, projects, projectHistory, projectNotes, fileStorage, projectFiles, projectReports, projectCrewSnapshots, projectShares, reclamations, reclamationHistory, craftosAppointments } from "@shared/schema";
+import { eq, inArray } from "drizzle-orm";
 import { 
   insertFirmSchema, 
   insertClientSchema, 
@@ -1413,6 +1413,40 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error updating project:", error);
       res.status(500).json({ message: "Failed to update project" });
+    }
+  });
+
+  // DELETE /api/projects/:id - удалить проект и все связанные данные
+  app.delete('/api/projects/:id', authenticateSupabase, async (req: any, res) => {
+    try {
+      const projectId = parseInt(req.params.id);
+      const user = await storage.getUser(req.user.id);
+      if (!user || user.role !== 'admin') {
+        return res.status(403).json({ message: "Только администраторы могут удалять проекты" });
+      }
+
+      // Удаляем связанные данные в правильном порядке
+      await db.delete(reclamationHistory).where(
+        inArray(reclamationHistory.reclamationId,
+          db.select({ id: reclamations.id }).from(reclamations).where(eq(reclamations.projectId, projectId))
+        )
+      );
+      await db.delete(reclamations).where(eq(reclamations.projectId, projectId));
+      await db.delete(projectShares).where(eq(projectShares.projectId, projectId));
+      await db.delete(projectHistory).where(eq(projectHistory.projectId, projectId));
+      await db.delete(projectFiles).where(eq(projectFiles.projectId, projectId));
+      await db.delete(projectReports).where(eq(projectReports.projectId, projectId));
+      await db.delete(projectCrewSnapshots).where(eq(projectCrewSnapshots.projectId, projectId));
+      await db.delete(projectNotes).where(eq(projectNotes.projectId, projectId));
+      // Отвязываем CraftOS appointment
+      await db.update(craftosAppointments).set({ projectId: null }).where(eq(craftosAppointments.projectId, projectId));
+      // Удаляем сам проект
+      await db.delete(projects).where(eq(projects.id, projectId));
+
+      res.json({ message: "Проект удалён" });
+    } catch (error) {
+      console.error("Error deleting project:", error);
+      res.status(500).json({ message: "Ошибка удаления проекта" });
     }
   });
 

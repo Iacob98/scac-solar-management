@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from '@/components/ui/dialog';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -104,7 +105,9 @@ export default function ProjectDetail({ projectId, selectedFirm, onBack }: Proje
   const [viewerImage, setViewerImage] = useState<{ src: string; alt: string } | null>(null);
   const [isReclamationDialogOpen, setIsReclamationDialogOpen] = useState(false);
   const { toast } = useToast();
-  const { user, accessToken } = useAuth();
+  const { user, accessToken, profile } = useAuth();
+  const isAdmin = profile?.role === 'admin';
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const queryClient = useQueryClient();
 
   const { data: project, isLoading: projectLoading, error: projectError } = useQuery({
@@ -377,6 +380,17 @@ export default function ProjectDetail({ projectId, selectedFirm, onBack }: Proje
     },
   });
 
+  const deleteProjectMutation = useMutation({
+    mutationFn: () => apiRequest(`/api/projects/${projectId}`, 'DELETE'),
+    onSuccess: () => {
+      toast({ title: 'Проект удалён' });
+      setLocation('/projects');
+    },
+    onError: (error: any) => {
+      toast({ title: 'Ошибка', description: error.message || 'Не удалось удалить проект', variant: 'destructive' });
+    },
+  });
+
   const downloadInvoicePdfMutation = useMutation({
     mutationFn: () => apiRequest(`/api/invoice/download-pdf/${projectId}`, 'POST'),
     onSuccess: (response: any) => {
@@ -546,12 +560,23 @@ export default function ProjectDetail({ projectId, selectedFirm, onBack }: Proje
             
             <div className="flex items-center space-x-3">
               {/* Кнопка "Поделиться" */}
-              <ProjectShareButton 
-                projectId={project.id} 
-                firmId={project.firmId} 
+              <ProjectShareButton
+                projectId={project.id}
+                firmId={project.firmId}
                 projectOwnerId={project.leiterId}
                 currentUserId={user?.id}
               />
+              {isAdmin && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="text-red-600 hover:bg-red-50"
+                  onClick={() => setDeleteConfirmOpen(true)}
+                >
+                  <Trash2 className="h-4 w-4 mr-1" />
+                  Удалить
+                </Button>
+              )}
             </div>
           </div>
         </div>
@@ -1485,6 +1510,29 @@ export default function ProjectDetail({ projectId, selectedFirm, onBack }: Proje
         firmId={project.firmId}
         currentCrewId={project.crewId || undefined}
       />
+
+      {/* Delete Project Confirmation */}
+      <AlertDialog open={deleteConfirmOpen} onOpenChange={setDeleteConfirmOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Удалить проект #{project.id}?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Будут удалены все связанные данные: файлы, отчёты, история, рекламации.
+              Это действие нельзя отменить.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Отмена</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => deleteProjectMutation.mutate()}
+              className="bg-red-600 hover:bg-red-700"
+              disabled={deleteProjectMutation.isPending}
+            >
+              {deleteProjectMutation.isPending ? 'Удаление...' : 'Удалить'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
     </div>
   );
