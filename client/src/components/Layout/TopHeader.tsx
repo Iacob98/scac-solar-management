@@ -5,7 +5,7 @@ import { apiRequest } from '@/lib/queryClient';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { Bell, ChevronDown, Settings, LogOut, Image, MessageSquare, CheckCircle2, Check } from 'lucide-react';
+import { Bell, ChevronDown, Settings, LogOut, Image, MessageSquare, CheckCircle2, Check, CalendarClock, RefreshCw, Sun } from 'lucide-react';
 import type { Firm } from '@shared/schema';
 
 // Notification type from API
@@ -13,7 +13,7 @@ interface NotificationItem {
   id: number;
   userId: string;
   projectId: number | null;
-  type: 'file_added' | 'note_added' | 'status_change' | 'report_added' | 'reclamation_created';
+  type: 'file_added' | 'note_added' | 'status_change' | 'report_added' | 'reclamation_created' | 'craftos_date_change' | 'craftos_status_change' | 'craftos_new_appointment';
   title: string;
   message: string;
   link: string | null;
@@ -60,6 +60,12 @@ const getNotificationIcon = (type: NotificationItem['type']) => {
       return <MessageSquare className="w-4 h-4 text-green-500" />;
     case 'status_change':
       return <CheckCircle2 className="w-4 h-4 text-orange-500" />;
+    case 'craftos_date_change':
+      return <CalendarClock className="w-4 h-4 text-red-500" />;
+    case 'craftos_status_change':
+      return <RefreshCw className="w-4 h-4 text-yellow-500" />;
+    case 'craftos_new_appointment':
+      return <Sun className="w-4 h-4 text-green-500" />;
     default:
       return <Bell className="w-4 h-4 text-gray-500" />;
   }
