@@ -628,9 +628,9 @@ export class CraftosSyncService {
     if (!apt) return { error: "Appointment not found" };
     if (apt.projectId) return { error: "Project already created for this appointment" };
 
-    // Find or create client
+    // Client is always "Enpal" for CraftOS imports
     let clientId: number;
-    const clientName = `${apt.lastName || ""} ${apt.firstName || ""}`.trim() || apt.customerName || "Unknown";
+    const clientName = "Enpal";
 
     const existingClients = await storage.getClientsByFirmId(String(firmId));
     const matchingClient = existingClients.find(
@@ -643,8 +643,6 @@ export class CraftosSyncService {
       const newClient = await storage.createClient({
         firmId,
         name: clientName,
-        address: [apt.address, apt.zipCode, apt.city].filter(Boolean).join(", "),
-        phone: apt.phone || undefined,
       });
       clientId = newClient.id;
     }
