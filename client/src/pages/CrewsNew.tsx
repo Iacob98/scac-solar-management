@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
@@ -807,6 +808,7 @@ export default function CrewsNew() {
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [viewingMembers, setViewingMembers] = useState<number | null>(null);
   const [expandedHistory, setExpandedHistory] = useState<number | null>(null);
+  const [deleteCrewId, setDeleteCrewId] = useState<number | null>(null);
 
   useEffect(() => {
     const firmId = localStorage.getItem('selectedFirmId');
@@ -939,6 +941,24 @@ export default function CrewsNew() {
     },
   });
 
+  const deleteCrewMutation = useMutation({
+    mutationFn: async (crewId: number) => {
+      const response = await apiRequest(`/api/crews/${crewId}`, 'DELETE');
+      return await response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/crews', selectedFirmId] });
+      setDeleteCrewId(null);
+      toast({ title: 'Бригада удалена' });
+    },
+    onError: (error: any) => {
+      toast({
+        title: 'Ошибка',
+        description: error.message || 'Не удалось удалить бригаду',
+        variant: 'destructive',
+      });
+    },
+  });
 
 
   const addMember = () => {
@@ -1340,6 +1360,15 @@ export default function CrewsNew() {
                         <Edit className="h-4 w-4 mr-2" />
                         Редактировать
                       </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="w-full sm:w-auto text-red-600 hover:bg-red-50"
+                        onClick={() => setDeleteCrewId(crew.id)}
+                      >
+                        <Trash2 className="h-4 w-4 mr-2" />
+                        Удалить
+                      </Button>
                     </div>
                   </div>
                   
@@ -1416,6 +1445,28 @@ export default function CrewsNew() {
           </DialogContent>
         </Dialog>
       </div>
+
+      {/* Delete Crew Confirmation */}
+      <AlertDialog open={deleteCrewId !== null} onOpenChange={(open) => !open && setDeleteCrewId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Удалить бригаду?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Будут удалены все участники и история бригады. Это действие нельзя отменить.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Отмена</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => deleteCrewId && deleteCrewMutation.mutate(deleteCrewId)}
+              className="bg-red-600 hover:bg-red-700"
+              disabled={deleteCrewMutation.isPending}
+            >
+              {deleteCrewMutation.isPending ? 'Удаление...' : 'Удалить'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </MainLayout>
   );
 }

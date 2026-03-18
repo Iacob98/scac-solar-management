@@ -533,6 +533,28 @@ export class DatabaseStorage implements IStorage {
   }
 
   async deleteCrew(id: number): Promise<void> {
+    // Unlink projects
+    await db.update(projects).set({ crewId: null }).where(eq(projects.crewId, id));
+    // Delete reclamation history for reclamations linked to this crew
+    await db.delete(reclamationHistory).where(eq(reclamationHistory.crewId, id));
+    // Unlink reclamations
+    await db.update(reclamations).set({ originalCrewId: id, currentCrewId: id }).where(
+      or(eq(reclamations.originalCrewId, id), eq(reclamations.currentCrewId, id))
+    );
+    // Delete reclamations linked to this crew
+    const crewReclamations = await db.select({ id: reclamations.id }).from(reclamations).where(
+      or(eq(reclamations.originalCrewId, id), eq(reclamations.currentCrewId, id))
+    );
+    for (const rec of crewReclamations) {
+      await db.delete(reclamationHistory).where(eq(reclamationHistory.reclamationId, rec.id));
+    }
+    await db.delete(reclamations).where(
+      or(eq(reclamations.originalCrewId, id), eq(reclamations.currentCrewId, id))
+    );
+    // Delete crew history, snapshots, members
+    await db.delete(crewHistory).where(eq(crewHistory.crewId, id));
+    await db.delete(projectCrewSnapshots).where(eq(projectCrewSnapshots.crewId, id));
+    await db.delete(crewMembers).where(eq(crewMembers.crewId, id));
     await db.delete(crews).where(eq(crews.id, id));
   }
 
@@ -573,6 +595,14 @@ export class DatabaseStorage implements IStorage {
   }
 
   async deleteCrewMember(id: number): Promise<void> {
+    // Unlink from profiles
+    await db.update(profiles).set({ crewMemberId: null }).where(eq(profiles.crewMemberId, id));
+    // Unlink from reclamations
+    await db.update(reclamations).set({ acceptedBy: null }).where(eq(reclamations.acceptedBy, id));
+    await db.update(reclamationHistory).set({ actionByMember: null }).where(eq(reclamationHistory.actionByMember, id));
+    // Delete crew history entries for this member
+    await db.delete(crewHistory).where(eq(crewHistory.memberId, id));
+    // Delete member
     await db.delete(crewMembers).where(eq(crewMembers.id, id));
   }
 
