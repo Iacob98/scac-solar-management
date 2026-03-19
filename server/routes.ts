@@ -626,7 +626,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Admins see crews from all their firms, others see only selected firm
       let accessibleCrews: any[] = [];
 
-      if (user.role === 'admin') {
+      if (user.role === 'admin' || user.role === 'leiter') {
         const userFirmsList = await storage.getFirmsByUserId(userId);
         const allCrewsArrays = await Promise.all(
           userFirmsList.map(f => storage.getCrewsByFirmId(String(f.id)))
