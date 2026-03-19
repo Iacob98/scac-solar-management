@@ -68,7 +68,10 @@ type ConfigUpdateFormData = z.infer<typeof configUpdateSchema>;
 
 // --- Helpers ---
 const getISOWeek = (date: Date): number => {
-  const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+  // Convert to German timezone (Europe/Berlin) to match CraftOS
+  const berlinStr = date.toLocaleDateString('en-CA', { timeZone: 'Europe/Berlin' });
+  const [y, m, day] = berlinStr.split('-').map(Number);
+  const d = new Date(Date.UTC(y, m - 1, day));
   const dayNum = d.getUTCDay() || 7;
   d.setUTCDate(d.getUTCDate() + 4 - dayNum);
   const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));

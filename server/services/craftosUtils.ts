@@ -51,10 +51,20 @@ export function parseCustomerName(name: string): { firstName: string; lastName: 
 }
 
 /**
- * Get ISO week number from a date.
+ * Convert a UTC date to German local date (Europe/Berlin CET/CEST).
+ */
+function toGermanDate(date: Date): Date {
+  const berlinStr = date.toLocaleDateString('en-CA', { timeZone: 'Europe/Berlin' });
+  const [y, m, d] = berlinStr.split('-').map(Number);
+  return new Date(Date.UTC(y, m - 1, d));
+}
+
+/**
+ * Get ISO week number from a date, using German timezone.
+ * CraftOS uses Europe/Berlin, so we match their week calculation.
  */
 export function getISOWeek(date: Date): number {
-  const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+  const d = toGermanDate(date);
   const dayNum = d.getUTCDay() || 7;
   d.setUTCDate(d.getUTCDate() + 4 - dayNum);
   const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
