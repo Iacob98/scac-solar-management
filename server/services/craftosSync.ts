@@ -431,7 +431,8 @@ export class CraftosSyncService {
       try {
         const apts = await this.fetchAppointmentsForWeek(token, week, teamIds, woTypeIds);
         for (const apt of apts) {
-          if (apt.externalCaseId && !allAppointments.has(apt.externalCaseId)) {
+          if (apt.externalCaseId) {
+            // Always overwrite with latest data (later weeks have more recent info)
             allAppointments.set(apt.externalCaseId, apt);
           }
         }
