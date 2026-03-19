@@ -623,22 +623,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "User not found" });
       }
       
-      const allCrews = await storage.getCrewsByFirmId(firmId);
-      
-      // Filter crews based on user access rights
+      // Admins see crews from all their firms, others see only selected firm
       let accessibleCrews: any[] = [];
-      
+
       if (user.role === 'admin') {
-        // Admins see all crews
-        accessibleCrews = allCrews;
+        const userFirmsList = await storage.getFirmsByUserId(userId);
+        const allCrewsArrays = await Promise.all(
+          userFirmsList.map(f => storage.getCrewsByFirmId(String(f.id)))
+        );
+        accessibleCrews = allCrewsArrays.flat();
       } else {
-        // Leiters see all crews in their firm - they can create and manage crews
-        // Check if user has access to this firm
         const hasAccess = await storage.hasUserFirmAccess(userId, firmId);
         if (hasAccess) {
-          accessibleCrews = allCrews;
-        } else {
-          accessibleCrews = [];
+          accessibleCrews = await storage.getCrewsByFirmId(firmId);
         }
       }
       
